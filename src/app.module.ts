@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { typeOrmConfig } from './typeorm.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoriasModule } from './categorias/categorias.module';
@@ -24,7 +26,29 @@ import { UtilizaModule } from './utiliza/utiliza.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
-  imports: [CategoriasModule, AlmacenesModule, IngresosModule, InsumosModule, ActividadesModule, AlertasModule, CultivosModule, EpaModule, InventarioModule, LotesModule, MovimientosModule, RealizaModule, RolModule, SalidasModule, SensoresModule, SublotesModule, TieneModule, TiporolModule, TratamientosModule, UtilizaModule, UsuariosModule],
+  imports: [
+    TypeOrmModule.forRoot(typeOrmConfig),
+    CategoriasModule,
+    AlmacenesModule,
+    IngresosModule, 
+    InsumosModule, 
+    ActividadesModule, 
+    AlertasModule, 
+    CultivosModule, 
+    EpaModule, 
+    InventarioModule, 
+    LotesModule, 
+    MovimientosModule, 
+    RealizaModule, 
+    RolModule, 
+    SalidasModule, 
+    SensoresModule, 
+    SublotesModule, 
+    TieneModule, 
+    TiporolModule, 
+    TratamientosModule, 
+    UtilizaModule, 
+    UsuariosModule],
   controllers: [AppController],
   providers: [AppService],
 })
