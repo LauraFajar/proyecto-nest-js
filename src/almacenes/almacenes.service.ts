@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Almacen } from './entities/almacen.entity';
 import { CreateAlmaceneDto } from './dto/create-almacene.dto';
 import { UpdateAlmaceneDto } from './dto/update-almacene.dto';
 
 @Injectable()
 export class AlmacenesService {
-  create(createAlmaceneDto: CreateAlmaceneDto) {
-    return 'This action adds a new almacene';
+  constructor(
+    @InjectRepository(Almacen)
+    private almacenesRepository: Repository<Almacen>,
+  ) {}
+
+  async create(createAlmaceneDto: CreateAlmaceneDto) {
+    const nuevoAlmacen = this.almacenesRepository.create(createAlmaceneDto);
+    return await this.almacenesRepository.save(nuevoAlmacen);
   }
 
-  findAll() {
-    return `This action returns all almacenes`;
+  async findAll() {
+    return await this.almacenesRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} almacene`;
+  async findOne(id_almacen: number) {
+    return await this.almacenesRepository.findOneBy({ id_almacen });
   }
 
-  update(id: number, updateAlmaceneDto: UpdateAlmaceneDto) {
-    return `This action updates a #${id} almacene`;
+  async update(id_almacen: number, updateAlmaceneDto: UpdateAlmaceneDto) {
+    await this.almacenesRepository.update(id_almacen, updateAlmaceneDto);
+    return this.findOne(id_almacen); 
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} almacene`;
+  async remove(id_almacen: number) {
+    return await this.almacenesRepository.delete(id_almacen);
   }
 }

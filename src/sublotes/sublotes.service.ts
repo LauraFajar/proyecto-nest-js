@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Sublote } from './entities/sublote.entity';
 import { CreateSubloteDto } from './dto/create-sublote.dto';
 import { UpdateSubloteDto } from './dto/update-sublote.dto';
 
 @Injectable()
 export class SublotesService {
-  create(createSubloteDto: CreateSubloteDto) {
-    return 'This action adds a new sublote';
+  constructor(
+    @InjectRepository(Sublote)
+    private sublotesRepository: Repository<Sublote>,
+  ) {}
+
+  async create(createSubloteDto: CreateSubloteDto) {
+    const nuevoSublote = this.sublotesRepository.create(createSubloteDto);
+    return await this.sublotesRepository.save(nuevoSublote);
   }
 
-  findAll() {
-    return `This action returns all sublotes`;
+  async findAll() {
+    return await this.sublotesRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} sublote`;
+  async findOne(id_sublote: number) {
+    return await this.sublotesRepository.findOneBy({ id_sublote });
   }
 
-  update(id: number, updateSubloteDto: UpdateSubloteDto) {
-    return `This action updates a #${id} sublote`;
+  async update(id_sublote: number, updateSubloteDto: UpdateSubloteDto) {
+    await this.sublotesRepository.update(id_sublote, updateSubloteDto);
+    return this.findOne(id_sublote);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} sublote`;
+  async remove(id_sublote: number) {
+    return await this.sublotesRepository.delete(id_sublote);
   }
 }

@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Utiliza } from './entities/utiliza.entity';
 import { CreateUtilizaDto } from './dto/create-utiliza.dto';
 import { UpdateUtilizaDto } from './dto/update-utiliza.dto';
 
 @Injectable()
 export class UtilizaService {
-  create(createUtilizaDto: CreateUtilizaDto) {
-    return 'This action adds a new utiliza';
+  constructor(
+    @InjectRepository(Utiliza)
+    private utilizaRepository: Repository<Utiliza>,
+  ) {}
+
+  async create(createUtilizaDto: CreateUtilizaDto) {
+    const nuevoRegistro = this.utilizaRepository.create(createUtilizaDto);
+    return await this.utilizaRepository.save(nuevoRegistro);
   }
 
-  findAll() {
-    return `This action returns all utiliza`;
+  async findAll() {
+    return await this.utilizaRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} utiliza`;
+  async findOne(id_utiliza: number) {
+    return await this.utilizaRepository.findOneBy({ id_utiliza });
   }
 
-  update(id: number, updateUtilizaDto: UpdateUtilizaDto) {
-    return `This action updates a #${id} utiliza`;
+  async update(id_utiliza: number, updateUtilizaDto: UpdateUtilizaDto) {
+    await this.utilizaRepository.update(id_utiliza, updateUtilizaDto);
+    return this.findOne(id_utiliza); 
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} utiliza`;
+  async remove(id_utiliza: number) {
+    return await this.utilizaRepository.delete(id_utiliza);
   }
 }

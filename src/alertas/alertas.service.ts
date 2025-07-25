@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Alerta } from './entities/alerta.entity';
 import { CreateAlertaDto } from './dto/create-alerta.dto';
 import { UpdateAlertaDto } from './dto/update-alerta.dto';
 
 @Injectable()
 export class AlertasService {
-  create(createAlertaDto: CreateAlertaDto) {
-    return 'This action adds a new alerta';
+  constructor(
+    @InjectRepository(Alerta)
+    private alertasRepository: Repository<Alerta>,
+  ) {}
+
+  async create(createAlertaDto: CreateAlertaDto) {
+    const nuevaAlerta = this.alertasRepository.create(createAlertaDto);
+    return await this.alertasRepository.save(nuevaAlerta);
   }
 
-  findAll() {
-    return `This action returns all alertas`;
+  async findAll() {
+    return await this.alertasRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} alerta`;
+  async findOne(id_alerta: number) {
+    return await this.alertasRepository.findOneBy({ id_alerta });
   }
 
-  update(id: number, updateAlertaDto: UpdateAlertaDto) {
-    return `This action updates a #${id} alerta`;
+  async update(id_alerta: number, updateAlertaDto: UpdateAlertaDto) {
+    await this.alertasRepository.update(id_alerta, updateAlertaDto);
+    return this.findOne(id_alerta);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} alerta`;
+  async remove(id_alerta: number) {
+    return await this.alertasRepository.delete(id_alerta);
   }
 }

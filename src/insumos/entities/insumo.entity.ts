@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Categoria } from 'src/categorias/entities/categoria.entity';
+import { Almacen } from 'src/almacenes/entities/almacen.entity';
+import { Salida } from 'src/salidas/entities/salida.entity';
 
 @Entity('insumos')
 export class Insumo {
@@ -17,12 +20,15 @@ export class Insumo {
   @Column()
   observacion: string;
 
-  @Column()
-  id_categoria: number;
+  @ManyToOne(() => Categoria)
+  @JoinColumn({ name: 'id_categoria' })
+  id_categoria: Categoria;
 
-  @Column()
-  id_almacen: number;
+  @ManyToOne(() => Almacen)
+  @JoinColumn({ name: 'id_almacen' })
+  id_almacen: Almacen;
 
-  @Column()
-  id_salida: number;
+  @ManyToOne(() => Salida)
+  @JoinColumn({ name: 'id_salida' })
+  id_salida: Salida;
 }

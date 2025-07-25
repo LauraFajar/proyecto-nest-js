@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Insumo } from './entities/insumo.entity';
 import { CreateInsumoDto } from './dto/create-insumo.dto';
 import { UpdateInsumoDto } from './dto/update-insumo.dto';
 
 @Injectable()
 export class InsumosService {
-  create(createInsumoDto: CreateInsumoDto) {
-    return 'This action adds a new insumo';
+  constructor(
+    @InjectRepository(Insumo)
+    private insumosRepository: Repository<Insumo>,
+  ) {}
+
+  async create(createInsumoDto: CreateInsumoDto) {
+    const nuevoInsumo = this.insumosRepository.create(createInsumoDto);
+    return await this.insumosRepository.save(nuevoInsumo);
   }
 
-  findAll() {
-    return `This action returns all insumos`;
+  async findAll() {
+    return await this.insumosRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} insumo`;
+  async findOne(id_insumo: number) {
+    return await this.insumosRepository.findOneBy({ id_insumo });
   }
 
-  update(id: number, updateInsumoDto: UpdateInsumoDto) {
-    return `This action updates a #${id} insumo`;
+  async update(id_insumo: number, updateInsumoDto: UpdateInsumoDto) {
+    await this.insumosRepository.update(id_insumo, updateInsumoDto);
+    return this.findOne(id_insumo); 
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} insumo`;
+  async remove(id_insumo: number) {
+    return await this.insumosRepository.delete(id_insumo);
   }
 }

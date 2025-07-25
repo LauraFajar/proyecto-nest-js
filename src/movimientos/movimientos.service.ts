@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Movimiento } from './entities/movimiento.entity';
 import { CreateMovimientoDto } from './dto/create-movimiento.dto';
 import { UpdateMovimientoDto } from './dto/update-movimiento.dto';
 
 @Injectable()
 export class MovimientosService {
-  create(createMovimientoDto: CreateMovimientoDto) {
-    return 'This action adds a new movimiento';
+  constructor(
+    @InjectRepository(Movimiento)
+    private movimientosRepository: Repository<Movimiento>,
+  ) {}
+
+  async create(createMovimientoDto: CreateMovimientoDto) {
+    const nuevoMovimiento = this.movimientosRepository.create(createMovimientoDto);
+    return await this.movimientosRepository.save(nuevoMovimiento);
   }
 
-  findAll() {
-    return `This action returns all movimientos`;
+  async findAll() {
+    return await this.movimientosRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} movimiento`;
+  async findOne(id_movimiento: number) {
+    return await this.movimientosRepository.findOneBy({ id_movimiento });
   }
 
-  update(id: number, updateMovimientoDto: UpdateMovimientoDto) {
-    return `This action updates a #${id} movimiento`;
+  async update(id_movimiento: number, updateMovimientoDto: UpdateMovimientoDto) {
+    await this.movimientosRepository.update(id_movimiento, updateMovimientoDto);
+    return this.findOne(id_movimiento);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} movimiento`;
+  async remove(id_movimiento: number) {
+    return await this.movimientosRepository.delete(id_movimiento);
   }
 }

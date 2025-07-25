@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Insumo } from '../../insumos/entities/insumo.entity';
 
 @Entity('ingresos')
 export class Ingreso {
@@ -14,6 +15,7 @@ export class Ingreso {
   @Column()
   descripcion: string;
 
-  @Column()
-  id_insumo: number;
+  @ManyToOne(() => Insumo)
+  @JoinColumn({ name: 'id_insumo' })
+  id_insumo: Insumo;
 }

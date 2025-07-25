@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Sensor } from './entities/sensor.entity';
 import { CreateSensoreDto } from './dto/create-sensore.dto';
 import { UpdateSensoreDto } from './dto/update-sensore.dto';
 
 @Injectable()
 export class SensoresService {
-  create(createSensoreDto: CreateSensoreDto) {
-    return 'This action adds a new sensore';
+  constructor(
+    @InjectRepository(Sensor)
+    private sensoresRepository: Repository<Sensor>,
+  ) {}
+
+  async create(createSensorDto: CreateSensoreDto) {
+    const nuevoSensor = this.sensoresRepository.create(createSensorDto);
+    return await this.sensoresRepository.save(nuevoSensor);
   }
 
-  findAll() {
-    return `This action returns all sensores`;
+  async findAll() {
+    return await this.sensoresRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} sensore`;
+  async findOne(id_sensor: number) {
+    return await this.sensoresRepository.findOneBy({ id_sensor });
   }
 
-  update(id: number, updateSensoreDto: UpdateSensoreDto) {
-    return `This action updates a #${id} sensore`;
+  async update(id_sensor: number, updateSensorDto: UpdateSensoreDto) {
+    await this.sensoresRepository.update(id_sensor, updateSensorDto);
+    return this.findOne(id_sensor);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} sensore`;
+  async remove(id_sensor: number) {
+    return await this.sensoresRepository.delete(id_sensor);
   }
 }

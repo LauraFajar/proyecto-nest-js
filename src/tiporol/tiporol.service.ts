@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tiporol } from './entities/tiporol.entity';
 import { CreateTiporolDto } from './dto/create-tiporol.dto';
 import { UpdateTiporolDto } from './dto/update-tiporol.dto';
 
 @Injectable()
 export class TiporolService {
-  create(createTiporolDto: CreateTiporolDto) {
-    return 'This action adds a new tiporol';
+  constructor(
+    @InjectRepository(Tiporol)
+    private tiporolRepository: Repository<Tiporol>,
+  ) {}
+
+  async create(createTiporolDto: CreateTiporolDto) {
+    const nuevoTipoRol = this.tiporolRepository.create(createTiporolDto);
+    return await this.tiporolRepository.save(nuevoTipoRol);
   }
 
-  findAll() {
-    return `This action returns all tiporol`;
+  async findAll() {
+    return await this.tiporolRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} tiporol`;
+  async findOne(id_tipo_rol: number) {
+    return await this.tiporolRepository.findOneBy({ id_tipo_rol });
   }
 
-  update(id: number, updateTiporolDto: UpdateTiporolDto) {
-    return `This action updates a #${id} tiporol`;
+  async update(id_tipo_rol: number, updateTiporolDto: UpdateTiporolDto) {
+    await this.tiporolRepository.update(id_tipo_rol, updateTiporolDto);
+    return this.findOne(id_tipo_rol); 
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} tiporol`;
+  async remove(id_tipo_rol: number) {
+    return await this.tiporolRepository.delete(id_tipo_rol);
   }
 }

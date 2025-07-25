@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Insumo } from '../../insumos/entities/insumo.entity';
 
 @Entity('movimientos')
 export class Movimiento {
@@ -8,8 +9,9 @@ export class Movimiento {
   @Column()
   tipo_movimiento: string;
 
-  @Column()
-  id_insumo: number;
+  @ManyToOne(() => Insumo)
+  @JoinColumn({ name: 'id_insumo' })
+  id_insumo: Insumo;
 
   @Column()
   cantidad: number;

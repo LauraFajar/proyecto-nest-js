@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Cultivo } from './entities/cultivo.entity';
 import { CreateCultivoDto } from './dto/create-cultivo.dto';
 import { UpdateCultivoDto } from './dto/update-cultivo.dto';
 
 @Injectable()
 export class CultivosService {
-  create(createCultivoDto: CreateCultivoDto) {
-    return 'This action adds a new cultivo';
+  constructor(
+    @InjectRepository(Cultivo)
+    private cultivosRepository: Repository<Cultivo>,
+  ) {}
+
+  async create(createCultivoDto: CreateCultivoDto) {
+    const nuevoCultivo = this.cultivosRepository.create(createCultivoDto);
+    return await this.cultivosRepository.save(nuevoCultivo);
   }
 
-  findAll() {
-    return `This action returns all cultivos`;
+  async findAll() {
+    return await this.cultivosRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} cultivo`;
+  async findOne(id_cultivo: number) {
+    return await this.cultivosRepository.findOneBy({ id_cultivo });
   }
 
-  update(id: number, updateCultivoDto: UpdateCultivoDto) {
-    return `This action updates a #${id} cultivo`;
+  async update(id_cultivo: number, updateCultivoDto: UpdateCultivoDto) {
+    await this.cultivosRepository.update(id_cultivo, updateCultivoDto);
+    return this.findOne(id_cultivo);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} cultivo`;
+  async remove(id_cultivo: number) {
+    return await this.cultivosRepository.delete(id_cultivo);
   }
 }

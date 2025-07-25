@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Categoria } from '../../categorias/entities/categoria.entity';
+import { Almacen } from '../../almacenes/entities/almacen.entity';
 
 @Entity('salidas')
 export class Salida {
@@ -14,11 +16,13 @@ export class Salida {
   @Column()
   cantidad: number;
 
-  @Column()
-  id_categorias: number;
+  @ManyToOne(() => Categoria)
+  @JoinColumn({ name: 'id_categorias' })
+  id_categorias: Categoria;
 
-  @Column()
-  id_almacenes: number;
+  @ManyToOne(() => Almacen)
+  @JoinColumn({ name: 'id_almacenes' })
+  id_almacenes: Almacen;
 
   @Column()
   observacion: string;

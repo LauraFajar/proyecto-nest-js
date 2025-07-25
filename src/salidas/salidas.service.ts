@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Salida } from './entities/salida.entity';
 import { CreateSalidaDto } from './dto/create-salida.dto';
 import { UpdateSalidaDto } from './dto/update-salida.dto';
 
 @Injectable()
 export class SalidasService {
-  create(createSalidaDto: CreateSalidaDto) {
-    return 'This action adds a new salida';
+  constructor(
+    @InjectRepository(Salida)
+    private salidasRepository: Repository<Salida>,
+  ) {}
+
+  async create(createSalidaDto: CreateSalidaDto) {
+    const nuevaSalida = this.salidasRepository.create(createSalidaDto);
+    return await this.salidasRepository.save(nuevaSalida);
   }
 
-  findAll() {
-    return `This action returns all salidas`;
+  async findAll() {
+    return await this.salidasRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} salida`;
+  async findOne(id_salida: number) {
+    return await this.salidasRepository.findOneBy({ id_salida });
   }
 
-  update(id: number, updateSalidaDto: UpdateSalidaDto) {
-    return `This action updates a #${id} salida`;
+  async update(id_salida: number, updateSalidaDto: UpdateSalidaDto) {
+    await this.salidasRepository.update(id_salida, updateSalidaDto);
+    return this.findOne(id_salida); 
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} salida`;
+  async remove(id_salida: number) {
+    return await this.salidasRepository.delete(id_salida);
   }
 }

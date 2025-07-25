@@ -1,26 +1,36 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Actividad } from './entities/actividad.entity';
 import { CreateActividadeDto } from './dto/create-actividade.dto';
 import { UpdateActividadeDto } from './dto/update-actividade.dto';
 
 @Injectable()
 export class ActividadesService {
-  create(createActividadeDto: CreateActividadeDto) {
-    return 'This action adds a new actividade';
+  constructor(
+    @InjectRepository(Actividad)
+    private actividadesRepository: Repository<Actividad>,
+  ) {}
+
+  async create(createActividadDto: CreateActividadeDto) {
+    const nuevaActividad = this.actividadesRepository.create(createActividadDto);
+    return await this.actividadesRepository.save(nuevaActividad);
   }
 
-  findAll() {
-    return `This action returns all actividades`;
+  async findAll() {
+    return await this.actividadesRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} actividade`;
+  async findOne(id_actividad: number) {
+    return await this.actividadesRepository.findOneBy({ id_actividad });
   }
 
-  update(id: number, updateActividadeDto: UpdateActividadeDto) {
-    return `This action updates a #${id} actividade`;
+  async update(id_actividad: number, updateActividadDto: UpdateActividadeDto) {
+    await this.actividadesRepository.update(id_actividad, updateActividadDto);
+    return this.findOne(id_actividad);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} actividade`;
+  async remove(id_actividad: number) {
+    return await this.actividadesRepository.delete(id_actividad);
   }
 }
