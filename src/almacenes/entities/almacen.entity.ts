@@ -6,7 +6,7 @@ export class Almacen {
   id_almacen: number;
 
   @Column()
-  nombre: string;
+  nombre_almacen: string;
 
   @Column()
   descripcion: string;

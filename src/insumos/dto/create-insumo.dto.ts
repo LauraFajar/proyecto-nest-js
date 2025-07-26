@@ -1,1 +1,19 @@
-export class CreateInsumoDto {}
+import { IsDateString, IsNotEmpty, IsString, Length } from 'class-validator';
+
+export class CreateInsumoDto {
+  @IsString()
+  @Length(1, 30, { message: 'El nombre debe tener entre 1 y 30 caracteres.' })
+  nombre_insumo: string;
+
+  @IsString()
+  @Length(1, 20, { message: 'El código debe tener entre 1 y 20 caracteres.' })
+  codigo: string;
+
+  @IsDateString({}, { message: 'La fecha debe tener formato YYYY-MM-DD.' })
+  fecha_entrada: string;
+
+  @IsString()
+  @Length(1, 50, { message: 'La observación debe tener entre 1 y 50 caracteres.' })
+  observacion: string;
+
+}
