@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { typeOrmConfig } from './typeorm.config';
+import { ScheduleModule } from '@nestjs/schedule';
+import { dataSourceOptions } from './data-source';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { CategoriasModule } from './categorias/categorias.module';
 import { AlmacenesModule } from './almacenes/almacenes.module';
 import { IngresosModule } from './ingresos/ingresos.module';
@@ -27,28 +30,35 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot(typeOrmConfig),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    ScheduleModule.forRoot(),
+    TypeOrmModule.forRoot(dataSourceOptions),
+    AuthModule,
     CategoriasModule,
     AlmacenesModule,
-    IngresosModule, 
-    InsumosModule, 
-    ActividadesModule, 
-    AlertasModule, 
-    CultivosModule, 
-    EpaModule, 
-    InventarioModule, 
-    LotesModule, 
-    MovimientosModule, 
-    RealizaModule, 
-    RolModule, 
-    SalidasModule, 
-    SensoresModule, 
-    SublotesModule, 
-    TieneModule, 
-    TiporolModule, 
-    TratamientosModule, 
-    UtilizaModule, 
-    UsuariosModule],
+    IngresosModule,
+    InsumosModule,
+    ActividadesModule,
+    AlertasModule,
+    CultivosModule,
+    EpaModule,
+    InventarioModule,
+    LotesModule,
+    MovimientosModule,
+    RealizaModule,
+    RolModule,
+    SalidasModule,
+    SensoresModule,
+    SublotesModule,
+    TieneModule,
+    TiporolModule,
+    TratamientosModule,
+    UtilizaModule,
+    UsuariosModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

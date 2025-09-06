@@ -21,6 +21,12 @@ export class Usuario {
   @Column()
   numero_documento: string;
 
+  @Column({ nullable: true })
+  reset_token?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reset_token_expires?: Date;
+
   @ManyToOne(() => Rol)
   @JoinColumn({ name: 'id_rol' })
   id_rol: Rol;

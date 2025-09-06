@@ -1,20 +1,38 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { ActividadesService } from './actividades.service';
-import { CreateActividadeDto } from './dto/create-actividade.dto';
-import { UpdateActividadeDto } from './dto/update-actividade.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('actividades')
+@UseGuards(JwtAuthGuard)
 export class ActividadesController {
   constructor(private readonly actividadesService: ActividadesService) {}
 
   @Post()
-  create(@Body() createActividadeDto: CreateActividadeDto) {
-    return this.actividadesService.create(createActividadeDto);
+  create(@Body() createActividadDto: any) {
+    return this.actividadesService.create(createActividadDto);
   }
 
   @Get()
   findAll() {
     return this.actividadesService.findAll();
+  }
+
+  @Get('reporte')
+  async reporteActividades(
+    @Query('id_cultivo') id_cultivo?: number,
+    @Query('fecha_inicio') fecha_inicio?: string,
+    @Query('fecha_fin') fecha_fin?: string,
+  ) {
+    return this.actividadesService.obtenerReporteActividades(
+      id_cultivo,
+      fecha_inicio,
+      fecha_fin,
+    );
+  }
+
+  @Get('estadisticas')
+  async estadisticasActividades() {
+    return this.actividadesService.obtenerEstadisticas();
   }
 
   @Get(':id')
@@ -23,8 +41,8 @@ export class ActividadesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateActividadeDto: UpdateActividadeDto) {
-    return this.actividadesService.update(+id, updateActividadeDto);
+  update(@Param('id') id: string, @Body() updateActividadDto: any) {
+    return this.actividadesService.update(+id, updateActividadDto);
   }
 
   @Delete(':id')

@@ -11,4 +11,9 @@ export class Epa {
   @Column()
   descripcion: string;
 
+  @Column({ nullable: true })
+  imagen_referencia: string;
+
+  @Column({ default: 'activo' })
+  estado: string;
 }

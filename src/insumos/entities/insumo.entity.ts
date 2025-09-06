@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { Categoria } from 'src/categorias/entities/categoria.entity';
 import { Almacen } from 'src/almacenes/entities/almacen.entity';
 import { Salida } from 'src/salidas/entities/salida.entity';
@@ -28,7 +28,6 @@ export class Insumo {
   @JoinColumn({ name: 'id_almacen' })
   id_almacen: Almacen;
 
-  @ManyToOne(() => Salida)
-  @JoinColumn({ name: 'id_salida' })
-  id_salida: Salida;
+  @OneToMany(() => Salida, (salida) => salida.insumo)
+  salidas: Salida[];
 }

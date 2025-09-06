@@ -13,7 +13,11 @@ export class UsuariosService {
   ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto) {
-    const nuevoUsuario = this.usuariosRepository.create(createUsuarioDto);
+    const { id_rol, ...userData } = createUsuarioDto;
+    const nuevoUsuario = this.usuariosRepository.create({
+      ...userData,
+      id_rol: id_rol ? { id_rol } : undefined
+    });
     return await this.usuariosRepository.save(nuevoUsuario);
   }
 
@@ -26,11 +30,51 @@ export class UsuariosService {
   }
 
   async update(id_usuarios: number, updateUsuarioDto: UpdateUsuarioDto) {
-    await this.usuariosRepository.update(id_usuarios, updateUsuarioDto);
+    const { id_rol, ...userData } = updateUsuarioDto;
+    const updateData = {
+      ...userData,
+      ...(id_rol && { id_rol: { id_rol } })
+    };
+    await this.usuariosRepository.update(id_usuarios, updateData);
     return this.findOne(id_usuarios);
   }
 
   async remove(id_usuarios: number) {
     return await this.usuariosRepository.delete(id_usuarios);
+  }
+
+  async findOneByEmail(email: string): Promise<Usuario | null> {
+    return this.usuariosRepository.findOne({ where: {email: email }, relations: ['id_rol'] });
+  }
+
+  async updatePassword(id_usuarios: number, hashedPassword: string): Promise<void> {
+    await this.usuariosRepository.update(id_usuarios, { password: hashedPassword });
+  }
+
+  async updateResetToken(id_usuarios: number, token: string, expiresAt: Date): Promise<void> {
+    await this.usuariosRepository.update(id_usuarios, { 
+      reset_token: token, 
+      reset_token_expires: expiresAt 
+    });
+  }
+
+  async findByResetToken(token: string): Promise<Usuario | null> {
+    return this.usuariosRepository.findOne({ 
+      where: { 
+        reset_token: token,
+      } 
+    });
+  }
+
+  async clearResetToken(id_usuarios: number): Promise<void> {
+    await this.usuariosRepository
+      .createQueryBuilder()
+      .update(Usuario)
+      .set({ 
+        reset_token: () => 'NULL', 
+        reset_token_expires: () => 'NULL' 
+      })
+      .where("id_usuarios = :id", { id: id_usuarios })
+      .execute();
   }
 }

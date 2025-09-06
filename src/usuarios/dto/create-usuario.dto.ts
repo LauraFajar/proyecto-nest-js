@@ -1,4 +1,4 @@
-import { IsString, Length, IsEmail, IsOptional } from 'class-validator';
+import { IsString, Length, IsEmail, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateUsuarioDto {
   @IsString()
@@ -17,10 +17,12 @@ export class CreateUsuarioDto {
   @Length(1, 20)
   tipo_documento: string;
 
-  @IsOptional()
   @IsString()
   @Length(1, 20)
-  numero_documento?: string;
+  numero_documento: string;
 
+  @IsOptional()
+  @IsNumber()
+  id_rol?: number;
 }
 

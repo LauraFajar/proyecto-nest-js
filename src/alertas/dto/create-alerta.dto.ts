@@ -1,15 +1,23 @@
-import { IsString, Length, IsOptional, IsDateString, IsInt } from 'class-validator';
+import { IsString, IsNotEmpty, IsDateString, IsOptional } from 'class-validator';
 
 export class CreateAlertaDto {
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  @Length(1, 50)
-  tipo_alerta?: string;
+  tipo_alerta: string;
 
-  @IsDateString()
+  @IsNotEmpty()
+  @IsString()
+  gravedad: string;
+
+  @IsNotEmpty()
+  @IsString()
+  descripcion: string;
+
+  @IsNotEmpty()
+  @IsString()
   fecha: string;
 
+  @IsNotEmpty()
   @IsString()
   hora: string;
-
 }
