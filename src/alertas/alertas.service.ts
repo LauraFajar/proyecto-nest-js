@@ -46,7 +46,6 @@ export class AlertasService {
     await this.alertasRepository.delete(id);
   }
 
-  // Funcionalidades de notificaciones usando entidad Alerta existente
   async crearNotificacion(
     id_usuario: number,
     titulo: string,
@@ -120,7 +119,6 @@ export class AlertasService {
     await this.alertasRepository.update(id_alerta, { enviada_email: true });
   }
 
-  // Métodos específicos para diferentes tipos de notificaciones
   async notificarAlertaSensor(
     id_usuario: number,
     sensor: string,

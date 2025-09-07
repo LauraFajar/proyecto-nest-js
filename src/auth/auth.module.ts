@@ -18,18 +18,40 @@ import { EmailService } from './services/email.service';
       secret: 'AGROTIC_LALUPA', 
       signOptions: { expiresIn: '1h' }, 
     }),
-    MailerModule.forRoot({
-      transport: {
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      },
-      defaults: {
-        from: `"AgroTIC" <${process.env.SMTP_USER}>`,
+    MailerModule.forRootAsync({
+      useFactory: () => {
+        const smtpUser = process.env.SMTP_USER || '';
+        const smtpPass = process.env.SMTP_PASS || '';
+        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+        const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
+        
+        if (!smtpUser || !smtpPass) {
+          console.warn('SMTP credentials not found. Email sending will be simulated.');
+        }
+
+        return {
+          transport: {
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465, 
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+            tls: {
+              rejectUnauthorized: process.env.NODE_ENV === 'production' 
+            }
+          },
+          defaults: {
+            from: `"AgroTIC" <${smtpUser}>`,
+          },
+          template: {
+            dir: __dirname + '/templates',
+            options: {
+              strict: true,
+            },
+          },
+        };
       },
     }),
   ],

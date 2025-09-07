@@ -110,26 +110,19 @@ export class AlertSchedulerService {
     this.logger.log('📊 Generando resumen diario...');
     
     try {
-      // Contar alertas del día
       const hoy = new Date().toISOString().split('T')[0];
       const alertasHoy = await this.alertasService.findAll();
       const alertasDelDia = alertasHoy.filter(alerta => alerta.fecha === hoy);
       
       if (alertasDelDia.length > 0) {
         this.logger.log(`📊 Resumen: ${alertasDelDia.length} alertas generadas hoy`);
-        
-        // Aquí se podría enviar un email de resumen
-        // await this.emailService.sendDailyReport(alertasDelDia);
       }
     } catch (error) {
       this.logger.error('Error generando resumen:', error);
     }
   }
 
-  // Método auxiliar para obtener última lectura del sensor
   private async getUltimaLecturaSensor(id_sensor: number) {
-    // Por ahora simulamos una lectura
-    // En el futuro esto vendría de una tabla de lecturas_sensores
     const valorSimulado = Math.random() * 100;
     
     return {
@@ -139,7 +132,6 @@ export class AlertSchedulerService {
     };
   }
 
-  // Método auxiliar para determinar si un valor es crítico
   private esCritico(valor: number, sensor: any): boolean {
     if (sensor.valor_minimo && valor < sensor.valor_minimo) {
       return true;
@@ -152,7 +144,6 @@ export class AlertSchedulerService {
     return false;
   }
 
-  // Método para probar el sistema (ejecutar manualmente)
   async testAlerts() {
     this.logger.log('🧪 Ejecutando prueba de alertas...');
     

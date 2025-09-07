@@ -1,4 +1,4 @@
-import { IsString, Length, IsEmail, IsOptional, IsNumber } from 'class-validator';
+import { IsString, Length, IsEmail, IsNumber, Min } from 'class-validator';
 
 export class CreateUsuarioDto {
   @IsString()
@@ -21,8 +21,8 @@ export class CreateUsuarioDto {
   @Length(1, 20)
   numero_documento: string;
 
-  @IsOptional()
-  @IsNumber()
-  id_rol?: number;
+  @IsNumber({}, { message: 'El ID del rol debe ser un número' })
+  @Min(1, { message: 'El ID del rol debe ser un número positivo' })
+  id_rol: number;
 }
 

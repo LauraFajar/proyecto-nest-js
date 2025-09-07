@@ -12,9 +12,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+    const user = await this.authService.validateUser(loginDto.numero_documento, loginDto.password);
     if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException('Número de documento o contraseña incorrectos');
     }
     return this.authService.login(user);
   }

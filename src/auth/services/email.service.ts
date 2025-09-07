@@ -6,13 +6,15 @@ export class EmailService {
   constructor(private readonly mailerService: MailerService) {}
 
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.log(`[EMAIL SIMULADO] Token de reset para ${email}: ${token}`);
-      console.log(`[EMAIL SIMULADO] El token expira en 1 hora`);
+      console.log(`[EMAIL SIMULADO] Enlace de recuperación: ${resetUrl}`);
+      console.log(`[EMAIL SIMULADO] Token: ${token}`);
+      console.log(`[EMAIL SIMULADO] El enlace expira en 1 hora`);
       return;
     }
-
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     
     try {
       await this.mailerService.sendMail({

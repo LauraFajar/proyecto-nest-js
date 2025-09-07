@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, SetMetadata } from '@nestjs/common';
 import { RolService } from './rol.service';
 import { CreateRolDto } from './dto/create-rol.dto';
 import { UpdateRolDto } from './dto/update-rol.dto';
@@ -6,6 +6,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
+import { Reflector } from '@nestjs/core';
 
 @Controller('rol')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -21,6 +22,12 @@ export class RolController {
   @Get()
   @Roles(Role.Admin)
   findAll() {
+    return this.rolService.findAll();
+  }
+
+  @Get('disponibles')
+  @SetMetadata('isPublic', true)
+  async findRolesDisponibles() {
     return this.rolService.findAll();
   }
 

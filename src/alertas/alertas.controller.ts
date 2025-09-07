@@ -36,7 +36,6 @@ export class AlertasController {
     return this.alertasService.remove(+id);
   }
 
-  // Endpoints para funcionalidades de notificaciones
   @Get('usuario/:id')
   obtenerNotificacionesUsuario(@Param('id') id: string) {
     return this.alertasService.obtenerNotificacionesUsuario(+id);
