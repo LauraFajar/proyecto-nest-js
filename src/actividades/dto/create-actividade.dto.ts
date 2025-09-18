@@ -1,19 +1,46 @@
-import { IsString, Length, IsDateString, IsInt, IsOptional } from 'class-validator';
+import { IsString, IsDateString, IsNumber, IsOptional, IsIn, IsArray } from 'class-validator';
 
 export class CreateActividadeDto {
   @IsString()
-  @Length(1, 20)
+  @IsIn(['siembra', 'riego', 'fertilizacion', 'poda', 'cosecha', 'otro'], {
+    message: 'El tipo de actividad no es válido'
+  })
   tipo_actividad: string;
 
   @IsDateString()
   fecha: string;
 
   @IsString()
-  @Length(1, 50)
   responsable: string;
 
   @IsString()
-  @Length(1, 50)
   detalles: string;
 
+  @IsNumber()
+  id_cultivo: number;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['pendiente', 'en_progreso', 'completada', 'cancelada'])
+  estado?: string;
+
+  @IsNumber()
+  @IsOptional()
+  costo_estimado?: number;
+
+  @IsNumber()
+  @IsOptional()
+  costo_real?: number;
+
+  @IsString()
+  @IsOptional()
+  observaciones?: string;
+
+  @IsArray()
+  @IsOptional()
+  fotografias?: string[];
+
+  @IsNumber()
+  @IsOptional()
+  id_usuario_asignado?: number;
 }

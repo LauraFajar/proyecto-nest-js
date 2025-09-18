@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn, ManyToMany } from 'typeorm';
 import { Categoria } from 'src/categorias/entities/categoria.entity';
 import { Almacen } from 'src/almacenes/entities/almacen.entity';
 import { Salida } from 'src/salidas/entities/salida.entity';
+import { Cultivo } from 'src/cultivos/entities/cultivo.entity';
 
 @Entity('insumos')
 export class Insumo {
@@ -30,4 +31,7 @@ export class Insumo {
 
   @OneToMany(() => Salida, (salida) => salida.insumo)
   salidas: Salida[];
+
+  @ManyToMany(() => Cultivo, cultivo => cultivo.insumo)
+  cultivos: Cultivo[];
 }

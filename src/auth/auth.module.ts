@@ -6,6 +6,8 @@ import { AuthController } from './auth.controller';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { PassportModule } from '@nestjs/passport'; 
 import { JwtModule } from '@nestjs/jwt'; 
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { PasswordReset } from './entities/password-reset.entity';
 import { EmailService } from './services/email.service';
@@ -33,30 +35,32 @@ import { EmailService } from './services/email.service';
           transport: {
             host: smtpHost,
             port: smtpPort,
-            secure: smtpPort === 465, 
+            secure: smtpPort === 465,
             auth: {
               user: smtpUser,
               pass: smtpPass,
             },
             tls: {
-              rejectUnauthorized: process.env.NODE_ENV === 'production' 
-            }
+              // Solo rechazar certificados en producción
+              rejectUnauthorized: process.env.NODE_ENV === 'production'
+            },
+            debug: false,
+            logger: false
           },
           defaults: {
             from: `"AgroTIC" <${smtpUser}>`,
-          },
-          template: {
-            dir: __dirname + '/templates',
-            options: {
-              strict: true,
-            },
-          },
+          }
         };
       },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailService, RolesGuard],
-  exports: [AuthService, JwtModule, RolesGuard],
+  providers: [
+    AuthService, 
+    EmailService,
+    JwtStrategy,
+    RolesGuard
+  ],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

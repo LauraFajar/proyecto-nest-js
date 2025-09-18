@@ -86,18 +86,37 @@ export class AlertSchedulerService {
       const actividades = await this.actividadesService.findAll();
       
       const actividadesVencidas = actividades.filter(actividad => {
-        const fechaFin = new Date(actividad.fecha_fin);
-        return fechaFin < hoy && actividad.estado !== 'completada';
+        // Verificamos si la actividad está vencida comparando con la fecha de la actividad
+        const fechaActividad = new Date(actividad.fecha);
+        return fechaActividad < hoy && 
+               actividad.estado !== 'completada' && 
+               actividad.estado !== 'cancelada';
       });
       
       for (const actividad of actividadesVencidas) {
+        // Convertir la fecha a string ISO para la notificación
+        const fechaStr = new Date(actividad.fecha).toISOString().split('T')[0];
+        
         await this.alertasService.notificarActividadVencida(
-          1, // Por ahora usuario admin
+          1,
           actividad.tipo_actividad,
-          actividad.fecha_fin
+          fechaStr
         );
         
-        this.logger.warn(`📅 Actividad vencida: ${actividad.tipo_actividad} - Vencimiento: ${actividad.fecha_fin}`);
+        this.logger.warn(`📅 Actividad vencida: ${actividad.tipo_actividad} - Fecha: ${fechaStr}`);
+        
+        // Actualizar el estado de la actividad a 'vencida' usando el DTO de actualización
+        try {
+          await this.actividadesService.update(actividad.id_actividad, {
+            estado: 'vencida',
+            tipo_actividad: actividad.tipo_actividad,
+            responsable: actividad.responsable,
+            detalles: actividad.detalles,
+            id_cultivo: actividad.id_cultivo
+          } as any);
+        } catch (updateError) {
+          this.logger.error('Error actualizando estado de actividad vencida:', updateError);
+        }
       }
     } catch (error) {
       this.logger.error('Error verificando actividades:', error);

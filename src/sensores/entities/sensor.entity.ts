@@ -9,12 +9,6 @@ export class Sensor {
   @Column()
   tipo_sensor: string;
 
-  @Column({ type: 'decimal', precision: 8, scale: 4, nullable: true })
-  latitud: number;
-
-  @Column({ type: 'decimal', precision: 8, scale: 4, nullable: true })
-  longitud: number;
-
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   valor_minimo: number;
 

@@ -8,5 +8,6 @@ import { Insumo } from './entities/insumo.entity';
   imports: [TypeOrmModule.forFeature([Insumo])],
   controllers: [InsumosController],
   providers: [InsumosService],
+  exports: [TypeOrmModule],
 })
 export class InsumosModule {}

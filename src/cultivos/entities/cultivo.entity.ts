@@ -1,44 +1,50 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Lote } from '../../lotes/entities/lote.entity';
 import { Insumo } from '../../insumos/entities/insumo.entity';
+import { Actividad } from '../../actividades/entities/actividad.entity';
 
 @Entity('cultivos')
 export class Cultivo {
   @PrimaryGeneratedColumn({ name: 'id_cultivo' })
   id_cultivo: number;
 
-  @Column()
+  @Column({ name: 'tipo_cultivo', length: 20, nullable: false })
   tipo_cultivo: string;
 
-  @Column({ type: 'date', nullable: true })
-  fecha_siembra: string;
+  @Column({ name: 'fecha_siembra', type: 'date', nullable: true })
+  fecha_siembra: Date | null;
 
-  @Column({ type: 'date', nullable: true })
-  fecha_cosecha_estimada: string;
+  @Column({ name: 'fecha_cosecha_estimada', type: 'date', nullable: true })
+  fecha_cosecha_estimada: Date | null;
 
-  @Column({ type: 'date', nullable: true })
-  fecha_cosecha_real: string;
+  @Column({ name: 'fecha_cosecha_real', type: 'date', nullable: true })
+  fecha_cosecha_real: Date | null;
 
-  @Column({ default: 'sembrado' })
+  @Column({ 
+    name: 'estado_cultivo', 
+    type: 'varchar', 
+    nullable: false, 
+    default: 'sembrado' 
+  })
   estado_cultivo: string;
 
-  @Column({ type: 'text', nullable: true })
-  observaciones: string;
+  @Column({ name: 'observaciones', type: 'text', nullable: true })
+  observaciones: string | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  area_cultivada: number;
+  @Column({ name: 'id_lote', type: 'integer', nullable: true })
+  id_lote: number | null;
 
-  @CreateDateColumn()
-  created_at: Date;
+  @Column({ name: 'id_insumo', type: 'integer', nullable: true })
+  id_insumo: number | null;
 
-  @UpdateDateColumn()
-  updated_at: Date;
-
-  @ManyToOne(() => Lote)
+  @ManyToOne(() => Lote, lote => lote.cultivos, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'id_lote' })
-  id_lote: Lote;
+  lote: Lote | null;
 
-  @ManyToOne(() => Insumo)
+  @ManyToOne(() => Insumo, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'id_insumo' })
-  id_insumo: Insumo;
+  insumo: Insumo | null;
+
+  @OneToMany(() => Actividad, actividad => actividad.cultivo)
+  actividades: Actividad[];
 }

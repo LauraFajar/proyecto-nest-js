@@ -10,9 +10,7 @@ export class EmailService {
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.log(`[EMAIL SIMULADO] Enlace de recuperación: ${resetUrl}`);
-      console.log(`[EMAIL SIMULADO] Token: ${token}`);
-      console.log(`[EMAIL SIMULADO] El enlace expira en 1 hora`);
+      console.log(`[SISTEMA] Se ha generado un enlace de recuperación (simulado)`);
       return;
     }
     
@@ -40,9 +38,7 @@ export class EmailService {
         `,
       });
     } catch (error) {
-      console.log(`[EMAIL ERROR] No se pudo enviar email a ${email}`);
-      console.log(`[EMAIL SIMULADO] Token de reset: ${token}`);
-      console.log(`[EMAIL SIMULADO] El token expira en 1 hora`);
+      console.log(`[SISTEMA] No se pudo enviar el correo de recuperación`);
     }
   }
 }

@@ -1,10 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { dataSourceOptions } from './data-source';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { AuthModule } from './auth/auth.module';
 import { CategoriasModule } from './categorias/categorias.module';
 import { AlmacenesModule } from './almacenes/almacenes.module';
@@ -60,6 +62,13 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     UsuariosModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: 'APP_GUARD',
+      useClass: JwtAuthGuard,
+    },
+    JwtStrategy,
+  ],
 })
 export class AppModule {}

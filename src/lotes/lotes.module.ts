@@ -8,5 +8,6 @@ import { Lote } from './entities/lote.entity';
   imports: [TypeOrmModule.forFeature([Lote])],
   controllers: [LotesController],
   providers: [LotesService],
+  exports: [TypeOrmModule],
 })
 export class LotesModule {}
