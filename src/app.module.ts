@@ -2,6 +2,8 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { dataSourceOptions } from './data-source';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -35,6 +37,10 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
     }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot(dataSourceOptions),
