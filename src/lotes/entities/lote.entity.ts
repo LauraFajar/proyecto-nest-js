@@ -12,12 +12,6 @@ export class Lote {
   @Column({ type: 'text', nullable: true })
   descripcion: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  area_total: number;
-
-  @Column({ type: 'json', nullable: true })
-  coordenadas: { lat: number; lng: number }[]; 
-
   @Column({ default: true })
   activo: boolean;
 

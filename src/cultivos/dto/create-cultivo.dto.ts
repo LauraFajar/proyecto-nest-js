@@ -13,10 +13,7 @@ import {
 
 export class CreateCultivoDto {
   @IsString()
-  @IsIn(['plátano', 'cacao', 'cilantro', 'maíz', 'frijol', 'otros'], {
-    message: 'El tipo de cultivo no es válido'
-  })
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'El tipo de cultivo es obligatorio' })
   tipo_cultivo: string;
 
   @IsNumber()
