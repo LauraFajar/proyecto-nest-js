@@ -31,7 +31,12 @@ async function bootstrap() {
     }
   });
   
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    disableErrorMessages: false,
+  }));
 
   const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
   await app.listen(port, '0.0.0.0');

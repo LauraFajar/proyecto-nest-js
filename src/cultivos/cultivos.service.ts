@@ -149,4 +149,31 @@ export class CultivosService {
       por_tipo: porTipo,
     };
   }
+
+  async getCalendario(fecha_desde?: string, fecha_hasta?: string) {
+    const query = this.cultivoRepository.createQueryBuilder('cultivo')
+      .leftJoinAndSelect('cultivo.lote', 'lote')
+      .select([
+        'cultivo.id_cultivo',
+        'cultivo.tipo_cultivo',
+        'cultivo.fecha_siembra',
+        'cultivo.fecha_cosecha_estimada',
+        'cultivo.fecha_cosecha_real',
+        'cultivo.estado_cultivo',
+        'lote.nombre_lote',
+      ]);
+
+    if (fecha_desde && fecha_hasta) {
+      query.where('cultivo.fecha_siembra BETWEEN :fecha_desde AND :fecha_hasta', {
+        fecha_desde,
+        fecha_hasta,
+      });
+    } else if (fecha_desde) {
+      query.where('cultivo.fecha_siembra >= :fecha_desde', { fecha_desde });
+    } else if (fecha_hasta) {
+      query.where('cultivo.fecha_siembra <= :fecha_hasta', { fecha_hasta });
+    }
+
+    return query.getMany();
+  }
 }
