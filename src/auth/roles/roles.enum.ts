@@ -3,4 +3,5 @@ export enum Role {
   Instructor = 'Instructor',
   Learner = 'Aprendiz',
   Intern = 'Pasante',
+  Guest = 'Invitado',
 }

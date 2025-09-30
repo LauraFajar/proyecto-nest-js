@@ -49,6 +49,10 @@ export class UsuariosService {
     return await this.rolService.findOne(id_rol);
   }
 
+  async findRolByName(nombre_rol: string) {
+    return await this.rolService.findByName(nombre_rol);
+  }
+
   async findOneByEmail(email: string): Promise<Usuario | null> {
     return this.usuariosRepository.findOne({ where: {email: email }, relations: ['id_rol'] });
   }

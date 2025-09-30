@@ -40,6 +40,10 @@ export class RolService {
     return await this.rolRepository.findOneBy({ id_rol });
   }
 
+  async findByName(nombre_rol: string) {
+    return await this.rolRepository.findOne({ where: { nombre_rol } });
+  }
+
   async update(id_rol: number, updateRolDto: UpdateRolDto) {
     const updateData: any = { ...updateRolDto };
     

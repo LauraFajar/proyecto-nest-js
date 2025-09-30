@@ -8,6 +8,7 @@ import { EmailService } from './services/email.service';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { UserPayload } from './types/user-payload.interface';
+import { Role } from './roles/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -72,9 +73,9 @@ export class AuthService {
       }
     }
 
-    const rol = await this.usersService.findRolById(createUserDto.id_rol);
-    if (!rol) {
-      throw new BadRequestException('El rol especificado no existe');
+    const defaultRole = await this.usersService.findRolByName(Role.Guest);
+    if (!defaultRole) {
+      throw new BadRequestException('El rol Invitado no está configurado en el sistema');
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -83,7 +84,7 @@ export class AuthService {
     const newUser = await this.usersService.create({
       ...createUserDto,
       password: hashedPassword,
-      id_rol: rol.id_rol 
+      id_rol: defaultRole.id_rol 
     });
 
     const { password, ...result } = newUser;
