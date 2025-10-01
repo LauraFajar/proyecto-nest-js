@@ -24,11 +24,16 @@ export class UsuariosService {
   }
 
   async findAll() {
-    return await this.usuariosRepository.find();
+    return await this.usuariosRepository.find({
+      relations: ['id_rol'],
+    });
   }
 
   async findOne(id_usuarios: number) {
-    return await this.usuariosRepository.findOneBy({ id_usuarios });
+    return await this.usuariosRepository.findOne({
+      where: { id_usuarios },
+      relations: ['id_rol'],
+    });
   }
 
   async update(id_usuarios: number, updateUsuarioDto: UpdateUsuarioDto) {
