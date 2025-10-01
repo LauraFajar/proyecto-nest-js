@@ -1,4 +1,4 @@
-import { IsString, Length, IsOptional } from 'class-validator';
+import { IsString, Length, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreateLoteDto {
   @IsOptional()
@@ -10,5 +10,9 @@ export class CreateLoteDto {
   @IsString()
   @Length(1, 50)
   descripcion?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  activo?: boolean;
 }
 
