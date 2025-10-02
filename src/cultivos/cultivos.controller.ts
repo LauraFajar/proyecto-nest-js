@@ -34,6 +34,7 @@ export class CultivosController {
   ) {
     return this.cultivosService.getCalendario(fecha_desde, fecha_hasta);
   }
+  @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.cultivosService.findOne(id);
   }
@@ -46,7 +47,7 @@ export class CultivosController {
     return this.cultivosService.update(id, updateCultivoDto);
   }
 
-  @Delete('id')
+  @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.cultivosService.remove(id);
