@@ -57,16 +57,58 @@ export class SublotesService {
       }
 
       await this.sublotesRepository.update(id_sublote, {
-        descripcion: updateSubloteDto.descripcion,
-        ubicacion: updateSubloteDto.ubicacion,
+        ...(updateSubloteDto.descripcion && { descripcion: updateSubloteDto.descripcion }),
+        ...(updateSubloteDto.ubicacion && { ubicacion: updateSubloteDto.ubicacion }),
         id_lote: lote
       });
     } else {
-      const { id_lote, ...updateData } = updateSubloteDto;
+      const updateData: any = { ...updateSubloteDto };
+      delete updateData.id_lote;
       await this.sublotesRepository.update(id_sublote, updateData);
     }
 
     return this.findOne(id_sublote);
+  }
+
+  async getSensores(id_sublote: number) {
+    const sublote = await this.sublotesRepository.findOne({
+      where: { id_sublote },
+      relations: ['sensores']
+    });
+
+    if (!sublote) {
+      throw new BadRequestException(`Sublote con ID ${id_sublote} no encontrado`);
+    }
+
+    return sublote.sensores || [];
+  }
+
+  async getEstadisticas(id_sublote: number) {
+    const sublote = await this.sublotesRepository.findOne({
+      where: { id_sublote },
+      relations: ['sensores', 'id_lote']
+    });
+
+    if (!sublote) {
+      throw new BadRequestException(`Sublote con ID ${id_sublote} no encontrado`);
+    }
+
+    const sensores = sublote.sensores || [];
+    const sensoresActivos = sensores.filter(s => s.estado === 'Activo').length;
+    const sensoresInactivos = sensores.filter(s => s.estado === 'Inactivo').length;
+
+    return {
+      id_sublote: sublote.id_sublote,
+      descripcion: sublote.descripcion,
+      ubicacion: sublote.ubicacion,
+      lote: sublote.id_lote,
+      total_sensores: sensores.length,
+      sensores_activos: sensoresActivos,
+      sensores_inactivos: sensoresInactivos,
+      tipos_sensores: [...new Set(sensores.map(s => s.tipo_sensor))],
+      ultimo_registro: sensores.length > 0 ?
+        Math.max(...sensores.map(s => s.created_at?.getTime() || 0)) : null
+    };
   }
 
   async remove(id_sublote: number) {

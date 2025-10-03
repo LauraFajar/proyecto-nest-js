@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Lote } from '../../lotes/entities/lote.entity';
+import { Sensor } from '../../sensores/entities/sensor.entity';
 
 @Entity('sublotes')
 export class Sublote {
@@ -16,4 +17,6 @@ export class Sublote {
   @Column()
   ubicacion: string;
 
+  @OneToMany(() => Sensor, sensor => sensor.id_sublote)
+  sensores: Sensor[];
 }

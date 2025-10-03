@@ -24,6 +24,18 @@ export class SublotesController {
     return this.sublotesService.findAll();
   }
 
+  @Get(':id/sensores')
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  getSensores(@Param('id') id_sublote: string) {
+    return this.sublotesService.getSensores(+id_sublote);
+  }
+
+  @Get(':id/estadisticas')
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  getEstadisticas(@Param('id') id_sublote: string) {
+    return this.sublotesService.getEstadisticas(+id_sublote);
+  }
+
   @Get(':id')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
   findOne(@Param('id') id: string) {
