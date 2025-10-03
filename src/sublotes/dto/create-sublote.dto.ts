@@ -1,4 +1,4 @@
-import { IsString, Length } from 'class-validator';
+import { IsString, Length, IsNumber } from 'class-validator';
 
 export class CreateSubloteDto {
   @IsString()
@@ -9,4 +9,6 @@ export class CreateSubloteDto {
   @Length(1, 50)
   ubicacion: string;
 
+  @IsNumber()
+  id_lote: number;
 }

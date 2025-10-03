@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SublotesService } from './sublotes.service';
 import { SublotesController } from './sublotes.controller';
 import { Sublote } from './entities/sublote.entity';
+import { Lote } from '../lotes/entities/lote.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sublote])],
+  imports: [TypeOrmModule.forFeature([Sublote, Lote])],
   controllers: [SublotesController],
   providers: [SublotesService],
 })
