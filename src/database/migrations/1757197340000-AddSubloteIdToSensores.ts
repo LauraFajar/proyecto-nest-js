@@ -10,15 +10,20 @@ export class AddSubloteIdToSensores1757197340000 implements MigrationInterface {
         `);
 
         await queryRunner.query(`
-            ALTER TABLE "sensores"
-            ADD CONSTRAINT IF NOT EXISTS "FK_sensores_sublotes"
-            FOREIGN KEY ("id_sublote")
-            REFERENCES "sublotes"("id_sublote")
-        `);
-
-        await queryRunner.query(`
-            INSERT INTO "migrations" ("timestamp", "name")
-            VALUES (1757197340000, 'AddSubloteIdToSensores1757197340000')
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE table_name = 'sensores'
+                    AND constraint_name = 'FK_sensores_sublotes'
+                ) THEN
+                    ALTER TABLE "sensores"
+                    ADD CONSTRAINT "FK_sensores_sublotes"
+                    FOREIGN KEY ("id_sublote")
+                    REFERENCES "sublotes"("id_sublote");
+                END IF;
+            END;
+            $$;
         `);
     }
 
@@ -31,11 +36,6 @@ export class AddSubloteIdToSensores1757197340000 implements MigrationInterface {
         await queryRunner.query(`
             ALTER TABLE "sensores"
             DROP COLUMN IF EXISTS "id_sublote"
-        `);
-
-        await queryRunner.query(`
-            DELETE FROM "migrations"
-            WHERE "timestamp" = 1757197340000
         `);
     }
 }

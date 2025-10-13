@@ -7,7 +7,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || '123789',
   database: process.env.DB_DATABASE || 'api_proyecto',
-  entities: ['dist/**/*.entity.js'], 
+  entities: ['dist/**/*.entity.js'],
   migrations: ['dist/database/migrations/*.js'],
   synchronize: false, 
 };

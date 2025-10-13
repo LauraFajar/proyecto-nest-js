@@ -27,6 +27,9 @@ export class Usuario {
   @Column({ type: 'timestamp', nullable: true })
   reset_token_expires?: Date;
 
+  @Column({ nullable: true, length: 255, name: 'imagen_url' })
+  imagen_url?: string;
+
   @ManyToOne(() => Rol)
   @JoinColumn({ name: 'id_rol' })
   id_rol: Rol;
