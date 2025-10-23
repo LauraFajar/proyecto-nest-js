@@ -1,12 +1,19 @@
-import { IsString, Length } from 'class-validator';
+import { IsString, Length, IsNumber, IsNotEmpty } from 'class-validator';
 
 export class CreateTratamientoDto {
   @IsString()
-  @Length(1, 50)
+  @Length(1, 500)
   descripcion: string;
 
   @IsString()
-  @Length(1, 20)
+  @Length(1, 100)
+  dosis: string;
+
+  @IsString()
+  @Length(1, 100)
   frecuencia: string;
 
+  @IsNumber()
+  @IsNotEmpty()
+  id_epa: number;
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { TratamientosService } from './tratamientos.service';
 import { CreateTratamientoDto } from './dto/create-tratamiento.dto';
 import { UpdateTratamientoDto } from './dto/update-tratamiento.dto';
@@ -20,7 +20,10 @@ export class TratamientosController {
 
   @Get()
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
-  findAll() {
+  findAll(@Query('epaId') epaId?: string) {
+    if (epaId) {
+      return this.tratamientosService.findByEpaId(+epaId);
+    }
     return this.tratamientosService.findAll();
   }
 

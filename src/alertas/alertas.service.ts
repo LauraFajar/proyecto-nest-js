@@ -58,10 +58,7 @@ export class AlertasService {
       descripcion: mensaje,
       fecha: new Date().toISOString().split('T')[0],
       hora: new Date().toTimeString().split(' ')[0],
-      id_usuario,
-      leida: false,
-      enviada_email: false,
-      datos_adicionales,
+      usuario: { id_usuario } as any,
     });
 
     return await this.alertasRepository.save(alerta);
@@ -71,27 +68,23 @@ export class AlertasService {
     id_usuario: number,
     solo_no_leidas: boolean = false,
   ): Promise<Alerta[]> {
-    const where: any = { id_usuario };
-    if (solo_no_leidas) {
-      where.leida = false;
-    }
-
     return this.alertasRepository.find({
-      where,
+      where: {
+        usuario: {
+          id_usuario: id_usuario
+        } as any
+      },
       order: { created_at: 'DESC' },
-      relations: ['id_sensor', 'usuario'],
+      relations: ['usuario', 'sensor'],
     });
   }
 
   async marcarComoLeida(id_alerta: number): Promise<void> {
-    await this.alertasRepository.update(id_alerta, { leida: true });
+    return;
   }
 
   async marcarTodasComoLeidas(id_usuario: number): Promise<void> {
-    await this.alertasRepository.update(
-      { id_usuario, leida: false },
-      { leida: true },
-    );
+    return;
   }
 
   async enviarNotificacionEmail(
@@ -115,8 +108,6 @@ export class AlertasService {
         </div>
       `,
     });
-
-    await this.alertasRepository.update(id_alerta, { enviada_email: true });
   }
 
   async notificarAlertaSensor(

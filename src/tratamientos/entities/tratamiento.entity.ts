@@ -6,11 +6,11 @@ export class Tratamiento {
   @PrimaryGeneratedColumn({ name: 'id_tratamiento' })
   id_tratamiento: number;
 
-  @Column()
+  @Column('text')
   descripcion: string;
 
   @Column()
-  dosis: number;
+  dosis: string;
 
   @Column()
   frecuencia: string;

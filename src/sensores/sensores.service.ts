@@ -45,11 +45,9 @@ export class SensoresService {
     await this.sensoresRepository.delete(id);
   }
 
-  // Funcionalidades IoT usando entidad Sensor existente
   async registrarLectura(id_sensor: number, valor: number, unidad_medida?: string, observaciones?: string) {
     const sensor = await this.findOne(id_sensor);
     
-    // Obtener historial actual o inicializar array vacío
     const historialActual = sensor.historial_lecturas || [];
     
     // Agregar nueva lectura
@@ -62,19 +60,16 @@ export class SensoresService {
     
     historialActual.push(nuevaLectura);
     
-    // Mantener solo las últimas 1000 lecturas para optimizar performance
     if (historialActual.length > 1000) {
       historialActual.shift();
     }
     
-    // Actualizar sensor con nueva lectura y historial
     await this.sensoresRepository.update(id_sensor, {
       valor_actual: valor,
       ultima_lectura: new Date(),
       historial_lecturas: historialActual
     });
 
-    // Verificar alertas
     await this.verificarAlertas(sensor, valor);
     
     return { mensaje: 'Lectura registrada exitosamente', lectura: nuevaLectura };
@@ -84,7 +79,6 @@ export class SensoresService {
     const sensor = await this.findOne(id_sensor);
     const historial = sensor.historial_lecturas || [];
     
-    // Retornar las últimas 'limite' lecturas
     return historial.slice(-limite).reverse();
   }
 
@@ -188,10 +182,7 @@ export class SensoresService {
         descripcion,
         fecha: new Date().toISOString().split('T')[0],
         hora: new Date().toTimeString().split(' ')[0],
-        id_sensor: sensor,
-        leida: false,
-        enviada_email: false,
-        datos_adicionales: { valor, limite: sensor.valor_minimo || sensor.valor_maximo }
+        sensor: sensor
       });
 
       await alertaRepository.save(alerta);

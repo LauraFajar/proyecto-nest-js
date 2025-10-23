@@ -19,26 +19,14 @@ export class Alerta {
   @Column({ type: 'time' })
   hora: string;
 
-  @Column({ default: false })
-  leida: boolean;
-
-  @Column({ default: false })
-  enviada_email: boolean;
-
-  @Column({ type: 'json', nullable: true })
-  datos_adicionales: any;
-
   @CreateDateColumn()
   created_at: Date;
 
   @ManyToOne(() => Sensor, { nullable: true })
   @JoinColumn({ name: 'id_sensor' })
-  id_sensor: Sensor;
+  sensor: Sensor;
 
   @ManyToOne(() => Usuario, { nullable: true })
   @JoinColumn({ name: 'id_usuario' })
   usuario: Usuario;
-
-  @Column({ name: 'id_usuario', nullable: true })
-  id_usuario: number;
 }

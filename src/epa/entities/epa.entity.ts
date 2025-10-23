@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Tratamiento } from '../../tratamientos/entities/tratamiento.entity';
 
 @Entity('epa')
 export class Epa {
@@ -14,6 +15,16 @@ export class Epa {
   @Column({ nullable: true })
   imagen_referencia: string;
 
+  @Column({
+    type: 'enum',
+    enum: ['enfermedad', 'plaga', 'arvense'],
+    default: 'enfermedad'
+  })
+  tipo: string;
+
   @Column({ default: 'activo' })
   estado: string;
+
+  @OneToMany(() => Tratamiento, tratamiento => tratamiento.id_epa)
+  tratamientos: Tratamiento[];
 }

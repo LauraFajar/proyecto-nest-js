@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Epa } from './entities/epa.entity';
 import { CreateEpaDto } from './dto/create-epa.dto';
-import { UpdateEpaDto } from './dto/update-epa.dto';
 
 @Injectable()
 export class EpaService {
@@ -13,24 +12,81 @@ export class EpaService {
   ) {}
 
   async create(createEpaDto: CreateEpaDto) {
-    const nuevoEpa = this.epaRepository.create(createEpaDto);
-    return await this.epaRepository.save(nuevoEpa);
+    try {
+      // Verificar si ya existe un EPA con el mismo nombre
+      const existingEpa = await this.epaRepository.findOne({
+        where: { nombre_epa: createEpaDto.nombre_epa, estado: 'activo' }
+      });
+      
+      if (existingEpa) {
+        throw new BadRequestException(`Ya existe un EPA con el nombre ${createEpaDto.nombre_epa}`);
+      }
+      
+      const epa = this.epaRepository.create(createEpaDto);
+      return await this.epaRepository.save(epa);
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('Error al crear el EPA: ' + error.message);
+    }
   }
 
   async findAll() {
-    return await this.epaRepository.find();
+    try {
+      return await this.epaRepository.find({
+        where: { estado: 'activo' },
+        relations: ['tratamientos']
+      });
+    } catch (error) {
+      console.error('Error en findAll de EPA:', error);
+      return await this.epaRepository.find({
+        where: { estado: 'activo' }
+      });
+    }
   }
 
-  async findOne(id_epa: number) {
-    return await this.epaRepository.findOneBy({ id_epa });
+  async findOne(id: number) {
+    const epa = await this.epaRepository.findOne({
+      where: { id_epa: id, estado: 'activo' },
+      relations: ['tratamientos']
+    });
+    
+    if (!epa) {
+      throw new NotFoundException('EPA no encontrado');
+    }
+    return epa;
   }
 
-  async update(id_epa: number, updateEpaDto: UpdateEpaDto) {
-    await this.epaRepository.update(id_epa, updateEpaDto);
-    return this.findOne(id_epa);
+  async search(query: string, tipo?: string) {
+    const queryBuilder = this.epaRepository
+      .createQueryBuilder('epa')
+      .where('epa.estado = :estado', { estado: 'activo' });
+    
+    if (query && query.trim() !== '') {
+      queryBuilder.andWhere('(LOWER(epa.nombre_epa) LIKE LOWER(:query) OR LOWER(epa.descripcion) LIKE LOWER(:query))', 
+        { query: `%${query}%` });
+    }
+    
+    if (tipo && ['enfermedad', 'plaga', 'arvense'].includes(tipo)) {
+      queryBuilder.andWhere('epa.tipo = :tipo', { tipo });
+    }
+    
+    return await queryBuilder
+      .leftJoinAndSelect('epa.tratamientos', 'tratamientos')
+      .orderBy('epa.nombre_epa', 'ASC')
+      .getMany();
   }
 
-  async remove(id_epa: number) {
-    return await this.epaRepository.delete(id_epa);
+  async update(id: number, updateEpaDto: Partial<CreateEpaDto>) {
+    const epa = await this.findOne(id);
+    Object.assign(epa, updateEpaDto);
+    return await this.epaRepository.save(epa);
+  }
+
+  async remove(id: number) {
+    const epa = await this.findOne(id);
+    epa.estado = 'inactivo';
+    return await this.epaRepository.save(epa);
   }
 }
