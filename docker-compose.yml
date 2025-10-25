@@ -17,8 +17,11 @@ services:
       - DB_DATABASE=${DB_DATABASE:-api_proyecto}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - NODE_ENV=${NODE_ENV:-development}
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
       - postgres
+      - redis
     networks:
       - app-network
 
@@ -37,9 +40,20 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+      
+  redis:
+    container_name: redis-cache
+    image: redis:alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   app-network:

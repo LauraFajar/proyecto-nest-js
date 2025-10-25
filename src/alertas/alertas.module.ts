@@ -7,6 +7,7 @@ import { AlertSchedulerService } from './services/alert-scheduler.service';
 import { SensoresModule } from '../sensores/sensores.module';
 import { InventarioModule } from '../inventario/inventario.module';
 import { ActividadesModule } from '../actividades/actividades.module';
+import { AlertasGateway } from './alertas.gateway';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { ActividadesModule } from '../actividades/actividades.module';
     ActividadesModule,
   ],
   controllers: [AlertasController],
-  providers: [AlertasService, AlertSchedulerService],
-  exports: [AlertasService],
+  providers: [AlertasService, AlertSchedulerService, AlertasGateway],
+  exports: [AlertasService, AlertasGateway],
 })
 export class AlertasModule {}

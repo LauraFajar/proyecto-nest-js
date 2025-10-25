@@ -31,6 +31,13 @@ import { TiporolModule } from './tiporol/tiporol.module';
 import { TratamientosModule } from './tratamientos/tratamientos.module';
 import { UtilizaModule } from './utiliza/utiliza.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-store';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -44,6 +51,28 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     }),
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot(dataSourceOptions),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => ({
+        store: await redisStore({
+          socket: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379', 10),
+          },
+          ttl: 60 * 60, // 1 hora por defecto
+        }),
+      }),
+    }),
+    MulterModule.register({
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, callback) => {
+          const uniqueSuffix = uuidv4();
+          const ext = extname(file.originalname);
+          callback(null, `${uniqueSuffix}${ext}`);
+        },
+      }),
+    }),
     AuthModule,
     CategoriasModule,
     AlmacenesModule,
@@ -66,6 +95,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     TratamientosModule,
     UtilizaModule,
     UsuariosModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [

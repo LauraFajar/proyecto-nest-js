@@ -8,6 +8,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
 import { UploadsService } from '../uploads/uploads.service';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Controller('epa')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -47,8 +48,8 @@ export class EpaController {
 
   @Get()
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
-  findAll() {
-    return this.epaService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.epaService.findAll(paginationDto);
   }
 
   @Get('buscar')

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Epa } from './entities/epa.entity';
 import { CreateEpaDto } from './dto/create-epa.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class EpaService {
@@ -32,17 +33,39 @@ export class EpaService {
     }
   }
 
-  async findAll() {
+  async findAll(paginationDto?: PaginationDto) {
     try {
-      return await this.epaRepository.find({
+      const { page = 1, limit = 10 } = paginationDto || {};
+      
+      const [items, total] = await this.epaRepository.findAndCount({
         where: { estado: 'activo' },
-        relations: ['tratamientos']
+        relations: ['tratamientos'],
+        skip: (page - 1) * limit,
+        take: limit,
       });
+      
+      return {
+        items,
+        meta: {
+          totalItems: total,
+          itemsPerPage: limit,
+          currentPage: page,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
     } catch (error) {
       console.error('Error en findAll de EPA:', error);
-      return await this.epaRepository.find({
-        where: { estado: 'activo' }
-      });
+      return {
+        items: await this.epaRepository.find({
+          where: { estado: 'activo' }
+        }),
+        meta: {
+          totalItems: 0,
+          itemsPerPage: 10,
+          currentPage: 1,
+          totalPages: 0
+        }
+      };
     }
   }
 

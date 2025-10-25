@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Alerta } from './entities/alerta.entity';
 import { MailerService } from '@nestjs-modules/mailer';
+import { AlertasGateway } from './alertas.gateway';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class AlertasService {
@@ -10,6 +14,8 @@ export class AlertasService {
     @InjectRepository(Alerta)
     private readonly alertasRepository: Repository<Alerta>,
     private readonly mailerService: MailerService,
+    private readonly alertasGateway: AlertasGateway,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 
   async create(createAlertaDto: any) {
@@ -18,7 +24,9 @@ export class AlertasService {
   }
 
   async findAll() {
-    return await this.alertasRepository.find();
+    return await this.alertasRepository.find({
+      relations: ['sensor', 'usuario']
+    });
   }
 
   async findOne(id: number) {
