@@ -38,7 +38,6 @@ export class EpaService {
       const { page = 1, limit = 10 } = paginationDto || {};
       
       const [items, total] = await this.epaRepository.findAndCount({
-        where: { estado: 'activo' },
         relations: ['tratamientos'],
         skip: (page - 1) * limit,
         take: limit,
@@ -56,9 +55,7 @@ export class EpaService {
     } catch (error) {
       console.error('Error en findAll de EPA:', error);
       return {
-        items: await this.epaRepository.find({
-          where: { estado: 'activo' }
-        }),
+        items: await this.epaRepository.find(),
         meta: {
           totalItems: 0,
           itemsPerPage: 10,
@@ -71,7 +68,7 @@ export class EpaService {
 
   async findOne(id: number) {
     const epa = await this.epaRepository.findOne({
-      where: { id_epa: id, estado: 'activo' },
+      where: { id_epa: id },
       relations: ['tratamientos']
     });
     
@@ -102,14 +99,23 @@ export class EpaService {
   }
 
   async update(id: number, updateEpaDto: Partial<CreateEpaDto>) {
-    const epa = await this.findOne(id);
+    const epa = await this.epaRepository.findOne({ where: { id_epa: id } });
+    if (!epa) {
+      throw new NotFoundException('EPA no encontrado');
+    }
     Object.assign(epa, updateEpaDto);
     return await this.epaRepository.save(epa);
   }
 
   async remove(id: number) {
-    const epa = await this.findOne(id);
-    epa.estado = 'inactivo';
-    return await this.epaRepository.save(epa);
+    const epa = await this.epaRepository.findOne({ where: { id_epa: id } });
+    if (!epa) {
+      throw new NotFoundException('EPA no encontrado');
+    }
+    const result = await this.epaRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`No se pudo eliminar el EPA con ID ${id}`);
+    }
+    return { message: `EPA con ID ${id} eliminado correctamente` };
   }
 }
