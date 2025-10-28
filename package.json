@@ -22,7 +22,8 @@
     "typeorm:run-migrations": "npm run typeorm -- migration:run",
     "typeorm:generate-migration": "npm run typeorm -- migration:generate",
     "typeorm:create-migration": "npm run typeorm -- migration:create",
-    "typeorm:revert-migration": "npm run typeorm -- migration:revert"
+    "typeorm:revert-migration": "npm run typeorm -- migration:revert",
+    "seed": "ts-node -r tsconfig-paths/register src/database/seeds/run-seed.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",
