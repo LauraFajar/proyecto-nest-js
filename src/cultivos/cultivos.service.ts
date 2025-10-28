@@ -6,6 +6,7 @@ import { Lote } from '../lotes/entities/lote.entity';
 import { Insumo } from '../insumos/entities/insumo.entity';
 import { CreateCultivoDto } from './dto/create-cultivo.dto';
 import { UpdateCultivoDto } from './dto/update-cultivo.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class CultivosService {
@@ -41,10 +42,24 @@ export class CultivosService {
     return await this.cultivoRepository.save(cultivo);
   }
 
-  async findAll() {
-    return this.cultivoRepository.find({
+  async findAll(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+
+    const [items, total] = await this.cultivoRepository.findAndCount({
       order: { fecha_siembra: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number) {

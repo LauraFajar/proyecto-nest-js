@@ -83,7 +83,7 @@ export class AlertSchedulerService {
     
     try {
       const hoy = new Date();
-      const actividades = await this.actividadesService.findAll();
+      const actividades = await this.actividadesService.findAllWithoutPagination();
       
       const actividadesVencidas = actividades.filter(actividad => {
         // Verificamos si la actividad está vencida comparando con la fecha de la actividad

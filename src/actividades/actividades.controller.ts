@@ -3,6 +3,7 @@ import { ActividadesService } from './actividades.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateActividadeDto } from './dto/create-actividade.dto';
 import { UpdateActividadeDto } from './dto/update-actividade.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Controller('actividades')
 @UseGuards(JwtAuthGuard)
@@ -16,8 +17,11 @@ export class ActividadesController {
   }
 
   @Get()
-  findAll(@Query('id_cultivo', new ParseIntPipe({ optional: true })) id_cultivo?: number) {
-    return this.actividadesService.findAll(id_cultivo);
+  findAll(
+    @Query() paginationDto: PaginationDto,
+    @Query('id_cultivo', new ParseIntPipe({ optional: true })) id_cultivo?: number,
+  ) {
+    return this.actividadesService.findAll(id_cultivo, paginationDto);
   }
 
   @Get('reporte')

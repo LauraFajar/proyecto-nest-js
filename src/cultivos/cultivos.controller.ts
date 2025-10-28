@@ -5,6 +5,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { CultivosService } from './cultivos.service';
 import { CreateCultivoDto } from './dto/create-cultivo.dto';
 import { UpdateCultivoDto } from './dto/update-cultivo.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Controller('cultivos')
 @UseGuards(AuthGuard('jwt'))
@@ -18,8 +19,8 @@ export class CultivosController {
   }
 
   @Get()
-  findAll() {
-    return this.cultivosService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.cultivosService.findAll(paginationDto);
   }
 
   @Get('estadisticas')

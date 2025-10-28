@@ -4,6 +4,7 @@ import { Repository, Between } from 'typeorm';
 import { Actividad } from './entities/actividad.entity';
 import { CreateActividadeDto } from './dto/create-actividade.dto';
 import { UpdateActividadeDto } from './dto/update-actividade.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class ActividadesService {
@@ -37,7 +38,31 @@ export class ActividadesService {
     return await this.actividadesRepository.save(actividad);
   }
 
-  async findAll(id_cultivo?: number) {
+  async findAll(id_cultivo?: number, paginationDto?: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto || {};
+    const query = this.actividadesRepository.createQueryBuilder('actividad');
+
+    if (id_cultivo) {
+      query.where('actividad.id_cultivo = :id_cultivo', { id_cultivo });
+    }
+
+    const [items, total] = await query
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findAllWithoutPagination(id_cultivo?: number): Promise<Actividad[]> {
     const query = this.actividadesRepository.createQueryBuilder('actividad');
     
     if (id_cultivo) {
