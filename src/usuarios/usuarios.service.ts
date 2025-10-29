@@ -5,6 +5,7 @@ import { Usuario } from './entities/usuario.entity';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { RolService } from '../rol/rol.service';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class UsuariosService {
@@ -23,10 +24,14 @@ export class UsuariosService {
     return await this.usuariosRepository.save(nuevoUsuario);
   }
 
-  async findAll() {
-    return await this.usuariosRepository.find({
+  async findAll(paginationDto: PaginationDto) {
+    const { limit = 10, page = 1 } = paginationDto;
+    const [data, total] = await this.usuariosRepository.findAndCount({
       relations: ['id_rol'],
+      take: limit,
+      skip: (page - 1) * limit,
     });
+    return { data, total, page, limit };
   }
 
   async findOne(id_usuarios: number) {
