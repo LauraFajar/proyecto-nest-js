@@ -3,12 +3,26 @@ import { Lote } from '../../lotes/entities/lote.entity';
 import { Insumo } from '../../insumos/entities/insumo.entity';
 import { Actividad } from '../../actividades/entities/actividad.entity';
 
+export enum TipoCultivo {
+  TRANSITORIOS = 'transitorios',
+  PERENNES = 'perennes',
+  SEMIPERENNES = 'semiperennes'
+}
+
 @Entity('cultivos')
 export class Cultivo {
   @PrimaryGeneratedColumn({ name: 'id_cultivo' })
   id_cultivo: number;
 
-  @Column({ name: 'tipo_cultivo', length: 20, nullable: false })
+  @Column({ name: 'nombre_cultivo', length: 100, nullable: false })
+  nombre_cultivo: string;
+
+  @Column({
+    name: 'tipo_cultivo',
+    type: 'varchar',
+    length: 20,
+    nullable: false
+  })
   tipo_cultivo: string;
 
   @Column({ name: 'fecha_siembra', type: 'date', nullable: true })

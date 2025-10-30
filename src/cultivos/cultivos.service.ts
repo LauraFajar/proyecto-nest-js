@@ -170,6 +170,7 @@ export class CultivosService {
       .leftJoinAndSelect('cultivo.lote', 'lote')
       .select([
         'cultivo.id_cultivo',
+        'cultivo.nombre_cultivo',
         'cultivo.tipo_cultivo',
         'cultivo.fecha_siembra',
         'cultivo.fecha_cosecha_estimada',

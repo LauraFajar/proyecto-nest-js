@@ -1,19 +1,27 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsDateString, 
-  IsNumber, 
-  IsIn, 
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsNumber,
+  IsIn,
   IsInt,
   Min,
   Max,
   IsDate,
   IsNotEmpty
 } from 'class-validator';
+import { TipoCultivo } from '../entities/cultivo.entity';
 
 export class CreateCultivoDto {
   @IsString()
+  @IsNotEmpty({ message: 'El nombre del cultivo es obligatorio' })
+  nombre_cultivo: string;
+
+  @IsString()
   @IsNotEmpty({ message: 'El tipo de cultivo es obligatorio' })
+  @IsIn(['transitorios', 'perennes', 'semiperennes'], {
+    message: 'El tipo de cultivo debe ser transitorios, perennes o semiperennes'
+  })
   tipo_cultivo: string;
 
   @IsNumber()
