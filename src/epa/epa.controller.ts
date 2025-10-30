@@ -29,20 +29,27 @@ export class EpaController {
     return this.epaService.create(createEpaDto);
   }
 
-  @Post('upload/:id')
+  @Post(':id/upload-imagen')
   @Roles(Role.Admin, Role.Instructor)
   @UseInterceptors(FileInterceptor('imagen'))
-  async uploadImage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  async uploadImagen(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    console.log('File uploaded EPA:', file);
+
     if (!file) {
       return { error: 'No se ha proporcionado ninguna imagen' };
     }
-    
-    const imageUrl = this.uploadsService.getImageUrl(file.filename);
-    await this.epaService.update(+id, { imagen_referencia: imageUrl });
-    
+
+    const imagenUrl = `/uploads/epa/${file.filename}`;
+    console.log('Image URL EPA:', imagenUrl);
+
+    await this.epaService.update(+id, { imagen_referencia: imagenUrl });
+
     return {
       message: 'Imagen subida correctamente',
-      imageUrl
+      imageUrl: imagenUrl
     };
   }
 

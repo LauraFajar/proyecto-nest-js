@@ -124,43 +124,71 @@ Backend modular desarrollado con NestJS y PostgreSQL para la gestión y trazabil
 
 ### Prerrequisitos
 
-- Node.js (v16 o superior)
-- PostgreSQL (v12 o superior)
+- Node.js (v18 o superior)
+- Docker y Docker Compose
 - npm o yarn
 
-### Instalación
+### Opción 1: Ejecutar con Docker (Recomendado) 🐳
 
 ```bash
-# Clonar repositorio
+# 1. Clonar repositorio
 git clone <repository-url>
 cd proyecto-nest-js
 
-# Instalar dependencias
-npm install
+# 2. Ejecutar toda la aplicación (API + PostgreSQL + Redis)
+docker-compose up -d
 
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus configuraciones
+# 3. Ver logs para verificar que todo funciona
+docker-compose logs -f
+
+# 4. La aplicación estará disponible en:
+# - API: http://localhost:3001
+# - PostgreSQL: localhost:5432
+# - Redis: localhost:6379
 ```
 
-### Configuración de Base de Datos
+### Opción 2: Ejecutar Localmente 💻
 
 ```bash
-# Crear base de datos PostgreSQL
-createdb api_proyecto
+# 1. Clonar repositorio
+git clone <repository-url>
+cd proyecto-nest-js
 
-# Las migraciones se ejecutan automáticamente al iniciar
+# 2. Instalar dependencias
+npm install
+
+# 3. Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus configuraciones locales
+
+# 4. Instalar y configurar PostgreSQL + Redis localmente
+# O usar Docker solo para servicios:
+docker run -d --name postgres-db -p 5432:5432 -e POSTGRES_DB=api_proyecto -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=123789 postgres:15
+docker run -d --name redis-cache -p 6379:6379 redis:alpine
+
+# 5. Ejecutar migraciones de base de datos
+npm run typeorm:run-migrations
+
+# 6. Ejecutar seeds (datos iniciales)
+npm run seed
+
+# 7. Ejecutar en modo desarrollo
+npm run start:dev
 ```
 
 ### Variables de Entorno
 
 ```env
 # Database
-DB_HOST=localhost
+DB_HOST=localhost          # 'postgres' si usas Docker
 DB_PORT=5432
-DB_USERNAME=tu_usuario
-DB_PASSWORD=tu_contraseña
-DB_NAME=api_proyecto
+DB_USERNAME=postgres
+DB_PASSWORD=123789
+DB_DATABASE=api_proyecto
+
+# Redis
+REDIS_HOST=localhost       # 'redis' si usas Docker
+REDIS_PORT=6379
 
 # JWT
 JWT_SECRET=AGROTIC_LALUPA
@@ -171,32 +199,113 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=tu_email@gmail.com
 SMTP_PASS=tu_app_password
+
+# API
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
 ```
 
 ## 🏃‍♂️ Ejecución
 
+### Con Docker:
 ```bash
-# Desarrollo
+# Iniciar todos los servicios
+docker-compose up -d
+
+# Ver logs en tiempo real
+docker-compose logs -f
+
+# Detener servicios
+docker-compose down
+
+# Reconstruir después de cambios
+docker-compose up --build -d
+```
+
+### Local:
+```bash
+# Desarrollo (con hot reload)
 npm run start:dev
 
 # Producción
+npm run build
 npm run start:prod
 
-# El servidor estará disponible en http://localhost:3000
+# Debug mode
+npm run start:debug
+```
+
+## 🗄️ Gestión de Base de Datos
+
+```bash
+# Ejecutar migraciones
+npm run typeorm:run-migrations
+
+# Revertir migración
+npm run typeorm:revert-migration
+
+# Generar nueva migración
+npm run typeorm:generate-migration -- -n NombreMigracion
+
+# Crear migración vacía
+npm run typeorm:create-migration -- -n NombreMigracion
+
+# Ejecutar seeds
+npm run seed
+```
+
+## 🧪 Testing y Calidad
+
+```bash
+# Tests unitarios
+npm run test
+
+# Tests con watch mode
+npm run test:watch
+
+# Cobertura de tests
+npm run test:cov
+
+# Tests e2e
+npm run test:e2e
+
+# Linter
+npm run lint
+
+# Formatear código
+npm run format
+```
+
+## 📦 Construcción
+
+```bash
+# Construir para producción
+npm run build
+
+# El código compilado queda en dist/
 ```
 
 ## 📚 API Endpoints
 
 ### Autenticación
 - `POST /auth/register` - Registro de usuario
-- `POST /auth/login` - Iniciar sesión
+- `POST /auth/login` - Iniciar sesión (devuelve `imagen_url`)
 - `POST /auth/forgot-password` - Solicitar recuperación
 - `POST /auth/reset-password` - Resetear contraseña
+
+### Usuarios
+- `GET /usuarios` - Listar usuarios (Admin)
+- `GET /usuarios/:id` - Obtener usuario (Admin)
+- `PATCH /usuarios/:id` - Actualizar usuario (Admin o propio perfil)
+- `POST /usuarios/:id/upload-imagen` - Subir imagen de perfil
 
 ### Cultivos
 - `GET /cultivos` - Listar cultivos
 - `POST /cultivos` - Crear cultivo
 - `GET /cultivos/reporte` - Reporte de cultivos
+- `GET /cultivos/estadisticas` - Estadísticas
+- `GET /cultivos/calendario` - Calendario agrícola
 
 ### Actividades
 - `GET /actividades` - Listar actividades
@@ -208,6 +317,7 @@ npm run start:prod
 - `POST /sensores/:id/lectura` - Registrar lectura
 - `GET /sensores/:id/historial` - Historial de lecturas
 - `GET /sensores/:id/recomendaciones` - Obtener recomendaciones
+- `GET /sensores/tiempo-real` - Datos en tiempo real
 
 ### Inventario
 - `GET /inventario` - Listar inventario
@@ -220,6 +330,17 @@ npm run start:prod
 - `GET /alertas/usuario/:id` - Alertas por usuario
 - `POST /alertas/notificar/sensor` - Notificar alerta de sensor
 - `PATCH /alertas/:id/marcar-leida` - Marcar como leída
+- `POST /alertas/notificar/stock-bajo` - Notificar stock bajo
+- `POST /alertas/notificar/actividad-vencida` - Notificar actividad vencida
+
+### EPA (Enfermedades, Plagas, Arvenses)
+- `GET /epa` - Listar EPA
+- `POST /epa` - Crear EPA (con imagen opcional)
+- `GET /epa/:id` - Obtener EPA (incluye `imagen_referencia`)
+- `PATCH /epa/:id` - Actualizar EPA
+- `POST /epa/:id/upload-imagen` - Subir imagen a EPA existente
+- `GET /epa/buscar` - Buscar EPA
+- `GET /epa/tipos` - Tipos disponibles
 
 ## 🏗️ Arquitectura
 
@@ -248,46 +369,74 @@ src/
 
 ## 🔧 Tecnologías Utilizadas
 
-- **Framework**: NestJS
-- **Base de Datos**: PostgreSQL
-- **ORM**: TypeORM
+- **Framework**: NestJS (Node.js)
+- **Base de Datos**: PostgreSQL (en contenedor Docker)
+- **Cache**: Redis (en contenedor Docker)
+- **ORM**: TypeORM con Migraciones
 - **Autenticación**: JWT + Passport
 - **Email**: Nodemailer
-- **Validación**: Class Validator
-- **Documentación**: Swagger (opcional)
+- **Validación**: Class Validator + Class Transformer
+- **File Upload**: Multer con configuración dinámica
+- **WebSockets**: Socket.io para alertas en tiempo real
+- **Contenedores**: Docker + Docker Compose
+- **Testing**: Jest
+- **Linting**: ESLint + Prettier
 
 ## 📊 Funcionalidades IoT
 
-- Registro automático de lecturas de sensores
-- Alertas por umbrales configurables
-- Historial de datos en formato JSON
-- Recomendaciones basadas en lecturas
-- Notificaciones por email automáticas
+- **Registro automático** de lecturas de sensores (humedad, temperatura, pH)
+- **Alertas configurables** por umbrales mínimo/máximo
+- **Historial JSON** optimizado (sin tablas adicionales)
+- **Recomendaciones inteligentes** basadas en lecturas
+- **WebSockets** para monitoreo en tiempo real
+- **Notificaciones automáticas** por email
 
 ## 🚨 Sistema de Alertas
 
-- Alertas de sensores fuera de rango
-- Notificaciones de stock bajo
-- Recordatorios de actividades vencidas
-- Envío automático por email
-- Estado de lectura por usuario
+- **Alertas de sensores** fuera de rango
+- **Notificaciones de stock bajo** en inventario
+- **Recordatorios** de actividades vencidas
+- **Envío automático** por email con templates HTML
+- **Estado de lectura** por usuario
+- **WebSockets** para notificaciones en tiempo real
+
+## 📁 Sistema de Archivos
+
+- **Upload de imágenes** para usuarios y EPA
+- **Carpetas organizadas**: `uploads/usuarios/`, `uploads/epa/`
+- **Nombres únicos** con UUID
+- **URLs accesibles** vía HTTP
+- **Configuración dinámica** por módulo
 
 ## 📈 Reportes Integrados
 
 Los reportes están integrados directamente en cada módulo:
 
-- **Actividades**: Por cultivo, fechas, estados
-- **Inventario**: Stock, valorización, categorías
-- **Sensores**: Lecturas, alertas, estadísticas
+- **Actividades**: Por cultivo, fechas, estados, costos
+- **Inventario**: Stock, valorización, categorías, estadísticas
+- **Sensores**: Lecturas, alertas, estadísticas IoT
 - **Finanzas**: Ingresos, egresos, rentabilidad
+- **Cultivos**: Estadísticas, calendario agrícola
 
-## 🔒 Seguridad
+## 🔒 Seguridad y Escalabilidad
 
-- Autenticación JWT
-- Protección de rutas con guards
-- Validación de datos de entrada
-- Manejo seguro de contraseñas
-- Tokens de recuperación con expiración
+- **Autenticación JWT** con refresh tokens
+- **Role-based access control** (RBAC)
+- **Guards y decorators** personalizados
+- **Validación de DTOs** con class-validator
+- **Hashing de contraseñas** con bcrypt
+- **Rate limiting** implícito
+- **CORS configurado** para frontend
+- **Cache Redis** para optimización
+- **Arquitectura preparada** para microservicios
+
+## 🐳 Infraestructura Docker
+
+- **Contenedores independientes**: API, PostgreSQL, Redis
+- **Redes aisladas** para comunicación segura
+- **Volúmenes persistentes** para datos
+- **Configuración de producción** lista
+- **Escalabilidad horizontal** preparada
 
 ## 🤝 Contribución
 
