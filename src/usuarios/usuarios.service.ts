@@ -43,10 +43,15 @@ export class UsuariosService {
 
   async update(id_usuarios: number, updateUsuarioDto: UpdateUsuarioDto) {
     const { id_rol, ...userData } = updateUsuarioDto;
-    const updateData = {
+    const updateData: any = {
       ...userData,
       ...(id_rol && { id_rol: { id_rol } })
     };
+
+    if (Object.keys(updateData).length === 0) {
+      return this.findOne(id_usuarios);
+    }
+
     await this.usuariosRepository.update(id_usuarios, updateData);
     return this.findOne(id_usuarios);
   }
@@ -97,11 +102,20 @@ export class UsuariosService {
     await this.usuariosRepository
       .createQueryBuilder()
       .update(Usuario)
-      .set({ 
-        reset_token: () => 'NULL', 
-        reset_token_expires: () => 'NULL' 
+      .set({
+        reset_token: () => 'NULL',
+        reset_token_expires: () => 'NULL'
       })
       .where("id_usuarios = :id", { id: id_usuarios })
       .execute();
+  }
+
+  async updateImagen(id_usuarios: number, imagenUrl: string): Promise<Usuario> {
+    await this.usuariosRepository.update(id_usuarios, { imagen_url: imagenUrl });
+    const usuario = await this.findOne(id_usuarios);
+    if (!usuario) {
+      throw new NotFoundException(`Usuario con ID ${id_usuarios} no encontrado`);
+    }
+    return usuario;
   }
 }
