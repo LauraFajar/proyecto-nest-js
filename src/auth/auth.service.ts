@@ -56,6 +56,7 @@ export class AuthService {
         email: user.email,
         nombres: user.nombres,
         rol: user.id_rol.nombre_rol,
+        imagen_url: user.imagen_url,
       }
     };
   }
