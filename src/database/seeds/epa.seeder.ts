@@ -13,22 +13,22 @@ export class EpaSeeder {
   async seed() {
     const data = [
       {
-        nombre_epa: 'Roya',
-        descripcion: 'Enfermedad fungica que afecta a las hojas del cafe.',
+        nombre_epa: 'Picudo del plátano',
+        descripcion: 'daña el cultivo y puede transmitirse por las larvas que se alimentan de las raíces',
+        tipo: 'plaga',
+        estado: 'Activo',
+      },
+      {
+        nombre_epa: 'Moniliasis',
+        descripcion: 'causada por el hongo Moniliophthora roreri al cultivo de cacao',
         tipo: 'enfermedad',
         estado: 'Activo',
       },
       {
-        nombre_epa: 'Broca del Cafe',
-        descripcion: 'Insecto que perfora los granos de cafe.',
+        nombre_epa: 'Pulgones',
+        descripcion: 'plaga que succiona la savia del cacao',
         tipo: 'plaga',
-        estado: 'Activo',
-      },
-      {
-        nombre_epa: 'Gusano Cogollero',
-        descripcion: 'Plaga que ataca el cogollo del maiz.',
-        tipo: 'plaga',
-        estado: 'Activo',
+        estado: 'Inactivo',
       },
     ];
 

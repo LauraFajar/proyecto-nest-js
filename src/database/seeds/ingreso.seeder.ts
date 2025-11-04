@@ -24,7 +24,7 @@ export class IngresoSeeder {
       {
         fecha_ingreso: '2024-02-15',
         monto: 250.50,
-        descripcion: 'Compra de semillas de maiz',
+        descripcion: 'Compra de semillas de cacao',
         id_insumo: 2,
       },
     ];

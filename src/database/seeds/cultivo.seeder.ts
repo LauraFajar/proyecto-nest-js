@@ -16,15 +16,15 @@ export class CultivoSeeder {
   async seed() {
     const data = [
       {
-        nombre_cultivo: 'Maiz',
-        tipo_cultivo: TipoCultivo.TRANSITORIOS,
+        nombre_cultivo: 'Plátano',
+        tipo_cultivo: TipoCultivo.PERENNES,
         fecha_siembra: new Date('2024-03-15'),
         fecha_cosecha_estimada: new Date('2024-08-15'),
         estado_cultivo: 'sembrado',
         id_lote: 1,
       },
       {
-        nombre_cultivo: 'Cafe',
+        nombre_cultivo: 'Cacao',
         tipo_cultivo: TipoCultivo.PERENNES,
         fecha_siembra: new Date('2023-01-10'),
         fecha_cosecha_estimada: new Date('2025-01-10'),

@@ -13,27 +13,29 @@ export class LoteSeeder {
   async seed() {
     const data = [
       {
-        nombre_lote: 'Lote A1',
-        descripcion: 'Lote para cultivo de maiz',
+        nombre_lote: 'lote platano',
+        descripcion: 'lote en donde se cosecha el cultivo de platano',
         activo: true,
         coordenadas: [[
-          [-74.0060, 40.7128], // Punto 1 (Longitud, Latitud)
-          [-74.0050, 40.7138], // Punto 2
-          [-74.0040, 40.7128], // Punto 3
-          [-74.0050, 40.7118], // Punto 4
-          [-74.0060, 40.7128], // Punto 1 (Cerrando el polígono)
+          [-76.09094, 1.89297],
+          [-76.09089, 1.89286],
+          [-76.09103, 1.89275],
+          [-76.09111, 1.89275],
+          [-76.09114, 1.89283],
+          [-76.09094, 1.89297]
         ]],
       },
       {
-        nombre_lote: 'Lote B2',
-        descripcion: 'Lote para cultivo de cafe',
+        nombre_lote: 'lote de cacao',
+        descripcion: 'lote donde se cosecha el cacao yamboro',
         activo: true,
         coordenadas: [[
-          [-74.0080, 40.7150],
-          [-74.0070, 40.7160],
-          [-74.0060, 40.7150],
-          [-74.0070, 40.7140],
-          [-74.0080, 40.7150],
+          [-76.09072, 1.89311],
+          [-76.09064, 1.89297],
+          [-76.09081, 1.89289],
+          [-76.09089, 1.89286],
+          [-76.09094, 1.89297],
+          [-76.09072, 1.89311]
         ]],
       },
     ];

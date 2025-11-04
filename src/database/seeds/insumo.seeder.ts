@@ -27,7 +27,7 @@ export class InsumoSeeder {
         id_almacen: 1,
       },
       {
-        nombre_insumo: 'Semillas de Maiz Hibrido',
+        nombre_insumo: 'Semillas de Cacao',
         codigo: 'SEM-001',
         fecha_entrada: '2024-02-10',
         observacion: 'Bolsas de 20kg',

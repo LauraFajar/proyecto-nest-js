@@ -20,7 +20,7 @@ export class SubloteSeeder {
     if (lote1 && lote2) {
       const data = [
         {
-          descripcion: 'Sublote para maiz temprano',
+          descripcion: 'Sublote para plátano',
           id_lote: lote1,
           ubicacion: 'Norte',
           coordenadas: [[
@@ -32,7 +32,7 @@ export class SubloteSeeder {
           ]],
         },
         {
-          descripcion: 'Sublote para cafe de sombra',
+          descripcion: 'Sublote para cacao trinitario',
           id_lote: lote2,
           ubicacion: 'Sur',
           coordenadas: [[

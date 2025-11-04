@@ -29,7 +29,7 @@ export class SalidaSeeder {
         cantidad: 20,
         id_categoria: categoria.id_categoria,
         id_almacen: almacen.id_almacen,
-        observacion: 'Uso en cultivo de maiz',
+        observacion: 'Uso en cultivo de cacao',
         fecha_salida: '2024-02-01',
         valor_unidad: 25.00,
         estado: 'completado',
