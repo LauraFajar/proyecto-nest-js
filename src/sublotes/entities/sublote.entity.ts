@@ -26,5 +26,5 @@ export class Sublote {
     srid: 4326,
     nullable: true,
   })
-  coordenadas: Polygon;
+  coordenadas: Polygon | null;
 }

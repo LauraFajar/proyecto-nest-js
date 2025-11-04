@@ -62,8 +62,10 @@ export class SublotesService {
 
     Object.assign(sublote, subloteData);
 
-    if (coordenadas) {
-      sublote.coordenadas = { type: 'Polygon', coordinates: coordenadas };
+    if ('coordenadas' in updateSubloteDto) {
+      sublote.coordenadas = coordenadas ? {
+        type: 'Polygon', coordinates: coordenadas 
+      } : null;
     }
 
     if (updateSubloteDto.id_lote && sublote.id_lote.id_lote !== updateSubloteDto.id_lote) {
