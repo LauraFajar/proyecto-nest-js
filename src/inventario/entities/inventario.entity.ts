@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
 import { Insumo } from '../../insumos/entities/insumo.entity';
 
-@Entity('inventarios')
+@Entity('inventario')
 export class Inventario {
   @PrimaryGeneratedColumn({ name: 'id_inventario' })
   id_inventario: number;

@@ -39,6 +39,7 @@ import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { UploadsModule } from './uploads/uploads.module';
 
+import { SeederModule } from './database/seeds/seeder.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -96,6 +97,7 @@ import { UploadsModule } from './uploads/uploads.module';
     UtilizaModule,
     UsuariosModule,
     UploadsModule,
+    SeederModule,
   ],
   controllers: [AppController],
   providers: [
