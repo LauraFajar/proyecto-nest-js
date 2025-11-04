@@ -23,18 +23,36 @@ export class SubloteSeeder {
           descripcion: 'Sublote para maiz temprano',
           id_lote: lote1,
           ubicacion: 'Norte',
+          coordenadas: [[
+            [-74.0058, 40.7130],
+            [-74.0053, 40.7135],
+            [-74.0048, 40.7130],
+            [-74.0053, 40.7125],
+            [-74.0058, 40.7130],
+          ]],
         },
         {
           descripcion: 'Sublote para cafe de sombra',
           id_lote: lote2,
           ubicacion: 'Sur',
+          coordenadas: [[
+            [-74.0078, 40.7152],
+            [-74.0073, 40.7157],
+            [-74.0068, 40.7152],
+            [-74.0073, 40.7147],
+            [-74.0078, 40.7152],
+          ]],
         },
       ];
 
       for (const item of data) {
         const exists = await this.subloteRepository.findOne({ where: { descripcion: item.descripcion } });
         if (!exists) {
-          await this.subloteRepository.save(this.subloteRepository.create(item));
+          const subloteToCreate = this.subloteRepository.create({
+            ...item,
+            coordenadas: item.coordenadas ? { type: 'Polygon', coordinates: item.coordenadas } : undefined,
+          });
+          await this.subloteRepository.save(subloteToCreate);
         }
       }
     }

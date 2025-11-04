@@ -24,6 +24,12 @@ export class LotesController {
     return this.lotesService.findAll();
   }
 
+  @Get('map-data')
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  getMapData() {
+    return this.lotesService.findAllWithGeoData();
+  }
+
   @Get(':id')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
   findOne(@Param('id') id: string) {

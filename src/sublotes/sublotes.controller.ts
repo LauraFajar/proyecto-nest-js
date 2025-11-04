@@ -24,6 +24,12 @@ export class SublotesController {
     return this.sublotesService.findAll();
   }
 
+  @Get('map-data')
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  getMapData() {
+    return this.sublotesService.findAllWithGeoData();
+  }
+
   @Get(':id/sensores')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
   getSensores(@Param('id') id_sublote: string) {

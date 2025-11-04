@@ -1,98 +1,89 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Sublote } from './entities/sublote.entity';
+import { Lote } from '../lotes/entities/lote.entity';
 import { CreateSubloteDto } from './dto/create-sublote.dto';
 import { UpdateSubloteDto } from './dto/update-sublote.dto';
-import { Lote } from '../lotes/entities/lote.entity';
 
 @Injectable()
 export class SublotesService {
   constructor(
     @InjectRepository(Sublote)
-    private sublotesRepository: Repository<Sublote>,
+    private readonly subloteRepository: Repository<Sublote>,
     @InjectRepository(Lote)
-    private lotesRepository: Repository<Lote>,
+    private readonly loteRepository: Repository<Lote>,
   ) {}
 
-  async create(createSubloteDto: CreateSubloteDto) {
-    const lote = await this.lotesRepository.findOne({
-      where: { id_lote: createSubloteDto.id_lote }
-    });
+  async create(createSubloteDto: CreateSubloteDto): Promise<Sublote> {
+    const { id_lote, coordenadas, ...subloteData } = createSubloteDto;
 
+    const lote = await this.loteRepository.findOneBy({ id_lote });
     if (!lote) {
-      throw new BadRequestException(`Lote con ID ${createSubloteDto.id_lote} no encontrado`);
+      throw new NotFoundException(`Lote con ID ${id_lote} no encontrado`);
     }
 
-    const nuevoSublote = this.sublotesRepository.create({
-      descripcion: createSubloteDto.descripcion,
-      ubicacion: createSubloteDto.ubicacion,
-      id_lote: lote
+    const sublote = this.subloteRepository.create({
+      ...subloteData,
+      id_lote: lote,
+      coordenadas: coordenadas ? {
+        type: 'Polygon',
+        coordinates: coordenadas,
+      } : undefined,
     });
 
-    return await this.sublotesRepository.save(nuevoSublote);
+    return this.subloteRepository.save(sublote);
   }
 
   async findAll() {
-    return await this.sublotesRepository.find({
+    return this.subloteRepository.find({
       relations: ['id_lote']
     });
   }
 
   async findOne(id_sublote: number) {
-    return await this.sublotesRepository.findOne({
+    const sublote = await this.subloteRepository.findOne({
       where: { id_sublote },
       relations: ['id_lote']
     });
+    if (!sublote) {
+      throw new NotFoundException(`Sublote con ID ${id_sublote} no encontrado`);
+    }
+    return sublote;
   }
 
-  async update(id_sublote: number, updateSubloteDto: UpdateSubloteDto) {
-    if (updateSubloteDto.id_lote) {
-      const lote = await this.lotesRepository.findOne({
-        where: { id_lote: updateSubloteDto.id_lote }
-      });
-
-      if (!lote) {
-        throw new BadRequestException(`Lote con ID ${updateSubloteDto.id_lote} no encontrado`);
-      }
-
-      await this.sublotesRepository.update(id_sublote, {
-        ...(updateSubloteDto.descripcion && { descripcion: updateSubloteDto.descripcion }),
-        ...(updateSubloteDto.ubicacion && { ubicacion: updateSubloteDto.ubicacion }),
-        id_lote: lote
-      });
-    } else {
-      const updateData: any = { ...updateSubloteDto };
-      delete updateData.id_lote;
-      await this.sublotesRepository.update(id_sublote, updateData);
+  async update(id_sublote: number, updateSubloteDto: UpdateSubloteDto): Promise<Sublote> {
+    const sublote = await this.findOne(id_sublote);
+    if (!sublote) {
+      throw new NotFoundException(`Sublote con ID ${id_sublote} no encontrado`);
     }
 
-    return this.findOne(id_sublote);
+    const { coordenadas, ...subloteData } = updateSubloteDto;
+
+    Object.assign(sublote, subloteData);
+
+    if (coordenadas) {
+      sublote.coordenadas = { type: 'Polygon', coordinates: coordenadas };
+    }
+
+    if (updateSubloteDto.id_lote && sublote.id_lote.id_lote !== updateSubloteDto.id_lote) {
+      const nuevoLote = await this.loteRepository.findOneBy({ id_lote: updateSubloteDto.id_lote });
+      if (!nuevoLote) {
+        throw new NotFoundException(`El nuevo Lote con ID ${updateSubloteDto.id_lote} no fue encontrado`);
+      }
+      sublote.id_lote = nuevoLote;
+    }
+
+    return this.subloteRepository.save(sublote);
   }
 
   async getSensores(id_sublote: number) {
-    const sublote = await this.sublotesRepository.findOne({
-      where: { id_sublote },
-      relations: ['sensores']
-    });
-
-    if (!sublote) {
-      throw new BadRequestException(`Sublote con ID ${id_sublote} no encontrado`);
-    }
-
+    const sublote = await this.findOne(id_sublote);
     return sublote.sensores || [];
   }
 
   async getEstadisticas(id_sublote: number) {
-    const sublote = await this.sublotesRepository.findOne({
-      where: { id_sublote },
-      relations: ['sensores', 'id_lote']
-    });
-
-    if (!sublote) {
-      throw new BadRequestException(`Sublote con ID ${id_sublote} no encontrado`);
-    }
-
+    const sublote = await this.findOne(id_sublote);
     const sensores = sublote.sensores || [];
     const sensoresActivos = sensores.filter(s => s.estado === 'Activo').length;
     const sensoresInactivos = sensores.filter(s => s.estado === 'Inactivo').length;
@@ -112,6 +103,13 @@ export class SublotesService {
   }
 
   async remove(id_sublote: number) {
-    return await this.sublotesRepository.delete(id_sublote);
+    return this.subloteRepository.delete(id_sublote);
+  }
+
+  async findAllWithGeoData(): Promise<Sublote[]> {
+    return this.subloteRepository.find({
+      relations: ['id_lote'],
+      select: ['id_sublote', 'descripcion', 'ubicacion', 'coordenadas', 'id_lote'],
+    });
   }
 }

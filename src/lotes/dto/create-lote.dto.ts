@@ -1,18 +1,21 @@
-import { IsString, Length, IsOptional, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsNotEmpty, IsBoolean, Length } from 'class-validator';
 
 export class CreateLoteDto {
-  @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @Length(1, 30)
-  nombre_lote?: string;
+  nombre_lote: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   @Length(1, 50)
   descripcion?: string;
 
-  @IsOptional()
   @IsBoolean()
+  @IsOptional()
   activo?: boolean;
-}
 
+  @IsArray()
+  @IsOptional()
+  coordenadas?: number[][][];
+}
