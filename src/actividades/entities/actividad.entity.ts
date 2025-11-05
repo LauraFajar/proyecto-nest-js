@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
+import { FotoActividad } from './foto-actividad.entity';
 
 @Entity('actividades')
 export class Actividad {
@@ -33,4 +34,7 @@ export class Actividad {
   @ManyToOne(() => Cultivo, cultivo => cultivo.actividades, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_cultivo' })
   cultivo: Cultivo;
+
+  @OneToMany(() => FotoActividad, (foto) => foto.actividad)
+  fotos: FotoActividad[];
 }

@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, HttpCode, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ActividadesService } from './actividades.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateActividadeDto } from './dto/create-actividade.dto';
@@ -14,6 +15,15 @@ export class ActividadesController {
   @HttpCode(201)
   create(@Body() createActividadDto: CreateActividadeDto) {
     return this.actividadesService.create(createActividadDto);
+  }
+
+  @Post('upload-photo/:actividadId')
+  @UseInterceptors(FileInterceptor('photo'))
+  uploadPhoto(
+    @Param('actividadId', ParseIntPipe) actividadId: number,
+    @UploadedFile() photo: Express.Multer.File,
+  ) {
+    return this.actividadesService.handlePhotoUpload(actividadId, photo);
   }
 
   @Get()

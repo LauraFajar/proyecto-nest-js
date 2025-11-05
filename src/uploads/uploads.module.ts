@@ -10,7 +10,11 @@ import { v4 as uuidv4 } from 'uuid';
   imports: [
     MulterModule.register({
       storage: diskStorage({
-        destination: './uploads',
+        destination: (req, file, callback) => {
+          const path = req.path.split('/')[1]; 
+          const dest = `./uploads/${path}`;
+          callback(null, dest);
+        },
         filename: (req, file, callback) => {
           const uniqueSuffix = uuidv4();
           const ext = extname(file.originalname);

@@ -1,16 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Actividad } from './entities/actividad.entity';
 import { CreateActividadeDto } from './dto/create-actividade.dto';
 import { UpdateActividadeDto } from './dto/update-actividade.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { FotoActividad } from './entities/foto-actividad.entity';
+import { CreateFotoDto } from './dto/create-foto.dto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class ActividadesService {
   constructor(
     @InjectRepository(Actividad)
-    private actividadesRepository: Repository<Actividad>,
+    private readonly actividadesRepository: Repository<Actividad>,
+    @InjectRepository(FotoActividad)
+    private readonly fotoActividadRepository: Repository<FotoActividad>,
   ) {}
 
   async create(createActividadDto: CreateActividadeDto) {
@@ -36,6 +42,30 @@ export class ActividadesService {
 
     const actividad = this.actividadesRepository.create(actividadData);
     return await this.actividadesRepository.save(actividad);
+  }
+
+  async handlePhotoUpload(actividadId: number, photo: Express.Multer.File) {
+    const actividad = await this.findOne(actividadId);
+    if (!actividad) {
+      throw new NotFoundException(`Actividad con ID ${actividadId} no encontrada`);
+    }
+
+    const uploadPath = path.join(__dirname, '..', 'uploads', 'actividades');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
+    const fileName = `${Date.now()}-${photo.originalname}`;
+    const filePath = path.join(uploadPath, fileName);
+
+    fs.writeFileSync(filePath, photo.buffer);
+
+    const newPhoto = this.fotoActividadRepository.create({
+      url_imagen: `/uploads/actividades/${fileName}`,
+      actividad: actividad,
+    });
+
+    return this.fotoActividadRepository.save(newPhoto);
   }
 
   async findAll(id_cultivo?: number, paginationDto?: PaginationDto) {
@@ -75,6 +105,7 @@ export class ActividadesService {
   async findOne(id_actividad: number) {
     const actividad = await this.actividadesRepository.findOne({
       where: { id_actividad },
+      relations: ['fotos'],
     });
 
     if (!actividad) {
@@ -113,6 +144,44 @@ export class ActividadesService {
     Object.assign(actividad, updateData);
     
     return await this.actividadesRepository.save(actividad);
+  }
+
+  async addFoto(actividadId: number, filePath: string, createFotoDto: CreateFotoDto): Promise<FotoActividad> {
+    const actividad = await this.findOne(actividadId); 
+    
+    const nuevaFoto = this.fotoActividadRepository.create({
+      url_imagen: filePath,
+      descripcion: createFotoDto.descripcion,
+      actividad: actividad,
+    });
+
+    return this.fotoActividadRepository.save(nuevaFoto);
+  }
+
+  async getFotosByActividad(actividadId: number): Promise<FotoActividad[]> {
+    await this.findOne(actividadId); // Validar que la actividad exista
+    return this.fotoActividadRepository.find({
+      where: { actividad: { id_actividad: actividadId } },
+      order: { fecha_carga: 'DESC' },
+    });
+  }
+
+  async removeFoto(fotoId: number): Promise<void> {
+    const foto = await this.fotoActividadRepository.findOne({ where: { id: fotoId } });
+    if (!foto) {
+      throw new NotFoundException(`Foto con ID ${fotoId} no encontrada.`);
+    }
+    
+    try {
+      const fullPath = path.resolve(foto.url_imagen);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
+    } catch (error) {
+      console.error(`Error al borrar el archivo físico ${foto.url_imagen}:`, error);
+    }
+
+    await this.fotoActividadRepository.remove(foto);
   }
 
   async remove(id_actividad: number) {
