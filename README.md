@@ -101,7 +101,7 @@ AgroTIC - Sistema de Trazabilidad de Cultivos
 
 Backend modular desarrollado con NestJS y PostgreSQL para la gestión y trazabilidad de cultivos de plátano, cacao y cilantro cimarrón.
 
-## 🌱 Características Principales
+## Características Principales
 
 ### Módulos Implementados
 
@@ -120,7 +120,7 @@ Backend modular desarrollado con NestJS y PostgreSQL para la gestión y trazabil
 - ✅ **Alertas reutilizadas**: Una sola entidad para alertas y notificaciones
 - ✅ **Entidades optimizadas**: Campos agregados a entidades existentes
 
-## 🚀 Instalación y Configuración
+## Instalación y Configuración
 
 ### Prerrequisitos
 
@@ -128,7 +128,7 @@ Backend modular desarrollado con NestJS y PostgreSQL para la gestión y trazabil
 - Docker y Docker Compose
 - npm o yarn
 
-### Opción 1: Ejecutar con Docker (Recomendado) 🐳
+### Opción 1: Ejecutar con Docker (Recomendado)
 
 ```bash
 # 1. Clonar repositorio
@@ -147,7 +147,7 @@ docker-compose logs -f
 # - Redis: localhost:6379
 ```
 
-### Opción 2: Ejecutar Localmente 💻
+### Opción 2: Ejecutar Localmente
 
 ```bash
 # 1. Clonar repositorio
@@ -206,7 +206,7 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 ```
 
-## 🏃‍♂️ Ejecución
+## Ejecución
 
 ### Con Docker:
 ```bash
@@ -236,7 +236,7 @@ npm run start:prod
 npm run start:debug
 ```
 
-## 🗄️ Gestión de Base de Datos
+## Gestión de Base de Datos
 
 ```bash
 # Ejecutar migraciones
@@ -255,7 +255,7 @@ npm run typeorm:create-migration -- -n NombreMigracion
 npm run seed
 ```
 
-## 🧪 Testing y Calidad
+## Testing y Calidad
 
 ```bash
 # Tests unitarios
@@ -277,7 +277,7 @@ npm run lint
 npm run format
 ```
 
-## 📦 Construcción
+## Construcción
 
 ```bash
 # Construir para producción
@@ -382,7 +382,7 @@ src/
 - **Testing**: Jest
 - **Linting**: ESLint + Prettier
 
-## 📊 Funcionalidades IoT
+## Funcionalidades IoT
 
 - **Registro automático** de lecturas de sensores (humedad, temperatura, pH)
 - **Alertas configurables** por umbrales mínimo/máximo
@@ -391,7 +391,7 @@ src/
 - **WebSockets** para monitoreo en tiempo real
 - **Notificaciones automáticas** por email
 
-## 🚨 Sistema de Alertas
+## Sistema de Alertas
 
 - **Alertas de sensores** fuera de rango
 - **Notificaciones de stock bajo** en inventario
@@ -400,7 +400,7 @@ src/
 - **Estado de lectura** por usuario
 - **WebSockets** para notificaciones en tiempo real
 
-## 📁 Sistema de Archivos
+## Sistema de Archivos
 
 - **Upload de imágenes** para usuarios y EPA
 - **Carpetas organizadas**: `uploads/usuarios/`, `uploads/epa/`
@@ -408,7 +408,7 @@ src/
 - **URLs accesibles** vía HTTP
 - **Configuración dinámica** por módulo
 
-## 📈 Reportes Integrados
+## Reportes Integrados
 
 Los reportes están integrados directamente en cada módulo:
 
@@ -418,7 +418,7 @@ Los reportes están integrados directamente en cada módulo:
 - **Finanzas**: Ingresos, egresos, rentabilidad
 - **Cultivos**: Estadísticas, calendario agrícola
 
-## 🔒 Seguridad y Escalabilidad
+## Seguridad y Escalabilidad
 
 - **Autenticación JWT** con refresh tokens
 - **Role-based access control** (RBAC)
@@ -430,7 +430,7 @@ Los reportes están integrados directamente en cada módulo:
 - **Cache Redis** para optimización
 - **Arquitectura preparada** para microservicios
 
-## 🐳 Infraestructura Docker
+## Infraestructura Docker
 
 - **Contenedores independientes**: API, PostgreSQL, Redis
 - **Redes aisladas** para comunicación segura
@@ -445,11 +445,3 @@ Los reportes están integrados directamente en cada módulo:
 3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Crear Pull Request
-
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
-
-## 📞 Soporte
-
-Para soporte técnico o consultas sobre el proyecto, contactar al equipo de desarrollo.

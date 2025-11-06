@@ -20,8 +20,8 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -38,6 +38,11 @@ services:
       - POSTGRES_DB=${DB_DATABASE:-api_proyecto}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-api_proyecto}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - app-network
       
@@ -48,32 +53,6 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - app-network
-
-  seed:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    depends_on:
-      - api
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=development
-    networks:
-      - app-network
-    command: npm run seed
-
-  frontend:
-    container_name: frontend-react
-    build:
-      context: ./frontend-react-atomicdesign
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api
     networks:
       - app-network
 
