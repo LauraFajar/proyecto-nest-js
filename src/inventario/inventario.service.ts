@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Inventario } from './entities/inventario.entity';
 import { AlertasService } from '../alertas/alertas.service';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Injectable()
 export class InventarioService {
@@ -13,20 +14,41 @@ export class InventarioService {
   ) {}
 
   async create(createInventarioDto: any) {
-    const nuevoInventario = this.inventarioRepository.create(createInventarioDto);
+    // Mapear id_insumo numérico a la relación Insumo
+    const payload: any = { ...createInventarioDto };
+    if (createInventarioDto?.id_insumo) {
+      payload.insumo = { id_insumo: createInventarioDto.id_insumo } as any;
+      delete payload.id_insumo;
+    }
+    const nuevoInventario = this.inventarioRepository.create(payload);
     return await this.inventarioRepository.save(nuevoInventario);
   }
 
-  async findAll() {
-    return await this.inventarioRepository.find({
-      relations: ['id_insumo'],
+  async findAll(paginationDto?: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto || {};
+
+    const [items, total] = await this.inventarioRepository.findAndCount({
+      relations: ['insumo'],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { id_inventario: 'DESC' },
     });
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemsPerPage: limit,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number) {
     const inventario = await this.inventarioRepository.findOne({ 
       where: { id_inventario: id },
-      relations: ['id_insumo'],
+      relations: ['insumo'],
     });
     if (!inventario) {
       throw new NotFoundException(`Inventario con ID ${id} no encontrado.`);
@@ -39,7 +61,13 @@ export class InventarioService {
     if (!inventario) {
       throw new NotFoundException(`Inventario con ID ${id} no encontrado.`);
     }
-    await this.inventarioRepository.update(id, updateInventarioDto);
+    // Mapear id_insumo numérico a la relación Insumo si viene en el payload
+    const payload: any = { ...updateInventarioDto };
+    if (updateInventarioDto?.id_insumo) {
+      payload.insumo = { id_insumo: updateInventarioDto.id_insumo } as any;
+      delete payload.id_insumo;
+    }
+    await this.inventarioRepository.update(id, payload);
     return this.findOne(id);
   }
 

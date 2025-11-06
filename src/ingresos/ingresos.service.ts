@@ -18,11 +18,11 @@ export class IngresosService {
   }
 
   async findAll() {
-    return await this.ingresosRepository.find();
+    return await this.ingresosRepository.find({ relations: ['id_insumo'] });
   }
 
   async findOne(id_ingreso: number) {
-    return await this.ingresosRepository.findOneBy({ id_ingreso });
+    return await this.ingresosRepository.findOne({ where: { id_ingreso }, relations: ['id_insumo'] });
   }
 
   async update(id_ingreso: number, updateIngresoDto: UpdateIngresoDto) {

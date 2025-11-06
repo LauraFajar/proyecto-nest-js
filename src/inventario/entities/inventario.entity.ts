@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Insumo } from '../../insumos/entities/insumo.entity';
 
 @Entity('inventarios')
@@ -14,10 +14,9 @@ export class Inventario {
 
   @Column({ type: 'date', nullable: true })
   fecha: string
-  @Column({ name: 'id_insumo', nullable: true })
-  id_insumo: number;
   
-  @OneToOne(() => Insumo, { eager: true })
+  // Relación correcta: muchos registros de inventario pueden referenciar un mismo insumo
+  @ManyToOne(() => Insumo, { eager: true })
   @JoinColumn({ name: 'id_insumo' })
   insumo: Insumo;
 }

@@ -1,6 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { InventarioService } from './inventario.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CreateInventarioDto } from './dto/create-inventario.dto';
+import { UpdateInventarioDto } from './dto/update-inventario.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 @Controller('inventario')
 @UseGuards(JwtAuthGuard)
@@ -8,13 +11,13 @@ export class InventarioController {
   constructor(private readonly inventarioService: InventarioService) {}
 
   @Post()
-  create(@Body() createInventarioDto: any) {
+  create(@Body() createInventarioDto: CreateInventarioDto) {
     return this.inventarioService.create(createInventarioDto);
   }
 
   @Get()
-  findAll() {
-    return this.inventarioService.findAll();
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.inventarioService.findAll(paginationDto);
   }
 
   @Get('reporte')
@@ -33,17 +36,20 @@ export class InventarioController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.inventarioService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.inventarioService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInventarioDto: any) {
-    return this.inventarioService.update(+id, updateInventarioDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateInventarioDto: UpdateInventarioDto,
+  ) {
+    return this.inventarioService.update(id, updateInventarioDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.inventarioService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.inventarioService.remove(id);
   }
 }

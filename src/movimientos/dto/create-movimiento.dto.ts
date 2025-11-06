@@ -13,4 +13,8 @@ export class CreateMovimientoDto {
 
   @IsDateString({}, { message: 'Fecha de movimiento debe estar en formato YYYY-MM-DD.' })
   fecha_movimiento: string;
+
+  // Vinculación con Insumo por ID numérico
+  @IsInt({ message: 'id_insumo debe ser un número entero.' })
+  id_insumo: number;
 }

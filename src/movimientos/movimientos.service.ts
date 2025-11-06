@@ -13,16 +13,21 @@ export class MovimientosService {
   ) {}
 
   async create(createMovimientoDto: CreateMovimientoDto) {
-    const nuevoMovimiento = this.movimientosRepository.create(createMovimientoDto);
+    // Mapear id_insumo numérico a la relación Insumo
+    const payload: any = { ...createMovimientoDto };
+    if (createMovimientoDto?.id_insumo) {
+      payload.id_insumo = { id_insumo: createMovimientoDto.id_insumo } as any;
+    }
+    const nuevoMovimiento = this.movimientosRepository.create(payload);
     return await this.movimientosRepository.save(nuevoMovimiento);
   }
 
   async findAll() {
-    return await this.movimientosRepository.find();
+    return await this.movimientosRepository.find({ relations: ['id_insumo'] });
   }
 
   async findOne(id_movimiento: number) {
-    return await this.movimientosRepository.findOneBy({ id_movimiento });
+    return await this.movimientosRepository.findOne({ where: { id_movimiento }, relations: ['id_insumo'] });
   }
 
   async update(id_movimiento: number, updateMovimientoDto: UpdateMovimientoDto) {

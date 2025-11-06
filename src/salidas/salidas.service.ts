@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DeepPartial } from 'typeorm';
 import { Salida } from './entities/salida.entity';
 import { CreateSalidaDto } from './dto/create-salida.dto';
 import { UpdateSalidaDto } from './dto/update-salida.dto';
@@ -15,27 +15,39 @@ export class SalidasService {
   ) {}
 
   async create(createSalidaDto: CreateSalidaDto) {
-    const nuevaSalida = this.salidasRepository.create(createSalidaDto);
-    const salidaGuardada = await this.salidasRepository.save(nuevaSalida);
+    // Mapear id_insumo numérico a la relación Insumo y tipar correctamente
+    const payload: DeepPartial<Salida> = { ...(createSalidaDto as any) };
+    if (createSalidaDto?.id_insumo) {
+      payload.insumo = { id_insumo: createSalidaDto.id_insumo } as any;
+      delete (payload as any).id_insumo;
+    }
+    const nuevaSalida = this.salidasRepository.create(payload);
+    const salidaGuardada: Salida = await this.salidasRepository.save(nuevaSalida);
 
-    if (salidaGuardada.insumo && salidaGuardada.insumo.id_insumo) {
+    // Re-cargar la salida con la relación de Insumo para garantizar tipos y datos
+    const salidaConRelacion = await this.salidasRepository.findOne({
+      where: { id_salida: salidaGuardada.id_salida },
+      relations: ['insumo'],
+    });
+
+    if (salidaConRelacion?.insumo?.id_insumo) {
       await this.inventarioService.reducirCantidad(
-        salidaGuardada.insumo.id_insumo,
-        salidaGuardada.cantidad,
+        salidaConRelacion.insumo.id_insumo,
+        salidaConRelacion.cantidad,
       );
     } else {
       throw new NotFoundException(`El insumo para la salida no fue encontrado.`);
     }
 
-    return salidaGuardada;
+    return salidaConRelacion ?? salidaGuardada;
   }
 
   async findAll() {
-    return this.salidasRepository.find();
+    return this.salidasRepository.find({ relations: ['insumo'] });
   }
 
   async findOne(id: number) {
-    const salida = await this.salidasRepository.findOne({ where: { id_salida: id } });
+    const salida = await this.salidasRepository.findOne({ where: { id_salida: id }, relations: ['insumo'] });
     if (!salida) {
       throw new NotFoundException(`Salida con ID ${id} no encontrada.`);
     }

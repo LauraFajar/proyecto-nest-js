@@ -58,8 +58,9 @@ export class AlertSchedulerService {
     this.logger.log('📦 Verificando stock bajo...');
     
     try {
-      const inventarios = await this.inventarioService.findAll();
-      const itemsBajoStock = inventarios.filter(item => item.cantidad_stock < 10);
+      const inventarioResp: any = await this.inventarioService.findAll();
+      const inventarios = Array.isArray(inventarioResp) ? inventarioResp : (inventarioResp?.items || []);
+      const itemsBajoStock = inventarios.filter((item: any) => item.cantidad_stock < 10);
       
       for (const item of itemsBajoStock) {
         await this.alertasService.notificarStockBajo(

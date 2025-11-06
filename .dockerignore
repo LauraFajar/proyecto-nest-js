@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+.vscode
+coverage
+uploads
+test
+frontend-react-atomicdesign
+build
+Dockerfile*
+*.log
+*.tmp
+*.swp

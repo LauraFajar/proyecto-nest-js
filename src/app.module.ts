@@ -53,15 +53,30 @@ import { UploadsModule } from './uploads/uploads.module';
     TypeOrmModule.forRoot(dataSourceOptions),
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => ({
-        store: await redisStore({
-          socket: {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379', 10),
-          },
-          ttl: 60 * 60, // 1 hora por defecto
-        }),
-      }),
+      useFactory: async () => {
+        const host = process.env.REDIS_HOST || 'localhost';
+        const port = parseInt(process.env.REDIS_PORT || '6379', 10);
+        const useRedis = (process.env.USE_REDIS_CACHE ?? 'true') !== 'false';
+
+        if (useRedis) {
+          try {
+            const store = await redisStore({
+              socket: { host, port },
+              ttl: 60 * 60,
+            });
+            return { store };
+          } catch (err) {
+            console.warn(
+              `Redis no disponible en ${host}:${port}. Usando caché en memoria.`,
+              (err as any)?.message ?? err,
+            );
+            return { ttl: 60 * 60 };
+          }
+        }
+
+        // Fallback a caché en memoria cuando Redis está deshabilitado
+        return { ttl: 60 * 60 };
+      },
     }),
     MulterModule.register({
       storage: diskStorage({

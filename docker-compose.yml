@@ -25,6 +25,28 @@ services:
     networks:
       - app-network
 
+  seed:
+    container_name: nest-seed
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: npm run seed
+    env_file:
+      - .env
+    environment:
+      - PORT=${PORT:-3001}
+      - DB_HOST=postgres
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-123789}
+      - DB_DATABASE=${DB_DATABASE:-api_proyecto}
+      - NODE_ENV=${NODE_ENV:-development}
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+    restart: "no"
+
   postgres:
     container_name: postgres-db
     image: postgres:15
@@ -40,7 +62,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
-      
+
   redis:
     container_name: redis-cache
     image: redis:alpine
@@ -48,6 +70,24 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - app-network
+
+  frontend:
+    container_name: react-frontend
+    image: node:20-alpine
+    working_dir: /usr/src/app
+    volumes:
+      - ./frontend-react-atomicdesign:/usr/src/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:${PORT:-3001}
+      - REACT_APP_ENVIRONMENT=development
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - api
     networks:
       - app-network
 
