@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Inventario } from './entities/inventario.entity';
 import { AlertasService } from '../alertas/alertas.service';
+import { CreateInventarioDto } from './dto/create-inventario.dto';
+import { UpdateInventarioDto } from './dto/update-inventario.dto';
 
 @Injectable()
 export class InventarioService {
@@ -12,21 +14,21 @@ export class InventarioService {
     private readonly alertasService: AlertasService,
   ) {}
 
-  async create(createInventarioDto: any) {
+  async create(createInventarioDto: CreateInventarioDto) {
     const nuevoInventario = this.inventarioRepository.create(createInventarioDto);
     return await this.inventarioRepository.save(nuevoInventario);
   }
 
   async findAll() {
     return await this.inventarioRepository.find({
-      relations: ['id_insumo'],
+      relations: ['insumo'],
     });
   }
 
   async findOne(id: number) {
     const inventario = await this.inventarioRepository.findOne({ 
       where: { id_inventario: id },
-      relations: ['id_insumo'],
+      relations: ['insumo'],
     });
     if (!inventario) {
       throw new NotFoundException(`Inventario con ID ${id} no encontrado.`);
@@ -34,7 +36,7 @@ export class InventarioService {
     return inventario;
   }
 
-  async update(id: number, updateInventarioDto: any) {
+  async update(id: number, updateInventarioDto: UpdateInventarioDto) {
     const inventario = await this.inventarioRepository.findOne({ where: { id_inventario: id } });
     if (!inventario) {
       throw new NotFoundException(`Inventario con ID ${id} no encontrado.`);
