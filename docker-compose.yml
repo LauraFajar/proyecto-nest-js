@@ -51,6 +51,32 @@ services:
     networks:
       - app-network
 
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - api
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+    networks:
+      - app-network
+    command: npm run seed
+
+  frontend:
+    container_name: frontend-react
+    build:
+      context: ./frontend-react-atomicdesign
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
   redis_data:

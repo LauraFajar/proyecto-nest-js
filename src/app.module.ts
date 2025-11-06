@@ -39,7 +39,6 @@ import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { UploadsModule } from './uploads/uploads.module';
 
-import { SeederModule } from './database/seeds/seeder.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -54,15 +53,23 @@ import { SeederModule } from './database/seeds/seeder.module';
     TypeOrmModule.forRoot(dataSourceOptions),
     CacheModule.registerAsync({
       isGlobal: true,
-      useFactory: async () => ({
-        store: await redisStore({
-          socket: {
-            host: process.env.REDIS_HOST || 'localhost',
-            port: parseInt(process.env.REDIS_PORT || '6379', 10),
-          },
-          ttl: 60 * 60, // 1 hora por defecto
-        }),
-      }),
+      useFactory: async () => {
+        try {
+          const store = await redisStore({
+            socket: {
+              host: process.env.REDIS_HOST || 'localhost',
+              port: parseInt(process.env.REDIS_PORT || '6379', 10),
+            },
+            ttl: 60 * 60, // 1 hora por defecto
+          });
+          return { store };
+        } catch (error) {
+          return {
+            store: 'memory',
+            ttl: 60, // 1 minuto por defecto para la caché en memoria
+          };
+        }
+      },
     }),
     MulterModule.register({
       storage: diskStorage({
@@ -97,7 +104,6 @@ import { SeederModule } from './database/seeds/seeder.module';
     UtilizaModule,
     UsuariosModule,
     UploadsModule,
-    SeederModule,
   ],
   controllers: [AppController],
   providers: [
