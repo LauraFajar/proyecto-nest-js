@@ -287,4 +287,69 @@ export class FinanzasService {
 
     return { cultivos: result };
   }
+
+  async getRentabilidad(
+    cultivoId: number,
+    from: string,
+    to: string,
+    criterio?: 'margen' | 'bc' | 'porcentaje',
+    umbral?: number,
+  ) {
+    const ingresosRow = await this.ingresosRepo
+      .createQueryBuilder('i')
+      .select('COALESCE(SUM(i.monto), 0)', 'total')
+      .where('i.id_cultivo = :cultivoId', { cultivoId })
+      .andWhere('i.fecha_ingreso BETWEEN :from AND :to', { from, to })
+      .getRawOne();
+
+    const salidasRow = await this.salidasRepo
+      .createQueryBuilder('s')
+      .select('COALESCE(SUM(s.cantidad * COALESCE(s.valor_unidad, 0)), 0)', 'total')
+      .where('s.id_cultivo = :cultivoId', { cultivoId })
+      .andWhere('s.fecha_salida BETWEEN :from AND :to', { from, to })
+      .getRawOne();
+
+    const actividadesRow = await this.actividadesRepo
+      .createQueryBuilder('a')
+      .select(
+        "COALESCE(SUM(COALESCE(a.costo_mano_obra, '0')::numeric + COALESCE(a.costo_maquinaria, '0')::numeric), 0)",
+        'total',
+      )
+      .where('a.id_cultivo = :cultivoId', { cultivoId })
+      .andWhere('a.fecha BETWEEN :from AND :to', { from, to })
+      .getRawOne();
+
+    const ingresos = this.toNumber(ingresosRow?.total);
+    const salidas = this.toNumber(salidasRow?.total);
+    const actividades = this.toNumber(actividadesRow?.total);
+    const egresos = salidas + actividades;
+    const margen = ingresos - egresos;
+
+    const beneficioCosto = egresos > 0 ? ingresos / egresos : null;
+    const margenPorcentaje = ingresos > 0 ? (margen / ingresos) * 100 : null;
+
+    // Determinar rentabilidad según criterio/umbral opcional
+    let rentable: boolean;
+    const criterioEval = criterio || 'margen';
+    const umbralEval = umbral !== undefined ? umbral : (criterioEval === 'bc' ? 1 : 0);
+
+    if (criterioEval === 'bc') {
+      rentable = beneficioCosto !== null ? beneficioCosto >= umbralEval : false;
+    } else if (criterioEval === 'porcentaje') {
+      rentable = margenPorcentaje !== null ? margenPorcentaje >= umbralEval : false;
+    } else {
+      rentable = margen >= umbralEval; 
+    }
+
+    return {
+      ingresos: this.fmt(ingresos),
+      egresos: this.fmt(egresos),
+      margen: this.fmt(margen),
+      beneficioCosto: beneficioCosto === null ? null : this.fmt(beneficioCosto),
+      margenPorcentaje: margenPorcentaje === null ? null : this.fmt(margenPorcentaje),
+      rentable,
+      criterio: criterioEval,
+      umbral: umbralEval,
+    };
+  }
 }

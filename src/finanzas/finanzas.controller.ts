@@ -32,7 +32,41 @@ export class FinanzasController {
     if (!from || !to) {
       throw new BadRequestException('from y to son requeridos (YYYY-MM-DD)');
     }
-    return this.finanzasService.getMargenPorCultivo(from, to);
+    const res = await this.finanzasService.getMargenPorCultivo(from, to);
+    const list = Array.isArray((res as any)?.cultivos) ? (res as any).cultivos : Array.isArray(res) ? (res as any) : [];
+    const items = list.map((r: any) => ({
+      ...r,
+      nombre_cultivo: r.nombre ?? r.nombre_cultivo ?? r.cultivo ?? 'Sin cultivo',
+    }));
+    return { items };
+  }
+
+  @Get('rentabilidad')
+  async getRentabilidad(
+    @Query('cultivoId') cultivoId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('criterio') criterio?: 'margen' | 'bc' | 'porcentaje',
+    @Query('umbral') umbral?: string,
+  ) {
+    if (!cultivoId) {
+      throw new BadRequestException('cultivoId es requerido');
+    }
+    if (!from || !to) {
+      throw new BadRequestException('from y to son requeridos (YYYY-MM-DD)');
+    }
+
+    const criterioVal: 'margen' | 'bc' | 'porcentaje' | undefined =
+      criterio === 'bc' ? 'bc' : criterio === 'porcentaje' ? 'porcentaje' : criterio === 'margen' ? 'margen' : undefined;
+    const umbralNum = umbral !== undefined ? Number(umbral) : undefined;
+
+    return this.finanzasService.getRentabilidad(
+      parseInt(cultivoId, 10),
+      from,
+      to,
+      criterioVal,
+      umbralNum,
+    );
   }
 
   @Get('resumen/excel')
