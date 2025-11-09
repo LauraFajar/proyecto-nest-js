@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 't
 import { Categoria } from '../../categorias/entities/categoria.entity';
 import { Almacen } from '../../almacenes/entities/almacen.entity';
 import { Insumo } from '../../insumos/entities/insumo.entity';
+import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 
 @Entity('salidas')
 export class Salida {
@@ -34,4 +35,11 @@ export class Salida {
   @ManyToOne(() => Insumo, (insumo) => insumo.salidas)
   @JoinColumn({ name: 'id_insumo' })
   insumo: Insumo;
+
+  @Column({ name: 'id_cultivo', type: 'int', nullable: true })
+  id_cultivo: number | null;
+
+  @ManyToOne(() => Cultivo, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'id_cultivo' })
+  cultivo: Cultivo | null;
 }

@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsNumber, IsString, Length } from 'class-validator';
+import { IsDateString, IsNumber, IsOptional, IsString, Length, IsInt } from 'class-validator';
 
 export class CreateIngresoDto {
   @IsDateString({}, { message: 'La fecha debe estar en formato válido (YYYY-MM-DD).' })
@@ -11,4 +11,7 @@ export class CreateIngresoDto {
   @Length(1, 50, { message: 'La descripción debe tener entre 1 y 50 caracteres.' })
   descripcion: string;
 
+  @IsOptional()
+  @IsInt({ message: 'El id_cultivo debe ser un entero.' })
+  id_cultivo?: number;
 }

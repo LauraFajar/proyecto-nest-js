@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Insumo } from '../../insumos/entities/insumo.entity';
+import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 
 @Entity('ingresos')
 export class Ingreso {
@@ -18,4 +19,11 @@ export class Ingreso {
   @ManyToOne(() => Insumo)
   @JoinColumn({ name: 'id_insumo' })
   id_insumo: Insumo;
+
+  @Column({ name: 'id_cultivo', type: 'int', nullable: true })
+  id_cultivo: number | null;
+
+  @ManyToOne(() => Cultivo, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'id_cultivo' })
+  cultivo: Cultivo | null;
 }

@@ -19,6 +19,44 @@ export class Actividad {
   @Column({ name: 'detalles', length: 50, nullable: false })
   detalles: string;
 
+  @Column({
+    name: 'costo_mano_obra',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    default: 0
+  })
+  costo_mano_obra: string;
+
+  @Column({
+    name: 'horas_trabajadas',
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    nullable: true
+  })
+  horas_trabajadas: string;
+
+  @Column({
+    name: 'tarifa_hora',
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    nullable: true
+  })
+  tarifa_hora: string;
+
+  @Column({
+    name: 'costo_maquinaria',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    default: 0
+  })
+  costo_maquinaria: string;
+
   @Column({ 
     name: 'estado', 
     type: 'varchar', 

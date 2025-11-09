@@ -38,6 +38,8 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { UploadsModule } from './uploads/uploads.module';
+import { FinanzasModule } from './finanzas/finanzas.module';
+import { SeederModule } from './database/seeds/seeder.module';
 
 @Module({
   imports: [
@@ -104,6 +106,8 @@ import { UploadsModule } from './uploads/uploads.module';
     UtilizaModule,
     UsuariosModule,
     UploadsModule,
+    FinanzasModule,
+    SeederModule,
   ],
   controllers: [AppController],
   providers: [

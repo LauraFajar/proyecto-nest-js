@@ -32,6 +32,22 @@ export class CreateActividadeDto {
   @IsOptional()
   costo_real?: number;
 
+  @IsNumber()
+  @IsOptional()
+  horas_trabajadas?: number;
+
+  @IsNumber()
+  @IsOptional()
+  tarifa_hora?: number;
+
+  @IsNumber()
+  @IsOptional()
+  costo_mano_obra?: number;
+
+  @IsNumber()
+  @IsOptional()
+  costo_maquinaria?: number;
+
   @IsString()
   @IsOptional()
   observaciones?: string;

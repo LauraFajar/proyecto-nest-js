@@ -20,4 +20,8 @@ export class CreateSalidaDto {
   @IsOptional()
   @IsDateString()
   fecha_salida?: string;
+
+  @IsOptional()
+  @IsInt()
+  id_cultivo?: number;
 }
