@@ -140,13 +140,23 @@ export class FinanzasService {
     };
   }
 
+  async getCultivoNombre(cultivoId: number): Promise<string | null> {
+    const cultivo = await this.cultivoRepo.findOne({
+      where: { id_cultivo: cultivoId },
+      select: ['nombre_cultivo'],
+    });
+    return cultivo?.nombre_cultivo ?? null;
+  }
+
   async generateExcelResumen(cultivoId: number, from: string, to: string, groupBy: GroupBy): Promise<Buffer> {
     const data = await this.getResumen(cultivoId, from, to, groupBy);
+    const cultivoNombre = await this.getCultivoNombre(cultivoId);
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Resumen Finanzas');
 
-    sheet.addRow([`Resumen Finanzas - Cultivo ${cultivoId}`]);
+    const tituloCultivo = cultivoNombre ? `${cultivoNombre} (${cultivoId})` : `#${cultivoId}`;
+    sheet.addRow([`Resumen Finanzas - Cultivo ${tituloCultivo}`]);
     sheet.addRow([`Rango`, `${from} a ${to}`]);
     sheet.addRow([]);
 
@@ -180,12 +190,14 @@ export class FinanzasService {
 
   async generatePdfResumen(cultivoId: number, from: string, to: string, groupBy: GroupBy): Promise<Buffer> {
     const data = await this.getResumen(cultivoId, from, to, groupBy);
+    const cultivoNombre = await this.getCultivoNombre(cultivoId);
 
     const doc = new PDFDocument({ size: 'A4', margin: 40 });
     const stream = new PassThrough();
     doc.pipe(stream);
 
-    doc.fontSize(16).text(`Resumen Finanzas - Cultivo ${cultivoId}`, { align: 'left' });
+    const tituloCultivo = cultivoNombre ? `${cultivoNombre} (${cultivoId})` : `#${cultivoId}`;
+    doc.fontSize(16).text(`Resumen Finanzas - Cultivo ${tituloCultivo}`, { align: 'left' });
     doc.moveDown(0.5);
     doc.fontSize(12).text(`Rango: ${from} a ${to}`);
 

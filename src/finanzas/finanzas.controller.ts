@@ -85,8 +85,14 @@ export class FinanzasController {
     }
     const gb = groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
     const buffer = await this.finanzasService.generateExcelResumen(parseInt(cultivoId, 10), from, to, gb);
-
-    const filename = `resumen-finanzas-${cultivoId}-${from}_a_${to}.xlsx`;
+    const nombre = await this.finanzasService.getCultivoNombre(parseInt(cultivoId, 10));
+    const safeName = (nombre || `cultivo-${cultivoId}`)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\- ]+/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+    const filename = `resumen-finanzas-${safeName}-${cultivoId}-${from}_a_${to}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(buffer);
@@ -108,8 +114,14 @@ export class FinanzasController {
     }
     const gb = groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
     const buffer = await this.finanzasService.generatePdfResumen(parseInt(cultivoId, 10), from, to, gb);
-
-    const filename = `resumen-finanzas-${cultivoId}-${from}_a_${to}.pdf`;
+    const nombre = await this.finanzasService.getCultivoNombre(parseInt(cultivoId, 10));
+    const safeName = (nombre || `cultivo-${cultivoId}`)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\- ]+/g, '')
+      .replace(/\s+/g, '-')
+      .toLowerCase();
+    const filename = `resumen-finanzas-${safeName}-${cultivoId}-${from}_a_${to}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(buffer);
