@@ -16,14 +16,14 @@ export class MovimientoSeeder {
   async seed() {
     const data = [
       {
-        tipo_movimiento: 'entrada',
+        tipo_movimiento: 'Entrada',
         id_insumo: 1,
         cantidad: 100,
         unidad_medida: 'kg',
         fecha_movimiento: '2024-01-05',
       },
       {
-        tipo_movimiento: 'salida',
+        tipo_movimiento: 'Salida',
         id_insumo: 1,
         cantidad: 20,
         unidad_medida: 'kg',
@@ -34,16 +34,22 @@ export class MovimientoSeeder {
       for (const item of data) {
         const insumo = await this.insumoRepository.findOne({ where: { id_insumo: item.id_insumo } });
         if (insumo) {
-          const exists = await this.movimientoRepository.findOne({ where: { tipo_movimiento: item.tipo_movimiento, fecha_movimiento: item.fecha_movimiento, id_insumo: { id_insumo: insumo.id_insumo } } });
+          const exists = await this.movimientoRepository
+            .createQueryBuilder('m')
+            .where('m.tipo_movimiento = :tipo', { tipo: item.tipo_movimiento })
+            .andWhere('m.fecha_movimiento = :fecha', { fecha: item.fecha_movimiento })
+            .andWhere('m.id_insumo = :insumoId', { insumoId: insumo.id_insumo })
+            .getOne();
+
           if (!exists) {
-            const movimientoToCreate = {
+            const movimientoToCreate = this.movimientoRepository.create({
               tipo_movimiento: item.tipo_movimiento,
               cantidad: item.cantidad,
               unidad_medida: item.unidad_medida,
               fecha_movimiento: item.fecha_movimiento,
               id_insumo: insumo,
-            };
-            await this.movimientoRepository.save(this.movimientoRepository.create(movimientoToCreate));
+            });
+            await this.movimientoRepository.save(movimientoToCreate);
           }
         }
       }

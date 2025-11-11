@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { dataSourceOptions } from '../../data-source';
 import { SeederService } from '../seeds/seeder.service';
 import { Actividad } from '../../actividades/entities/actividad.entity';
 import { Almacen } from '../../almacenes/entities/almacen.entity';
@@ -35,9 +36,12 @@ import { TipoRolSeeder } from '../seeds/tiporol.seeder';
 import { TratamientoSeeder } from '../seeds/tratamiento.seeder';
 import { UsuarioSeeder } from '../seeds/usuario.seeder';
 import { UtilizaSeeder } from '../seeds/utiliza.seeder';
+import { Movimiento } from '../../movimientos/entities/movimiento.entity';
+import { MovimientoSeeder } from '../seeds/movimiento.seeder';
 
 @Module({
   imports: [
+    TypeOrmModule.forRoot(dataSourceOptions),
     TypeOrmModule.forFeature([
       Actividad,
       Almacen,
@@ -47,6 +51,7 @@ import { UtilizaSeeder } from '../seeds/utiliza.seeder';
       Insumo,
       Inventario,
       Lote,
+      Movimiento,
       Realiza,
       Rol,
       Sensor,
@@ -68,6 +73,7 @@ import { UtilizaSeeder } from '../seeds/utiliza.seeder';
     InsumoSeeder,
     InventarioSeeder,
     LoteSeeder,
+    MovimientoSeeder,
     RealizaSeeder,
     RolSeeder,
     SensorSeeder,

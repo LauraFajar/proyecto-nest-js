@@ -19,13 +19,13 @@ export class SalidasController {
   }
 
   @Get()
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   findAll() {
     return this.salidasService.findAll();
   }
 
   @Get(':id')
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   findOne(@Param('id') id: string) {
     return this.salidasService.findOne(+id);
   }

@@ -30,27 +30,37 @@ export class MigracionMaestra1761200000000 implements MigrationInterface {
             `);
         }
 
-        await queryRunner.query(`
-            DO $$
-            BEGIN
-                -- Verificar si la columna id_epa existe en la tabla epa
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'epa' AND column_name = 'id_epa'
-                ) THEN
-                    ALTER TABLE epa ADD COLUMN id_epa SERIAL PRIMARY KEY;
-                END IF;
+        const epaExists = await queryRunner.hasTable('epa');
+        if (epaExists) {
+            await queryRunner.query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'epa' AND column_name = 'id_epa'
+                    ) THEN
+                        ALTER TABLE epa ADD COLUMN id_epa SERIAL PRIMARY KEY;
+                    END IF;
+                END
+                $$;
+            `);
+        }
 
-                -- Verificar si la columna id_tratamiento existe en la tabla tratamientos
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
-                    WHERE table_name = 'tratamientos' AND column_name = 'id_tratamiento'
-                ) THEN
-                    ALTER TABLE tratamientos ADD COLUMN id_tratamiento SERIAL PRIMARY KEY;
-                END IF;
-            END
-            $$;
-        `);
+        const tratamientosExists = await queryRunner.hasTable('tratamientos');
+        if (tratamientosExists) {
+            await queryRunner.query(`
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'tratamientos' AND column_name = 'id_tratamiento'
+                    ) THEN
+                        ALTER TABLE tratamientos ADD COLUMN id_tratamiento SERIAL PRIMARY KEY;
+                    END IF;
+                END
+                $$;
+            `);
+        }
 
         const sensoresExists = await queryRunner.hasTable("sensores");
         if (sensoresExists) {

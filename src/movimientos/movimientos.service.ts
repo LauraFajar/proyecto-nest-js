@@ -13,20 +13,34 @@ export class MovimientosService {
   ) {}
 
   async create(createMovimientoDto: CreateMovimientoDto) {
-    const nuevoMovimiento = this.movimientosRepository.create(createMovimientoDto);
+    // Asegurar relación con Insumo usando solo el id
+    const nuevoMovimiento = this.movimientosRepository.create({
+      ...createMovimientoDto,
+      id_insumo: { id_insumo: createMovimientoDto.id_insumo } as any,
+    });
     return await this.movimientosRepository.save(nuevoMovimiento);
   }
 
   async findAll() {
-    return await this.movimientosRepository.find();
+    return await this.movimientosRepository.find({
+      relations: ['id_insumo', 'id_insumo.id_categoria', 'id_insumo.id_almacen'],
+    });
   }
 
   async findOne(id_movimiento: number) {
-    return await this.movimientosRepository.findOneBy({ id_movimiento });
+    return await this.movimientosRepository.findOne({
+      where: { id_movimiento },
+      relations: ['id_insumo', 'id_insumo.id_categoria', 'id_insumo.id_almacen'],
+    });
   }
 
   async update(id_movimiento: number, updateMovimientoDto: UpdateMovimientoDto) {
-    await this.movimientosRepository.update(id_movimiento, updateMovimientoDto);
+    // Mapear id_insumo numérico a relación para cumplir con el tipo de ManyToOne
+    const toUpdate: any = { ...updateMovimientoDto };
+    if (typeof updateMovimientoDto.id_insumo === 'number') {
+      toUpdate.id_insumo = { id_insumo: updateMovimientoDto.id_insumo } as any;
+    }
+    await this.movimientosRepository.update(id_movimiento, toUpdate);
     return this.findOne(id_movimiento);
   }
 

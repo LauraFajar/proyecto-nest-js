@@ -19,13 +19,13 @@ export class IngresosController {
   }
 
   @Get()
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   findAll() {
     return this.ingresosService.findAll();
   }
 
   @Get(':id')
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   findOne(@Param('id') id: string) {
     return this.ingresosService.findOne(+id);
   }

@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { InventarioService } from './inventario.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CreateInventarioDto } from './dto/create-inventario.dto';
+import { UpdateInventarioDto } from './dto/update-inventario.dto';
 
 @Controller('inventario')
 @UseGuards(JwtAuthGuard)
@@ -8,7 +10,7 @@ export class InventarioController {
   constructor(private readonly inventarioService: InventarioService) {}
 
   @Post()
-  create(@Body() createInventarioDto: any) {
+  create(@Body() createInventarioDto: CreateInventarioDto) {
     return this.inventarioService.create(createInventarioDto);
   }
 
@@ -38,7 +40,7 @@ export class InventarioController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInventarioDto: any) {
+  update(@Param('id') id: string, @Body() updateInventarioDto: UpdateInventarioDto) {
     return this.inventarioService.update(+id, updateInventarioDto);
   }
 

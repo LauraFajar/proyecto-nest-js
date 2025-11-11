@@ -4,57 +4,66 @@ export class AddSensorColumnsAndConstraints1757197200000 implements MigrationInt
     name = 'AddSensorColumnsAndConstraints1757197200000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // 1. Agregar columnas a sensores
-        await queryRunner.query(`
-            ALTER TABLE "sensores" 
-            ADD COLUMN IF NOT EXISTS "latitud" decimal(10,8),
-            ADD COLUMN IF NOT EXISTS "longitud" decimal(11,8),
-            ADD COLUMN IF NOT EXISTS "valor_actual" decimal(10,2),
-            ADD COLUMN IF NOT EXISTS "valor_minimo" decimal(10,2),
-            ADD COLUMN IF NOT EXISTS "valor_maximo" decimal(10,2),
-            ADD COLUMN IF NOT EXISTS "ultima_lectura" TIMESTAMP,
-            ADD COLUMN IF NOT EXISTS "configuracion" TEXT,
-            ADD COLUMN IF NOT EXISTS "historial_lecturas" JSONB
-        `);
+        // 1. Agregar columnas a sensores (solo si existe)
+        const sensoresExists = await queryRunner.hasTable("sensores");
+        if (sensoresExists) {
+            await queryRunner.query(`
+                ALTER TABLE "sensores" 
+                ADD COLUMN IF NOT EXISTS "latitud" decimal(10,8),
+                ADD COLUMN IF NOT EXISTS "longitud" decimal(11,8),
+                ADD COLUMN IF NOT EXISTS "valor_actual" decimal(10,2),
+                ADD COLUMN IF NOT EXISTS "valor_minimo" decimal(10,2),
+                ADD COLUMN IF NOT EXISTS "valor_maximo" decimal(10,2),
+                ADD COLUMN IF NOT EXISTS "ultima_lectura" TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS "configuracion" TEXT,
+                ADD COLUMN IF NOT EXISTS "historial_lecturas" JSONB
+            `);
+        }
 
-        // 2. Actualizar restricciones NOT NULL en lotes
-        await queryRunner.query(`
-            UPDATE "lotes" SET 
-                "nombre_lote" = COALESCE("nombre_lote", 'sin_nombre'),
-                "descripcion" = COALESCE("descripcion", 'sin_descripcion')
-        `);
-        
-        await queryRunner.query(`
-            ALTER TABLE "lotes" 
-            ALTER COLUMN "nombre_lote" SET NOT NULL,
-            ALTER COLUMN "descripcion" SET NOT NULL
-        `);
+        // 2. Actualizar restricciones NOT NULL en lotes (si existe)
+        const lotesExists = await queryRunner.hasTable("lotes");
+        if (lotesExists) {
+            await queryRunner.query(`
+                UPDATE "lotes" SET 
+                    "nombre_lote" = COALESCE("nombre_lote", 'sin_nombre'),
+                    "descripcion" = COALESCE("descripcion", 'sin_descripcion')
+            `);
+            await queryRunner.query(`
+                ALTER TABLE "lotes" 
+                ALTER COLUMN "nombre_lote" SET NOT NULL,
+                ALTER COLUMN "descripcion" SET NOT NULL
+            `);
+        }
 
-        // 3. Actualizar restricciones NOT NULL en categorias
-        await queryRunner.query(`
-            UPDATE "categorias" SET 
-                "nombre" = COALESCE("nombre", 'Sin Nombre'),
-                "descripcion" = COALESCE("descripcion", 'Sin Descripción')
-        `);
-        
-        await queryRunner.query(`
-            ALTER TABLE "categorias" 
-            ALTER COLUMN "nombre" SET NOT NULL,
-            ALTER COLUMN "descripcion" SET NOT NULL
-        `);
+        // 3. Actualizar restricciones NOT NULL en categorias (si existe)
+        const categoriasExists = await queryRunner.hasTable("categorias");
+        if (categoriasExists) {
+            await queryRunner.query(`
+                UPDATE "categorias" SET 
+                    "nombre" = COALESCE("nombre", 'Sin Nombre'),
+                    "descripcion" = COALESCE("descripcion", 'Sin Descripción')
+            `);
+            await queryRunner.query(`
+                ALTER TABLE "categorias" 
+                ALTER COLUMN "nombre" SET NOT NULL,
+                ALTER COLUMN "descripcion" SET NOT NULL
+            `);
+        }
 
-        // 4. Actualizar restricciones NOT NULL en almacenes
-        await queryRunner.query(`
-            UPDATE "almacenes" SET 
-                "nombre_almacen" = COALESCE("nombre_almacen", 'sin_nombre'),
-                "descripcion" = COALESCE("descripcion", 'sin_descripcion')
-        `);
-        
-        await queryRunner.query(`
-            ALTER TABLE "almacenes" 
-            ALTER COLUMN "nombre_almacen" SET NOT NULL,
-            ALTER COLUMN "descripcion" SET NOT NULL
-        `);
+        // 4. Actualizar restricciones NOT NULL en almacenes (si existe)
+        const almacenesExists = await queryRunner.hasTable("almacenes");
+        if (almacenesExists) {
+            await queryRunner.query(`
+                UPDATE "almacenes" SET 
+                    "nombre_almacen" = COALESCE("nombre_almacen", 'sin_nombre'),
+                    "descripcion" = COALESCE("descripcion", 'sin_descripcion')
+            `);
+            await queryRunner.query(`
+                ALTER TABLE "almacenes" 
+                ALTER COLUMN "nombre_almacen" SET NOT NULL,
+                ALTER COLUMN "descripcion" SET NOT NULL
+            `);
+        }
 
         // 5. Actualizar tabla de migraciones
         await queryRunner.query(`

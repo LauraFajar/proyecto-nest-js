@@ -21,14 +21,14 @@ export class InventarioService {
 
   async findAll() {
     return await this.inventarioRepository.find({
-      relations: ['insumo'],
+      relations: ['insumo', 'insumo.id_categoria', 'insumo.id_almacen'],
     });
   }
 
   async findOne(id: number) {
     const inventario = await this.inventarioRepository.findOne({ 
       where: { id_inventario: id },
-      relations: ['insumo'],
+      relations: ['insumo', 'insumo.id_categoria', 'insumo.id_almacen'],
     });
     if (!inventario) {
       throw new NotFoundException(`Inventario con ID ${id} no encontrado.`);

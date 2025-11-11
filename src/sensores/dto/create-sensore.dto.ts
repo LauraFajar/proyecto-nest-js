@@ -1,11 +1,26 @@
-import { IsString, Length, IsIn } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateSensoreDto {
   @IsString()
-  @Length(1, 20)
   tipo_sensor: string;
 
-  @IsIn(['Activo', 'Inactivo'])
+  @IsString()
   estado: string;
 
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsNumber()
+  valor_minimo: number;
+
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsNumber()
+  valor_maximo: number;
+
+  @IsOptional()
+  @IsString()
+  unidad_medida?: string;
+
+  @IsOptional()
+  @IsString()
+  ubicacion?: string;
 }

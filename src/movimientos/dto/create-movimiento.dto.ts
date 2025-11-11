@@ -4,6 +4,9 @@ export class CreateMovimientoDto {
   @IsIn(['Entrada', 'Salida'], { message: 'El tipo de movimiento debe ser "Entrada" o "Salida".' })
   tipo_movimiento: string;
 
+  @IsInt({ message: 'id_insumo debe ser un número entero.' })
+  id_insumo: number;
+
   @IsInt({ message: 'Cantidad debe ser un número entero.' })
   cantidad: number;
 

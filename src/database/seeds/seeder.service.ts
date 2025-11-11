@@ -16,6 +16,7 @@ import { TipoRolSeeder } from '../seeds/tiporol.seeder';
 import { TratamientoSeeder } from '../seeds/tratamiento.seeder';
 import { UsuarioSeeder } from '../seeds/usuario.seeder';
 import { UtilizaSeeder } from '../seeds/utiliza.seeder';
+import { MovimientoSeeder } from '../seeds/movimiento.seeder';
 
 @Injectable()
 export class SeederService {
@@ -37,6 +38,7 @@ export class SeederService {
     private readonly tratamientoSeeder: TratamientoSeeder,
     private readonly usuarioSeeder: UsuarioSeeder,
     private readonly utilizaSeeder: UtilizaSeeder,
+    private readonly movimientoSeeder: MovimientoSeeder,
   ) {}
 
   async seed() {
@@ -83,6 +85,9 @@ export class SeederService {
 
     console.log('Sembrando inventario (depende de Insumo)...');
     await this.inventarioSeeder.seed();
+
+    console.log('Sembrando movimientos (depende de Insumo)...');
+    await this.movimientoSeeder.seed();
 
     console.log('Sembrando actividades (depende de Cultivo)...');
     await this.actividadSeeder.seed();

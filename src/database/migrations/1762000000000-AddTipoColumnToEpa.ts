@@ -4,6 +4,8 @@ export class AddTipoColumnToEpa1762000000000 implements MigrationInterface {
     name = 'AddTipoColumnToEpa1762000000000';
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        const epaExists = await queryRunner.hasTable("epa");
+        if (!epaExists) return;
         const table = await queryRunner.getTable("epa");
         const tipoColumn = table?.findColumnByName("tipo");
         
@@ -30,6 +32,8 @@ export class AddTipoColumnToEpa1762000000000 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
+        const epaExists = await queryRunner.hasTable("epa");
+        if (!epaExists) return;
         const table = await queryRunner.getTable("epa");
         const tipoColumn = table?.findColumnByName("tipo");
         

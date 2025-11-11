@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Sensor } from './entities/sensor.entity';
 import { Alerta } from '../alertas/entities/alerta.entity';
+import { CreateSensoreDto } from './dto/create-sensore.dto';
 
 @Injectable()
 export class SensoresService {
@@ -11,8 +12,17 @@ export class SensoresService {
     private readonly sensoresRepository: Repository<Sensor>,
   ) {}
 
-  async create(createSensorDto: any) {
-    const nuevoSensor = this.sensoresRepository.create(createSensorDto);
+  async create(createSensorDto: CreateSensoreDto) {
+    const { tipo_sensor, estado, valor_minimo, valor_maximo, unidad_medida, ubicacion } = createSensorDto;
+
+    const nuevoSensor = this.sensoresRepository.create({
+      tipo_sensor,
+      estado,
+      valor_minimo,
+      valor_maximo,
+      // Guardamos campos adicionales en 'configuracion' para no alterar el esquema
+      configuracion: JSON.stringify({ unidad_medida, ubicacion }),
+    });
     return await this.sensoresRepository.save(nuevoSensor);
   }
 
@@ -28,12 +38,27 @@ export class SensoresService {
     return sensor;
   }
 
-  async update(id: number, updateSensorDto: any) {
+  async update(id: number, updateSensorDto: Partial<CreateSensoreDto>) {
     const sensor = await this.sensoresRepository.findOne({ where: { id_sensor: id } });
     if (!sensor) {
       throw new NotFoundException(`Sensor con ID ${id} no encontrado.`);
     }
-    await this.sensoresRepository.update(id, updateSensorDto);
+    const { unidad_medida, ubicacion, ...rest } = updateSensorDto;
+    const nextConfig = { unidad_medida, ubicacion };
+
+    // Mezclamos configuración previa con nuevos campos si existen
+    let mergedConfig: string | undefined = sensor.configuracion;
+    try {
+      const prev = sensor.configuracion ? JSON.parse(sensor.configuracion) : {};
+      mergedConfig = JSON.stringify({ ...prev, ...nextConfig });
+    } catch {
+      mergedConfig = JSON.stringify(nextConfig);
+    }
+
+    await this.sensoresRepository.update(id, {
+      ...rest,
+      configuracion: mergedConfig,
+    });
     return this.findOne(id);
   }
 

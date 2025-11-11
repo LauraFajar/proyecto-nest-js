@@ -13,19 +13,19 @@ export class MovimientosController {
   constructor(private readonly movimientosService: MovimientosService) {}
 
   @Post()
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   create(@Body() createMovimientoDto: CreateMovimientoDto) {
     return this.movimientosService.create(createMovimientoDto);
   }
 
   @Get()
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   findAll() {
     return this.movimientosService.findAll();
   }
 
   @Get(':id')
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   findOne(@Param('id') id: string) {
     return this.movimientosService.findOne(+id);
   }
