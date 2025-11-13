@@ -3,10 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MovimientosService } from './movimientos.service';
 import { MovimientosController } from './movimientos.controller';
 import { Movimiento } from './entities/movimiento.entity';
+import { PermisosModule } from '../permisos/permisos.module';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Movimiento])],
+  imports: [TypeOrmModule.forFeature([Movimiento]), PermisosModule],
   controllers: [MovimientosController],
-  providers: [MovimientosService],
+  providers: [MovimientosService, RolesGuard],
 })
 export class MovimientosModule {}

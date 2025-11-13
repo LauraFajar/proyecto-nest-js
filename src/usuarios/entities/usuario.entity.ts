@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, ManyToMany, JoinTable } from 'typeorm';
 import { Rol } from '../../rol/entities/rol.entity';
+import { Permiso } from '../../permisos/entities/permiso.entity';
 
 @Entity('usuarios')
 export class Usuario {
@@ -33,4 +34,12 @@ export class Usuario {
   @ManyToOne(() => Rol)
   @JoinColumn({ name: 'id_rol' })
   id_rol: Rol;
+
+  @ManyToMany(() => Permiso, (permiso) => permiso.usuarios)
+  @JoinTable({
+    name: 'usuario_permisos',
+    joinColumn: { name: 'id_usuarios', referencedColumnName: 'id_usuarios' },
+    inverseJoinColumn: { name: 'id_permiso', referencedColumnName: 'id_permiso' },
+  })
+  permisos?: Permiso[];
 }

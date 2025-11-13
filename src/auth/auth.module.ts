@@ -11,10 +11,12 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { PasswordReset } from './entities/password-reset.entity';
 import { EmailService } from './services/email.service';
+import { PermisosModule } from '../permisos/permisos.module';
 
 @Module({
   imports: [
     UsuariosModule,
+    PermisosModule,
     PassportModule,
     JwtModule.register({
       secret: 'AGROTIC_LALUPA', 

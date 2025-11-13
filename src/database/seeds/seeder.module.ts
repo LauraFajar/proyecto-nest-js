@@ -18,6 +18,7 @@ import { Tiporol } from '../../tiporol/entities/tiporol.entity';
 import { Tratamiento } from '../../tratamientos/entities/tratamiento.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { Utiliza } from '../../utiliza/entities/utiliza.entity';
+import { Permiso } from '../../permisos/entities/permiso.entity';
 import { ActividadSeeder } from '../seeds/actividad.seeder';
 import { AlmacenSeeder } from '../seeds/almacen.seeder';
 import { CategoriaSeeder } from '../seeds/categoria.seeder';
@@ -35,6 +36,7 @@ import { TipoRolSeeder } from '../seeds/tiporol.seeder';
 import { TratamientoSeeder } from '../seeds/tratamiento.seeder';
 import { UsuarioSeeder } from '../seeds/usuario.seeder';
 import { UtilizaSeeder } from '../seeds/utiliza.seeder';
+import { PermisoSeeder } from '../seeds/permiso.seeder';
 
 @Module({
   imports: [
@@ -56,6 +58,7 @@ import { UtilizaSeeder } from '../seeds/utiliza.seeder';
       Tratamiento,
       Usuario,
       Utiliza,
+      Permiso,
     ]),
   ],
   providers: [
@@ -77,6 +80,7 @@ import { UtilizaSeeder } from '../seeds/utiliza.seeder';
     TratamientoSeeder,
     UsuarioSeeder,
     UtilizaSeeder,
+    PermisoSeeder,
   ],
 })
 export class SeederModule {}

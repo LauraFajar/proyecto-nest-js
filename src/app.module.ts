@@ -39,6 +39,7 @@ import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { UploadsModule } from './uploads/uploads.module';
 import { FinanzasModule } from './finanzas/finanzas.module';
+import { PermisosModule } from './permisos/permisos.module';
 import { SeederModule } from './database/seeds/seeder.module';
 
 @Module({
@@ -107,6 +108,7 @@ import { SeederModule } from './database/seeds/seeder.module';
     UsuariosModule,
     UploadsModule,
     FinanzasModule,
+    PermisosModule,
     SeederModule,
   ],
   controllers: [AppController],

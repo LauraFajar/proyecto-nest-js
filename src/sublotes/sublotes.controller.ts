@@ -6,6 +6,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
+import { Permisos } from '../permisos/decorators/permisos.decorator';
 
 @Controller('sublotes')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -20,42 +21,49 @@ export class SublotesController {
 
   @Get()
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'sublotes', accion: 'ver' })
   findAll() {
     return this.sublotesService.findAll();
   }
 
   @Get('map-data')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'sublotes', accion: 'ver' })
   getMapData() {
     return this.sublotesService.findAllWithGeoData();
   }
 
   @Get(':id/sensores')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'sublotes', accion: 'ver' })
   getSensores(@Param('id') id_sublote: string) {
     return this.sublotesService.getSensores(+id_sublote);
   }
 
   @Get(':id/estadisticas')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'sublotes', accion: 'ver' })
   getEstadisticas(@Param('id') id_sublote: string) {
     return this.sublotesService.getEstadisticas(+id_sublote);
   }
 
   @Get(':id')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'sublotes', accion: 'ver' })
   findOne(@Param('id') id: string) {
     return this.sublotesService.findOne(+id);
   }
 
   @Patch(':id')
   @Roles(Role.Admin, Role.Instructor)
+  @Permisos({ recurso: 'sublotes', accion: 'editar' })
   update(@Param('id') id: string, @Body() updateSubloteDto: UpdateSubloteDto) {
     return this.sublotesService.update(+id, updateSubloteDto);
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.Instructor)
+  @Permisos({ recurso: 'sublotes', accion: 'eliminar' })
   remove(@Param('id') id: string) {
     return this.sublotesService.remove(+id);
   }

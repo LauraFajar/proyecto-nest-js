@@ -11,6 +11,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
 import { PaginationDto } from './dto/pagination.dto';
+import { Permisos } from '../permisos/decorators/permisos.decorator';
 
 @Controller('usuarios')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -19,24 +20,28 @@ export class UsuariosController {
 
   @Post()
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'usuarios', accion: 'crear' })
   create(@Body() createUsuarioDto: CreateUsuarioDto) {
     return this.usuariosService.create(createUsuarioDto);
   }
 
   @Get()
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'usuarios', accion: 'ver' })
   findAll(@Query() paginationDto: PaginationDto) {
     return this.usuariosService.findAll(paginationDto);
   }
 
   @Get(':id')
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'usuarios', accion: 'ver' })
   findOne(@Param('id') id: string) {
     return this.usuariosService.findOne(+id);
   }
 
   @Patch(':id')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
+  @Permisos({ recurso: 'usuarios', accion: 'editar' })
   update(@Param('id') id: string, @Body() updateUsuarioDto: UpdateUsuarioDto, @Request() req) {
     const userId = req.user.id;
     if (req.user.roles !== Role.Admin && userId !== +id) {
@@ -53,12 +58,14 @@ export class UsuariosController {
 
   @Delete(':id')
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'usuarios', accion: 'eliminar' })
   remove(@Param('id') id: string) {
     return this.usuariosService.remove(+id);
   }
 
   @Post(':id/upload-imagen')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
+  @Permisos({ recurso: 'usuarios', accion: 'editar' })
   @UseInterceptors(FileInterceptor('imagen', {
     storage: diskStorage({
       destination: './uploads/usuarios',

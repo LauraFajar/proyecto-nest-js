@@ -16,6 +16,7 @@ import { TipoRolSeeder } from '../seeds/tiporol.seeder';
 import { TratamientoSeeder } from '../seeds/tratamiento.seeder';
 import { UsuarioSeeder } from '../seeds/usuario.seeder';
 import { UtilizaSeeder } from '../seeds/utiliza.seeder';
+import { PermisoSeeder } from '../seeds/permiso.seeder';
 
 @Injectable()
 export class SeederService {
@@ -37,6 +38,7 @@ export class SeederService {
     private readonly tratamientoSeeder: TratamientoSeeder,
     private readonly usuarioSeeder: UsuarioSeeder,
     private readonly utilizaSeeder: UtilizaSeeder,
+    private readonly permisoSeeder: PermisoSeeder,
   ) {}
 
   async seed() {
@@ -77,6 +79,9 @@ export class SeederService {
     // 3. Entidades con dependencias de nivel 2
     console.log('Sembrando usuarios (depende de Rol)...');
     await this.usuarioSeeder.seed();
+
+    console.log('Sembrando permisos (y asignaciones a usuarios)...');
+    await this.permisoSeeder.seed();
 
     console.log('Sembrando sensores (depende de Sublote)...');
     await this.sensorSeeder.seed();

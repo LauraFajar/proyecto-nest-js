@@ -35,6 +35,14 @@ export class UsuarioSeeder {
         numero_documento: '1082774473',
         rol_nombre: 'Instructor',
       },
+      {
+        nombres: 'Invitado Prueba',
+        email: 'guest@test.local',
+        password: 'Guest12345',
+        tipo_documento: 'C.C',
+        numero_documento: '555555',
+        rol_nombre: 'Invitado',
+      },
     ];
 
     for (const item of data) {

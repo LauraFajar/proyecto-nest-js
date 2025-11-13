@@ -5,10 +5,12 @@ import { SublotesController } from './sublotes.controller';
 import { Sublote } from './entities/sublote.entity';
 import { Lote } from '../lotes/entities/lote.entity';
 import { Sensor } from '../sensores/entities/sensor.entity';
+import { PermisosModule } from '../permisos/permisos.module';
+import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sublote, Lote, Sensor])],
+  imports: [TypeOrmModule.forFeature([Sublote, Lote, Sensor]), PermisosModule],
   controllers: [SublotesController],
-  providers: [SublotesService],
+  providers: [SublotesService, RolesGuard],
 })
 export class SublotesModule {}

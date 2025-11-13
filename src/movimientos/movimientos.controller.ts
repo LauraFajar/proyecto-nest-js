@@ -6,6 +6,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
+import { Permisos } from '../permisos/decorators/permisos.decorator';
 
 @Controller('movimientos')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -14,30 +15,35 @@ export class MovimientosController {
 
   @Post()
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'movimientos', accion: 'crear' })
   create(@Body() createMovimientoDto: CreateMovimientoDto) {
     return this.movimientosService.create(createMovimientoDto);
   }
 
   @Get()
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'movimientos', accion: 'ver' })
   findAll() {
     return this.movimientosService.findAll();
   }
 
   @Get(':id')
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'movimientos', accion: 'ver' })
   findOne(@Param('id') id: string) {
     return this.movimientosService.findOne(+id);
   }
 
   @Patch(':id')
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'movimientos', accion: 'editar' })
   update(@Param('id') id: string, @Body() updateMovimientoDto: UpdateMovimientoDto) {
     return this.movimientosService.update(+id, updateMovimientoDto);
   }
 
   @Delete(':id')
   @Roles(Role.Admin)
+  @Permisos({ recurso: 'movimientos', accion: 'eliminar' })
   remove(@Param('id') id: string) {
     return this.movimientosService.remove(+id);
   }

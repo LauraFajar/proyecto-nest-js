@@ -1,5 +1,7 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 
+const isDev = (process.env.NODE_ENV || 'development') === 'development';
+
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   host: process.env.DB_HOST || 'localhost',
@@ -8,8 +10,10 @@ export const dataSourceOptions: DataSourceOptions = {
   password: process.env.DB_PASSWORD || '123789',
   database: process.env.DB_DATABASE || 'api_proyecto',
   entities: [__dirname + '/**/*.entity{.ts,.js}'],
-  migrations: ['dist/database/migrations/*.js'],
-  synchronize: false, 
+  migrations: isDev
+    ? [__dirname + '/database/migrations/*.ts']
+    : [__dirname + '/../dist/database/migrations/*.js'],
+  synchronize: false,
 };
 
 const dataSource = new DataSource(dataSourceOptions);

@@ -9,6 +9,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
 import { UploadsService } from '../uploads/uploads.service';
 import { PaginationDto } from './dto/pagination.dto';
+import { Permisos } from '../permisos/decorators/permisos.decorator';
 
 @Controller('epa')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -20,6 +21,7 @@ export class EpaController {
 
   @Post()
   @Roles(Role.Admin, Role.Instructor)
+  @Permisos({ recurso: 'epa', accion: 'crear' })
   @UseInterceptors(FileInterceptor('imagen'))
   async create(@Body() createEpaDto: CreateEpaDto, @UploadedFile() file?: Express.Multer.File) {
     if (file) {
@@ -55,36 +57,42 @@ export class EpaController {
 
   @Get()
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'epa', accion: 'ver' })
   findAll(@Query() paginationDto: PaginationDto) {
     return this.epaService.findAll(paginationDto);
   }
 
   @Get('buscar')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'epa', accion: 'ver' })
   search(@Query('q') query: string, @Query('tipo') tipo?: string) {
     return this.epaService.search(query, tipo);
   }
 
   @Get('tipos')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'epa', accion: 'ver' })
   getTipos() {
     return ['enfermedad', 'plaga', 'arvense'];
   }
 
   @Get(':id')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Permisos({ recurso: 'epa', accion: 'ver' })
   findOne(@Param('id') id: string) {
     return this.epaService.findOne(+id);
   }
 
   @Patch(':id')
   @Roles(Role.Admin, Role.Instructor)
+  @Permisos({ recurso: 'epa', accion: 'editar' })
   update(@Param('id') id: string, @Body() updateEpaDto: UpdateEpaDto) {
     return this.epaService.update(+id, updateEpaDto);
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.Instructor)
+  @Permisos({ recurso: 'epa', accion: 'eliminar' })
   remove(@Param('id') id: string) {
     return this.epaService.remove(+id);
   }

@@ -1,7 +1,12 @@
-import { Controller, Get, Query, BadRequestException, Res } from '@nestjs/common';
+import { Controller, Get, Query, BadRequestException, Res, UseGuards } from '@nestjs/common';
 import { FinanzasService } from './finanzas.service';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermisosGuard } from '../permisos/guards/permisos.guard';
+import { Permisos } from '../permisos/decorators/permisos.decorator';
 
+@UseGuards(AuthGuard('jwt'), RolesGuard, PermisosGuard)
 @Controller('finanzas')
 export class FinanzasController {
   constructor(private readonly finanzasService: FinanzasService) {}
@@ -70,6 +75,7 @@ export class FinanzasController {
   }
 
   @Get('resumen/excel')
+  @Permisos('finanzas:export')
   async exportResumenExcel(
     @Res() res: Response,
     @Query('cultivoId') cultivoId?: string,
@@ -99,6 +105,7 @@ export class FinanzasController {
   }
 
   @Get('resumen/pdf')
+  @Permisos('finanzas:export')
   async exportResumenPdf(
     @Res() res: Response,
     @Query('cultivoId') cultivoId?: string,

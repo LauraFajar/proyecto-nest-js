@@ -40,10 +40,28 @@ export class AuthService {
       throw new UnauthorizedException('Datos de usuario incompletos');
     }
     
+    // Normalizar nombres de rol desde BD al enum utilizado en la app
+    const normalizeRole = (nombre: string): Role => {
+      switch (nombre) {
+        case 'Administrador':
+          return Role.Admin;
+        case 'Instructor':
+          return Role.Instructor;
+        case 'Aprendiz':
+          return Role.Learner;
+        case 'Pasante':
+          return Role.Intern;
+        case 'Invitado':
+          return Role.Guest;
+        default:
+          return nombre as unknown as Role; // fallback por si hay un nombre no mapeado
+      }
+    };
+
     const payload = {
       sub: user.id_usuarios,
       numero_documento: user.numero_documento,
-      roles: user.id_rol.nombre_rol,
+      roles: normalizeRole(user.id_rol.nombre_rol),
       ...(user.email && { email: user.email }),
       ...(user.nombres && { nombres: user.nombres }),
     };
