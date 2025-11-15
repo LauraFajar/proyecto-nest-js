@@ -1,8 +1,11 @@
-import { IsIn, IsInt, IsDateString, IsString, Length } from 'class-validator';
+import { IsIn, IsInt, IsDateString, IsString, IsNumber, Length } from 'class-validator';
 
 export class CreateMovimientoDto {
   @IsIn(['Entrada', 'Salida'], { message: 'El tipo de movimiento debe ser "Entrada" o "Salida".' })
   tipo_movimiento: string;
+
+  @IsNumber()
+  id_insumo: number;
 
   @IsInt({ message: 'Cantidad debe ser un número entero.' })
   cantidad: number;

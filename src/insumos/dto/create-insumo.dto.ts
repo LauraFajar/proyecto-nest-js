@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Length } from 'class-validator';
 
 export class CreateInsumoDto {
   @IsString()
@@ -15,5 +15,13 @@ export class CreateInsumoDto {
   @IsString()
   @Length(1, 50, { message: 'La observación debe tener entre 1 y 50 caracteres.' })
   observacion: string;
+
+  @IsNumber()
+  @IsOptional()
+  id_categoria?: number;
+
+  @IsNumber()
+  @IsOptional()
+  id_almacen?: number;
 
 }
