@@ -12,8 +12,24 @@ async function bootstrap() {
 
   // Configuración de CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true
+    origin: (requestOrigin, callback) => {
+      const allowedOrigins = [
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'http://localhost:8081',
+        'http://localhost:8082',
+        `http://${process.env.HOST_IP || '192.168.101.3'}:8081`,
+        `http://${process.env.HOST_IP || '192.168.101.3'}:8082`,
+        'http://localhost:19006',
+        `http://${process.env.HOST_IP || '192.168.101.3'}:19006`,
+      ];
+      if (!requestOrigin) return callback(null, true);
+      if (allowedOrigins.includes(requestOrigin)) return callback(null, true);
+      if (/^http:\/\/localhost:\d+$/.test(requestOrigin)) return callback(null, true);
+      return callback(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Middleware para cookies
