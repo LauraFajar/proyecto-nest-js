@@ -44,8 +44,14 @@ export class LotesService {
 
     Object.assign(lote, loteData);
 
-    if (coordenadas) {
-      lote.coordenadas = { type: 'Polygon', coordinates: coordenadas };
+    if (Object.prototype.hasOwnProperty.call(updateLoteDto, 'coordenadas')) {
+      const c: any = coordenadas as any;
+      const isEmpty = Array.isArray(c) ? c.length === 0 : c == null;
+      if (isEmpty) {
+        (lote as any).coordenadas = null;
+      } else {
+        (lote as any).coordenadas = { type: 'Polygon', coordinates: c };
+      }
     }
 
     return this.loteRepository.save(lote);

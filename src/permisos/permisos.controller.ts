@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards, Request, ForbiddenException, ParseIntPipe, BadRequestException } from '@nestjs/common';
 import { PermisosService } from './permisos.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -23,14 +23,12 @@ export class PermisosController {
   }
 
   @Get('usuario/:id')
-  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
-  async listByUser(@Param('id') id: string, @Request() req) {
-    const requestedId = Number(id);
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
+  async listByUser(@Param('id', new ParseIntPipe()) id: number, @Request() req) {
+    const requestedId = id;
     const userId = req.user?.id;
     const userRole = req.user?.roles as Role | undefined;
 
-    // Permitir que un usuario autenticado consulte SOLO sus propios permisos
-    // Admin puede consultar permisos de cualquier usuario
     if (userRole !== Role.Admin && userId !== requestedId) {
       throw new ForbiddenException('No puedes consultar permisos de otros usuarios');
     }
@@ -38,10 +36,14 @@ export class PermisosController {
   }
 
   @Get('usuario/me')
-  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
   async listMyPermissions(@Request() req) {
-    const userId = req.user?.id;
-    return this.permisosService.getUserPermissions(Number(userId));
+    const rawId = req.user?.id;
+    const userId = Number(rawId);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      throw new BadRequestException('ID de usuario inválido');
+    }
+    return this.permisosService.getUserPermissions(userId);
   }
 
   @Post('asignar')
