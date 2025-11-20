@@ -73,4 +73,87 @@ export class SensoresController {
   remove(@Param('id') id: string) {
     return this.sensoresService.remove(+id);
   }
+
+  @Get(':id/graficos')
+  obtenerDatosGraficos(
+    @Param('id') id_sensor: number,
+    @Query('tipo') tipo?: 'linea' | 'barra' | 'area',
+    @Query('periodo') periodo?: 'hora' | 'dia' | 'semana' | 'mes',
+    @Query('limite') limite?: number
+  ) {
+    return this.sensoresService.obtenerDatosGraficos(id_sensor, tipo, periodo, limite);
+  }
+
+  @Get('cultivo/timeline')
+  obtenerTimelineCultivo(
+    @Query('id_sublote') id_sublote?: number,
+    @Query('fecha_inicio') fecha_inicio?: string,
+    @Query('fecha_fin') fecha_fin?: string,
+    @Query('sensores') sensores?: string // comma-separated sensor types
+  ) {
+    return this.sensoresService.obtenerTimelineCultivo(id_sublote, fecha_inicio, fecha_fin, sensores);
+  }
+
+  @Get('estadisticas/generales')
+  obtenerEstadisticasGenerales(
+    @Query('id_sublote') id_sublote?: number,
+    @Query('tipo_sensor') tipo_sensor?: string
+  ) {
+    return this.sensoresService.obtenerEstadisticasGenerales(id_sublote, tipo_sensor);
+  }
+
+  @Post(':id/mqtt/configurar')
+  configurarMqtt(
+    @Param('id') id_sensor: number,
+    @Body() config: {
+      mqtt_host?: string;
+      mqtt_port?: number;
+      mqtt_topic?: string;
+      mqtt_username?: string;
+      mqtt_password?: string;
+      mqtt_enabled?: boolean;
+      mqtt_client_id?: string;
+    }
+  ) {
+    return this.sensoresService.configurarMqtt(id_sensor, config);
+  }
+
+  @Get(':id/mqtt/estado')
+  obtenerEstadoMqtt(@Param('id') id_sensor: number) {
+    return this.sensoresService.obtenerEstadoMqtt(id_sensor);
+  }
+
+  @Post('mqtt/servidor/registrar')
+  registrarServidorMqtt(@Body() servidor: {
+    nombre: string;
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+    descripcion?: string;
+  }) {
+    return this.sensoresService.registrarServidorMqtt(servidor);
+  }
+
+  @Get('mqtt/servidores')
+  obtenerServidoresMqtt() {
+    return this.sensoresService.obtenerServidoresMqtt();
+  }
+
+  @Post('mqtt/servidor/:id_servidor/asignar-sensor/:id_sensor')
+  asignarSensorAServidor(
+    @Param('id_servidor') id_servidor: number,
+    @Param('id_sensor') id_sensor: number,
+    @Body() config: {
+      topic: string;
+      client_id?: string;
+    }
+  ) {
+    return this.sensoresService.asignarSensorAServidor(id_servidor, id_sensor, config);
+  }
+
+  @Post('mqtt/servidor/:id_servidor/test-conexion')
+  probarConexionServidor(@Param('id_servidor') id_servidor: number) {
+    return this.sensoresService.probarConexionServidor(id_servidor);
+  }
 }

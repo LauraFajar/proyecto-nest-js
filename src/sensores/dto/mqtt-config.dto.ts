@@ -1,14 +1,6 @@
-import { IsString, Length, IsIn, IsOptional, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsInt, Min, Max } from 'class-validator';
 
-export class CreateSensoreDto {
-  @IsString()
-  @Length(1, 20)
-  tipo_sensor: string;
-
-  @IsIn(['Activo', 'Inactivo'])
-  estado: string;
-
-  // MQTT Configuration (optional)
+export class MqttConfigDto {
   @IsOptional()
   @IsString()
   mqtt_host?: string;
@@ -38,5 +30,4 @@ export class CreateSensoreDto {
   @IsOptional()
   @IsString()
   mqtt_client_id?: string;
-
 }

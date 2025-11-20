@@ -35,6 +35,28 @@ export class Sensor {
     observaciones?: string;
   }>;
 
+  // MQTT Configuration
+  @Column({ nullable: true })
+  mqtt_host: string;
+
+  @Column({ type: 'int', nullable: true })
+  mqtt_port: number;
+
+  @Column({ nullable: true })
+  mqtt_topic: string;
+
+  @Column({ nullable: true })
+  mqtt_username: string;
+
+  @Column({ nullable: true })
+  mqtt_password: string;
+
+  @Column({ default: false })
+  mqtt_enabled: boolean;
+
+  @Column({ nullable: true })
+  mqtt_client_id: string;
+
   @CreateDateColumn()
   created_at: Date;
 
