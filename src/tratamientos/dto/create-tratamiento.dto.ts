@@ -1,4 +1,5 @@
 import { IsString, Length, IsNumber, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateTratamientoDto {
   @IsString()
@@ -17,6 +18,7 @@ export class CreateTratamientoDto {
   @IsEnum(['Biologico', 'Quimico'], { message: 'El tipo debe ser Biologico o Quimico' })
   tipo?: 'Biologico' | 'Quimico';
 
+  @Type(() => Number)
   @IsNumber()
   @IsNotEmpty()
   id_epa: number;
