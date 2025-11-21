@@ -25,7 +25,7 @@ export class AlertSchedulerService {
       const sensores = await this.sensoresService.findAll();
       
       for (const sensor of sensores) {
-        if (sensor.estado !== 'activo') continue;
+        if ((sensor.estado || '').toLowerCase() !== 'activo') continue;
 
         // Obtener última lectura (simulada por ahora)
         const ultimaLectura = await this.getUltimaLecturaSensor(sensor.id_sensor);

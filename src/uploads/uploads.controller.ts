@@ -2,10 +2,11 @@ import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException, G
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
 import { Response } from 'express';
-import { createReadStream } from 'fs';
+import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('uploads')
 export class UploadsController {
@@ -28,13 +29,23 @@ export class UploadsController {
     };
   }
 
+  @Public()
   @Get('epa/:filename')
   async getEpaImage(@Param('filename') filename: string, @Res() res: Response) {
-    try {
-      const file = createReadStream(join(process.cwd(), 'uploads/epa', filename));
-      file.pipe(res);
-    } catch (error) {
+    const filePath = join(process.cwd(), 'uploads/epa', filename);
+    if (!existsSync(filePath)) {
       throw new BadRequestException('No se pudo encontrar la imagen');
     }
+    return res.sendFile(filePath);
+  }
+
+  @Public()
+  @Get('actividades/:filename')
+  async getActividadImage(@Param('filename') filename: string, @Res() res: Response) {
+    const filePath = join(process.cwd(), 'uploads/actividades', filename);
+    if (!existsSync(filePath)) {
+      throw new BadRequestException('No se pudo encontrar la imagen');
+    }
+    return res.sendFile(filePath);
   }
 }

@@ -1,5 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { EpaService } from './epa.service';
 import { CreateEpaDto } from './dto/create-epa.dto';
 import { UpdateEpaDto } from './dto/update-epa.dto';
@@ -22,10 +27,37 @@ export class EpaController {
   @Post()
   @Roles(Role.Admin, Role.Instructor)
   @Permisos({ recurso: 'epa', accion: 'crear' })
-  @UseInterceptors(FileInterceptor('imagen'))
+  @UseInterceptors(FileInterceptor('imagen', {
+    storage: diskStorage({
+      destination: (req, file, cb) => {
+        const dir = './uploads/epa';
+        if (!existsSync(dir)) {
+          mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+      },
+      filename: (req, file, cb) => {
+        const unique = uuidv4();
+        const ext = extname(file.originalname);
+        cb(null, `${unique}${ext}`);
+      },
+    }),
+  }))
   async create(@Body() createEpaDto: CreateEpaDto, @UploadedFile() file?: Express.Multer.File) {
     if (file) {
-      const imageUrl = this.uploadsService.getImageUrl(file.filename);
+      let filename = file.filename;
+      const dir = './uploads/epa';
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      if (!filename) {
+        const unique = uuidv4();
+        const ext = extname(file.originalname || '.jpg');
+        filename = `${unique}${ext}`;
+        const fullPath = join(dir, filename);
+        if (file.buffer) writeFileSync(fullPath, file.buffer);
+      }
+      const imageUrl = this.uploadsService.getImageUrl(filename);
       createEpaDto.imagen_referencia = imageUrl;
     }
     return this.epaService.create(createEpaDto);
@@ -33,7 +65,22 @@ export class EpaController {
 
   @Post(':id/upload-imagen')
   @Roles(Role.Admin, Role.Instructor)
-  @UseInterceptors(FileInterceptor('imagen'))
+  @UseInterceptors(FileInterceptor('imagen', {
+    storage: diskStorage({
+      destination: (req, file, cb) => {
+        const dir = './uploads/epa';
+        if (!existsSync(dir)) {
+          mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+      },
+      filename: (req, file, cb) => {
+        const unique = uuidv4();
+        const ext = extname(file.originalname);
+        cb(null, `${unique}${ext}`);
+      },
+    }),
+  }))
   async uploadImagen(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File
@@ -43,8 +90,19 @@ export class EpaController {
     if (!file) {
       return { error: 'No se ha proporcionado ninguna imagen' };
     }
-
-    const imagenUrl = `/uploads/epa/${file.filename}`;
+    const dir = './uploads/epa';
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    let filename = file.filename;
+    if (!filename) {
+      const unique = uuidv4();
+      const ext = extname(file.originalname || '.jpg');
+      filename = `${unique}${ext}`;
+      const fullPath = join(dir, filename);
+      if (file.buffer) writeFileSync(fullPath, file.buffer);
+    }
+    const imagenUrl = `/uploads/epa/${filename}`;
     console.log('Image URL EPA:', imagenUrl);
 
     await this.epaService.update(+id, { imagen_referencia: imagenUrl });

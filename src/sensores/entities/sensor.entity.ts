@@ -21,7 +21,7 @@ export class Sensor {
   @Column({ type: 'timestamp', nullable: true })
   ultima_lectura: Date;
 
-  @Column({ default: 'activo' })
+  @Column({ default: 'Activo' })
   estado: string;
 
   @Column({ type: 'text', nullable: true })

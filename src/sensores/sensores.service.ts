@@ -12,6 +12,9 @@ export class SensoresService {
   ) {}
 
   async create(createSensorDto: any) {
+    if (Object.prototype.hasOwnProperty.call(createSensorDto, 'estado')) {
+      createSensorDto.estado = this.normalizeEstado(createSensorDto.estado);
+    }
     const nuevoSensor = this.sensoresRepository.create(createSensorDto);
     return await this.sensoresRepository.save(nuevoSensor);
   }
@@ -32,6 +35,9 @@ export class SensoresService {
     const sensor = await this.sensoresRepository.findOne({ where: { id_sensor: id } });
     if (!sensor) {
       throw new NotFoundException(`Sensor con ID ${id} no encontrado.`);
+    }
+    if (Object.prototype.hasOwnProperty.call(updateSensorDto, 'estado')) {
+      updateSensorDto.estado = this.normalizeEstado(updateSensorDto.estado);
     }
     await this.sensoresRepository.update(id, updateSensorDto);
     return this.findOne(id);
@@ -107,6 +113,9 @@ export class SensoresService {
     estado?: string;
     configuracion?: string;
   }) {
+    if (Object.prototype.hasOwnProperty.call(configuracion, 'estado')) {
+      configuracion.estado = this.normalizeEstado(configuracion.estado);
+    }
     await this.sensoresRepository.update(id_sensor, configuracion);
     return this.findOne(id_sensor);
   }
@@ -187,5 +196,12 @@ export class SensoresService {
 
       await alertaRepository.save(alerta);
     }
+  }
+
+  private normalizeEstado(estado: any): string {
+    const s = String(estado || '').trim().toLowerCase();
+    if (s === 'activo') return 'Activo';
+    if (s === 'inactivo') return 'Inactivo';
+    return 'Activo';
   }
 }

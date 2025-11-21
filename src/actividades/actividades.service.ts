@@ -50,18 +50,31 @@ export class ActividadesService {
       throw new NotFoundException(`Actividad con ID ${actividadId} no encontrada`);
     }
 
-    const uploadPath = path.join(__dirname, '..', 'uploads', 'actividades');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
+    const uploadDir = path.join(process.cwd(), 'uploads', 'actividades');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const fileName = `${Date.now()}-${photo.originalname}`;
-    const filePath = path.join(uploadPath, fileName);
+    let fileName = photo?.filename;
+    const filePathFromMulter = photo?.path ? path.join(process.cwd(), photo.path) : null;
+    if (filePathFromMulter && !fs.existsSync(filePathFromMulter) && photo?.buffer) {
+      // Multer entregó path pero el archivo no existe; escribir buffer
+      const fallbackPath = path.join(uploadDir, fileName || `${Date.now()}-${photo?.originalname || 'foto.jpg'}`);
+      fs.writeFileSync(fallbackPath, photo.buffer);
+      if (!fileName) fileName = path.basename(fallbackPath);
+    }
+    if (!fileName) {
+      fileName = `${Date.now()}-${photo?.originalname || 'foto.jpg'}`;
+      const filePath = path.join(uploadDir, fileName);
+      if (photo?.buffer) {
+        fs.writeFileSync(filePath, photo.buffer);
+      }
+    }
 
-    fs.writeFileSync(filePath, photo.buffer);
+    const url = `/uploads/actividades/${fileName}`;
 
     const newPhoto = this.fotoActividadRepository.create({
-      url_imagen: `/uploads/actividades/${fileName}`,
+      url_imagen: url,
       actividad: actividad,
     });
 
@@ -236,13 +249,13 @@ export class ActividadesService {
       }
     }
     
-    // Formatear la respuesta
     return actividades.map(actividad => ({
       id: actividad.id_actividad,
-      tipo: actividad.tipo_actividad,
+      tipo_actividad: actividad.tipo_actividad,
       fecha: actividad.fecha,
       estado: actividad.estado,
       responsable: actividad.responsable,
+      id_cultivo: actividad.id_cultivo,
       cultivo: cultivoInfo ? {
         id: cultivoInfo.id_cultivo,
         tipo: cultivoInfo.tipo_cultivo
