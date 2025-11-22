@@ -62,9 +62,20 @@ export class LotesService {
   }
 
   async findAllWithGeoData(): Promise<Lote[]> {
-    return this.loteRepository.find({
-      relations: ['sublotes'], // Carga los sublotes relacionados
-      select: ['id_lote', 'nombre_lote', 'descripcion', 'activo', 'coordenadas', 'sublotes'], 
-    });
+    return this.loteRepository
+      .createQueryBuilder('lote')
+      .leftJoinAndSelect('lote.sublotes', 'sublote')
+      .select([
+        'lote.id_lote',
+        'lote.nombre_lote',
+        'lote.descripcion',
+        'lote.activo',
+        'lote.coordenadas',
+        'sublote.id_sublote',
+        'sublote.descripcion',
+        'sublote.ubicacion',
+        'sublote.coordenadas',
+      ])
+      .getMany();
   }
 }
