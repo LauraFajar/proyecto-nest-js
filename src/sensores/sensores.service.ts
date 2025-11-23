@@ -480,4 +480,16 @@ export class SensoresService {
       mensaje: 'Conexión exitosa al servidor MQTT'
     };
   }
+
+  async inicializarConexionesMqtt() {
+    try {
+      await this.mqttService.initializeConnectionsOnDemand();
+      return {
+        mensaje: 'Conexiones MQTT inicializadas exitosamente',
+        sensores_conectados: this.mqttService.getConnectedSensors().length
+      };
+    } catch (error) {
+      throw new BadRequestException(`Error al inicializar conexiones MQTT: ${error.message}`);
+    }
+  }
 }

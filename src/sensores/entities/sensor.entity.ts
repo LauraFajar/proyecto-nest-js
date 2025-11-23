@@ -57,6 +57,22 @@ export class Sensor {
   @Column({ nullable: true })
   mqtt_client_id: string;
 
+  // HTTPS Configuration
+  @Column({ nullable: true })
+  https_url: string;
+
+  @Column({ nullable: true })
+  https_method: string;
+
+  @Column({ nullable: true })
+  https_headers: string; // JSON string
+
+  @Column({ default: false })
+  https_enabled: boolean;
+
+  @Column({ nullable: true })
+  https_auth_token: string;
+
   @CreateDateColumn()
   created_at: Date;
 

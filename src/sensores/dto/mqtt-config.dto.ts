@@ -30,4 +30,25 @@ export class MqttConfigDto {
   @IsOptional()
   @IsString()
   mqtt_client_id?: string;
+
+  // HTTPS Configuration (optional)
+  @IsOptional()
+  @IsString()
+  https_url?: string;
+
+  @IsOptional()
+  @IsString()
+  https_method?: string;
+
+  @IsOptional()
+  @IsString()
+  https_headers?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  https_enabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  https_auth_token?: string;
 }

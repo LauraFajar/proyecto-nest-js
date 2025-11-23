@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { SensoresService } from './sensores.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('sensores')
+@UseGuards(JwtAuthGuard)
 export class SensoresController {
   constructor(private readonly sensoresService: SensoresService) {}
 
@@ -155,5 +157,10 @@ export class SensoresController {
   @Post('mqtt/servidor/:id_servidor/test-conexion')
   probarConexionServidor(@Param('id_servidor') id_servidor: number) {
     return this.sensoresService.probarConexionServidor(id_servidor);
+  }
+
+  @Post('mqtt/inicializar-conexiones')
+  inicializarConexionesMqtt() {
+    return this.sensoresService.inicializarConexionesMqtt();
   }
 }
