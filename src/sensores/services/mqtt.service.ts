@@ -41,7 +41,13 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
   async connectSensor(sensor: Sensor): Promise<boolean> {
     try {
-      if (!sensor.mqtt_host || !sensor.mqtt_port || !sensor.mqtt_topic) {
+      const envHost = process.env.MQTT_HOST;
+      const envPort = process.env.MQTT_PORT ? parseInt(process.env.MQTT_PORT, 10) : undefined;
+      const host = sensor.mqtt_host || envHost;
+      const port = sensor.mqtt_port || envPort;
+      const topic = sensor.mqtt_topic;
+
+      if (!host || !port || !topic) {
         this.logger.warn(`Sensor ${sensor.id_sensor} missing MQTT configuration`);
         return false;
       }
@@ -54,8 +60,8 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       }
 
       const options: mqtt.IClientOptions = {
-        host: sensor.mqtt_host,
-        port: sensor.mqtt_port,
+        host,
+        port,
         protocol: 'mqtt',
         clientId: sensor.mqtt_client_id || `sensor_${sensor.id_sensor}_${Date.now()}`,
       };
@@ -69,11 +75,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
       client.on('connect', () => {
         this.logger.log(`Connected to MQTT broker for sensor ${sensor.id_sensor}`);
-        client.subscribe(sensor.mqtt_topic, (err) => {
+        client.subscribe(topic, (err) => {
           if (err) {
-            this.logger.error(`Failed to subscribe to topic ${sensor.mqtt_topic} for sensor ${sensor.id_sensor}`, err);
+            this.logger.error(`Failed to subscribe to topic ${topic} for sensor ${sensor.id_sensor}`, err);
           } else {
-            this.logger.log(`Subscribed to topic ${sensor.mqtt_topic} for sensor ${sensor.id_sensor}`);
+            this.logger.log(`Subscribed to topic ${topic} for sensor ${sensor.id_sensor}`);
           }
         });
       });
