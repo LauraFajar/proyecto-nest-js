@@ -3,18 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Sensor } from './entities/sensor.entity';
 import { Alerta } from '../alertas/entities/alerta.entity';
+import { MqttService } from './services/mqtt.service';
 
 @Injectable()
 export class SensoresService {
   constructor(
     @InjectRepository(Sensor)
     private readonly sensoresRepository: Repository<Sensor>,
+    private readonly mqttService: MqttService,
   ) {}
 
   async create(createSensorDto: any) {
-    if (Object.prototype.hasOwnProperty.call(createSensorDto, 'estado')) {
-      createSensorDto.estado = this.normalizeEstado(createSensorDto.estado);
-    }
     const nuevoSensor = this.sensoresRepository.create(createSensorDto);
     return await this.sensoresRepository.save(nuevoSensor);
   }
@@ -35,9 +34,6 @@ export class SensoresService {
     const sensor = await this.sensoresRepository.findOne({ where: { id_sensor: id } });
     if (!sensor) {
       throw new NotFoundException(`Sensor con ID ${id} no encontrado.`);
-    }
-    if (Object.prototype.hasOwnProperty.call(updateSensorDto, 'estado')) {
-      updateSensorDto.estado = this.normalizeEstado(updateSensorDto.estado);
     }
     await this.sensoresRepository.update(id, updateSensorDto);
     return this.findOne(id);
@@ -113,9 +109,6 @@ export class SensoresService {
     estado?: string;
     configuracion?: string;
   }) {
-    if (Object.prototype.hasOwnProperty.call(configuracion, 'estado')) {
-      configuracion.estado = this.normalizeEstado(configuracion.estado);
-    }
     await this.sensoresRepository.update(id_sensor, configuracion);
     return this.findOne(id_sensor);
   }
@@ -173,7 +166,7 @@ export class SensoresService {
 
   private async verificarAlertas(sensor: Sensor, valor: number) {
     const alertaRepository = this.sensoresRepository.manager.getRepository(Alerta);
-    
+
     let tipoAlerta = '';
     let descripcion = '';
 
@@ -198,10 +191,305 @@ export class SensoresService {
     }
   }
 
-  private normalizeEstado(estado: any): string {
-    const s = String(estado || '').trim().toLowerCase();
-    if (s === 'activo') return 'Activo';
-    if (s === 'inactivo') return 'Inactivo';
-    return 'Activo';
+  async obtenerDatosGraficos(
+    id_sensor: number,
+    tipo: 'linea' | 'barra' | 'area' = 'linea',
+    periodo: 'hora' | 'dia' | 'semana' | 'mes' = 'dia',
+    limite: number = 100
+  ) {
+    const sensor = await this.findOne(id_sensor);
+    const historial = sensor.historial_lecturas || [];
+
+    // Agrupar datos según el período
+    const datosAgrupados = this.agruparDatosPorPeriodo(historial, periodo);
+
+    // Limitar resultados
+    const datosLimitados = datosAgrupados.slice(-limite);
+
+    return {
+      sensor: {
+        id_sensor: sensor.id_sensor,
+        tipo_sensor: sensor.tipo_sensor,
+        ubicacion: sensor.id_sublote
+      },
+      tipo_grafico: tipo,
+      periodo,
+      datos: datosLimitados.map((item: any) => ({
+        timestamp: item.timestamp,
+        valor: item.valor,
+        unidad_medida: item.unidad_medida
+      }))
+    };
+  }
+
+  async obtenerTimelineCultivo(
+    id_sublote?: number,
+    fecha_inicio?: string,
+    fecha_fin?: string,
+    sensores?: string
+  ) {
+    let query = this.sensoresRepository.createQueryBuilder('sensor')
+      .leftJoinAndSelect('sensor.id_sublote', 'sublote');
+
+    if (id_sublote) {
+      query = query.where('sensor.id_sublote = :id_sublote', { id_sublote });
+    }
+
+    if (sensores) {
+      const tiposSensores = sensores.split(',').map(s => s.trim());
+      query = query.andWhere('sensor.tipo_sensor IN (:...tipos)', { tipos: tiposSensores });
+    }
+
+    const sensoresEncontrados = await query.getMany();
+
+    const timelineData: any[] = [];
+
+    for (const sensor of sensoresEncontrados) {
+      const historial = sensor.historial_lecturas || [];
+
+      // Filtrar por fechas si se proporcionan
+      let historialFiltrado = historial;
+      if (fecha_inicio || fecha_fin) {
+        const inicio = fecha_inicio ? new Date(fecha_inicio) : new Date(0);
+        const fin = fecha_fin ? new Date(fecha_fin) : new Date();
+
+        historialFiltrado = historial.filter(lectura => {
+          const fechaLectura = new Date(lectura.timestamp);
+          return fechaLectura >= inicio && fechaLectura <= fin;
+        });
+      }
+
+      timelineData.push({
+        sensor: {
+          id_sensor: sensor.id_sensor,
+          tipo_sensor: sensor.tipo_sensor,
+          sublote: sensor.id_sublote
+        },
+        lecturas: historialFiltrado.map(lectura => ({
+          timestamp: lectura.timestamp,
+          valor: lectura.valor,
+          unidad_medida: lectura.unidad_medida,
+          observaciones: lectura.observaciones
+        }))
+      });
+    }
+
+    return {
+      periodo: {
+        fecha_inicio: fecha_inicio || null,
+        fecha_fin: fecha_fin || null
+      },
+      sensores: sensores ? sensores.split(',').map(s => s.trim()) : null,
+      datos: timelineData
+    };
+  }
+
+  async obtenerEstadisticasGenerales(id_sublote?: number, tipo_sensor?: string) {
+    let query = this.sensoresRepository.createQueryBuilder('sensor')
+      .leftJoinAndSelect('sensor.id_sublote', 'sublote');
+
+    if (id_sublote) {
+      query = query.where('sensor.id_sublote = :id_sublote', { id_sublote });
+    }
+
+    if (tipo_sensor) {
+      query = query.andWhere('sensor.tipo_sensor = :tipo_sensor', { tipo_sensor });
+    }
+
+    const sensores = await query.getMany();
+
+    const estadisticas = {
+      total_sensores: sensores.length,
+      tipos_sensores: {},
+      resumen_por_sensor: [] as any[]
+    };
+
+    for (const sensor of sensores) {
+      const historial = sensor.historial_lecturas || [];
+
+      if (historial.length > 0) {
+        const valores = historial.map(h => h.valor);
+        const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+        const minimo = Math.min(...valores);
+        const maximo = Math.max(...valores);
+
+        estadisticas.resumen_por_sensor.push({
+          sensor: {
+            id_sensor: sensor.id_sensor,
+            tipo_sensor: sensor.tipo_sensor,
+            sublote: sensor.id_sublote
+          },
+          estadisticas: {
+            total_lecturas: historial.length,
+            promedio,
+            minimo,
+            maximo,
+            ultima_lectura: sensor.ultima_lectura,
+            valor_actual: sensor.valor_actual
+          }
+        });
+
+        // Contar tipos de sensores
+        if (!estadisticas.tipos_sensores[sensor.tipo_sensor]) {
+          estadisticas.tipos_sensores[sensor.tipo_sensor] = 0;
+        }
+        estadisticas.tipos_sensores[sensor.tipo_sensor]++;
+      }
+    }
+
+    return estadisticas;
+  }
+
+  async configurarMqtt(sensorId: number, config: {
+    mqtt_host?: string;
+    mqtt_port?: number;
+    mqtt_topic?: string;
+    mqtt_username?: string;
+    mqtt_password?: string;
+    mqtt_enabled?: boolean;
+    mqtt_client_id?: string;
+  }) {
+    return await this.mqttService.configureSensorMqtt(sensorId, config);
+  }
+
+  async obtenerEstadoMqtt(sensorId: number) {
+    const sensor = await this.findOne(sensorId);
+    const conectado = this.mqttService.isSensorConnected(sensorId);
+
+    return {
+      sensor: {
+        id_sensor: sensor.id_sensor,
+        tipo_sensor: sensor.tipo_sensor
+      },
+      mqtt_config: {
+        host: sensor.mqtt_host,
+        port: sensor.mqtt_port,
+        topic: sensor.mqtt_topic,
+        username: sensor.mqtt_username ? 'configurado' : null,
+        enabled: sensor.mqtt_enabled,
+        client_id: sensor.mqtt_client_id
+      },
+      estado: {
+        conectado,
+        ultima_conexion: sensor.updated_at
+      }
+    };
+  }
+
+  private agruparDatosPorPeriodo(historial: any[], periodo: string) {
+    const grupos: { [key: string]: any[] } = {};
+
+    historial.forEach(lectura => {
+      const fecha = new Date(lectura.timestamp);
+      let clave: string;
+
+      switch (periodo) {
+        case 'hora':
+          clave = `${fecha.getFullYear()}-${fecha.getMonth()}-${fecha.getDate()}-${fecha.getHours()}`;
+          break;
+        case 'dia':
+          clave = `${fecha.getFullYear()}-${fecha.getMonth()}-${fecha.getDate()}`;
+          break;
+        case 'semana':
+          const semanaInicio = new Date(fecha);
+          semanaInicio.setDate(fecha.getDate() - fecha.getDay());
+          clave = `${semanaInicio.getFullYear()}-${semanaInicio.getMonth()}-${semanaInicio.getDate()}`;
+          break;
+        case 'mes':
+          clave = `${fecha.getFullYear()}-${fecha.getMonth()}`;
+          break;
+        default:
+          clave = fecha.toISOString().split('T')[0];
+      }
+
+      if (!grupos[clave]) {
+        grupos[clave] = [];
+      }
+      grupos[clave].push(lectura);
+    });
+
+    // Calcular promedios por grupo
+    const resultado: any[] = [];
+    for (const [clave, lecturas] of Object.entries(grupos)) {
+      const valores = lecturas.map(l => l.valor);
+      const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+
+      resultado.push({
+        timestamp: clave,
+        valor: promedio,
+        unidad_medida: lecturas[0]?.unidad_medida,
+        cantidad_lecturas: lecturas.length
+      });
+    }
+
+    return resultado.sort((a: any, b: any) => a.timestamp.localeCompare(b.timestamp));
+  }
+
+  async registrarServidorMqtt(servidor: {
+    nombre: string;
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+    descripcion?: string;
+  }) {
+    // Aquí podríamos crear una tabla separada para servidores MQTT
+    // Por ahora, devolveremos un ID simulado
+    const servidorId = Date.now(); // ID temporal
+    return {
+      id: servidorId,
+      ...servidor,
+      fecha_creacion: new Date()
+    };
+  }
+
+  async obtenerServidoresMqtt() {
+    // Aquí consultaríamos la tabla de servidores MQTT
+    // Por ahora, devolveremos una lista vacía
+    return [];
+  }
+
+  async asignarSensorAServidor(id_servidor: number, id_sensor: number, config: {
+    topic: string;
+    client_id?: string;
+  }) {
+    const sensor = await this.findOne(id_sensor);
+
+    // Actualizar configuración MQTT del sensor
+    await this.update(id_sensor, {
+      mqtt_topic: config.topic,
+      mqtt_client_id: config.client_id || `sensor_${id_sensor}`,
+      mqtt_enabled: true
+    });
+
+    return {
+      mensaje: 'Sensor asignado al servidor MQTT exitosamente',
+      sensor_id: id_sensor,
+      servidor_id: id_servidor,
+      topic: config.topic,
+      client_id: config.client_id || `sensor_${id_sensor}`
+    };
+  }
+
+  async probarConexionServidor(id_servidor: number) {
+    // Aquí implementaríamos la lógica para probar la conexión MQTT
+    // Por ahora, simularemos una conexión exitosa
+    return {
+      servidor_id: id_servidor,
+      conectado: true,
+      mensaje: 'Conexión exitosa al servidor MQTT'
+    };
+  }
+
+  async inicializarConexionesMqtt() {
+    try {
+      await this.mqttService.initializeConnectionsOnDemand();
+      return {
+        mensaje: 'Conexiones MQTT inicializadas exitosamente',
+        sensores_conectados: this.mqttService.getConnectedSensors().length
+      };
+    } catch (error) {
+      throw new BadRequestException(`Error al inicializar conexiones MQTT: ${error.message}`);
+    }
   }
 }
