@@ -21,7 +21,7 @@ export class Sensor {
   @Column({ type: 'timestamp', nullable: true })
   ultima_lectura: Date;
 
-  @Column({ default: 'Activo' })
+  @Column({ default: 'activo' })
   estado: string;
 
   @Column({ type: 'text', nullable: true })
@@ -34,6 +34,44 @@ export class Sensor {
     unidad_medida?: string;
     observaciones?: string;
   }>;
+
+  // MQTT Configuration
+  @Column({ nullable: true })
+  mqtt_host: string;
+
+  @Column({ type: 'int', nullable: true })
+  mqtt_port: number;
+
+  @Column({ nullable: true })
+  mqtt_topic: string;
+
+  @Column({ nullable: true })
+  mqtt_username: string;
+
+  @Column({ nullable: true })
+  mqtt_password: string;
+
+  @Column({ default: false })
+  mqtt_enabled: boolean;
+
+  @Column({ nullable: true })
+  mqtt_client_id: string;
+
+  // HTTPS Configuration
+  @Column({ nullable: true })
+  https_url: string;
+
+  @Column({ nullable: true })
+  https_method: string;
+
+  @Column({ nullable: true })
+  https_headers: string; // JSON string
+
+  @Column({ default: false })
+  https_enabled: boolean;
+
+  @Column({ nullable: true })
+  https_auth_token: string;
 
   @CreateDateColumn()
   created_at: Date;

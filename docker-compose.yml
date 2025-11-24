@@ -19,9 +19,13 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
+      - MQTT_HOST=mqtt-broker
+      - MQTT_PORT=1883
     depends_on:
       postgres:
         condition: service_healthy
+      mqtt-broker:
+        condition: service_started
     networks:
       - app-network
 
@@ -53,6 +57,14 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    networks:
+      - app-network
+
+  mqtt-broker:
+    container_name: mqtt-broker
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
     networks:
       - app-network
 
