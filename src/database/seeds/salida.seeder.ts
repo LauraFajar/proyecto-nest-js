@@ -5,6 +5,7 @@ import { Categoria } from '../../categorias/entities/categoria.entity';
 import { Almacen } from '../../almacenes/entities/almacen.entity';
 import { Insumo } from '../../insumos/entities/insumo.entity';
 import { Repository } from 'typeorm';
+import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 
 @Injectable()
 export class SalidaSeeder {
@@ -17,28 +18,66 @@ export class SalidaSeeder {
     private readonly almacenRepository: Repository<Almacen>,
     @InjectRepository(Insumo)
     private readonly insumoRepository: Repository<Insumo>,
+    @InjectRepository(Cultivo)
+    private readonly cultivoRepository: Repository<Cultivo>,
   ) {}
 
   async seed() {
     const categoria = await this.categoriaRepository.findOne({ where: { id_categoria: 2 } });
     const almacen = await this.almacenRepository.findOne({ where: { id_almacen: 1 } });
     const insumo = await this.insumoRepository.findOne({ where: { id_insumo: 1 } });
+    const cultivoPlatano = await this.cultivoRepository.findOne({ where: { id_cultivo: 1 } });
 
     if (categoria && almacen && insumo) {
-      const data = {
-        cantidad: 20,
-        id_categoria: categoria.id_categoria,
-        id_almacen: almacen.id_almacen,
-        observacion: 'Uso en cultivo de cacao',
-        fecha_salida: '2024-02-01',
-        valor_unidad: 25.00,
-        estado: 'completado',
-        id_insumo: insumo.id_insumo,
-      };
+      const data = [
+        {
+          cantidad: 30,
+          id_categoria: categoria.id_categoria,
+          id_almacen: almacen.id_almacen,
+          observacion: 'Fertilizante para plátano',
+          fecha_salida: '2024-03-12',
+          valor_unidad: 28000,
+          estado: 'completado',
+          id_insumo: insumo.id_insumo,
+          id_cultivo: cultivoPlatano?.id_cultivo,
+        },
+        {
+          cantidad: 15,
+          id_categoria: categoria.id_categoria,
+          id_almacen: almacen.id_almacen,
+          observacion: 'Herbicida en plátano',
+          fecha_salida: '2024-04-02',
+          valor_unidad: 35000,
+          estado: 'completado',
+          id_insumo: insumo.id_insumo,
+          id_cultivo: cultivoPlatano?.id_cultivo,
+        },
+      ];
 
-      const exists = await this.salidaRepository.findOne({ where: { observacion: data.observacion } });
-      if (!exists) {
-        await this.salidaRepository.save(this.salidaRepository.create(data));
+      for (const item of data) {
+        const exists = await this.salidaRepository
+          .createQueryBuilder('s')
+          .select('s.id_salida')
+          .where('s.observacion = :obs', { obs: item.observacion })
+          .andWhere('s.fecha_salida = :fecha', { fecha: item.fecha_salida })
+          .getOne();
+        if (!exists) {
+          await this.salidaRepository.query(
+            `INSERT INTO salidas (nombre, codigo, cantidad, observacion, fecha_salida, valor_unidad, id_cultivo, id_categorias, id_almacenes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [
+              insumo.nombre_insumo || 'Salida',
+              insumo.codigo || 'SAL-001',
+              item.cantidad,
+              item.observacion,
+              item.fecha_salida,
+              item.valor_unidad ?? null,
+              item.id_cultivo ?? null,
+              categoria.id_categoria,
+              almacen.id_almacen,
+            ]
+          );
+        }
       }
     }
   }

@@ -17,19 +17,23 @@ export class ActividadSeeder {
     const data = [
       {
         tipo_actividad: 'Riego',
-        fecha: new Date('2024-01-15'),
+        fecha: new Date('2024-03-11'),
         responsable: 'Juan Perez',
         detalles: 'Riego por goteo',
         estado: 'completada',
         id_cultivo: 1,
+        costo_mano_obra: '120000',
+        costo_maquinaria: '80000',
       },
       {
         tipo_actividad: 'Fertilización',
-        fecha: new Date('2024-02-20'),
+        fecha: new Date('2024-03-20'),
         responsable: 'Ana Gomez',
         detalles: 'Aplicación de NPK',
-        estado: 'pendiente',
+        estado: 'completada',
         id_cultivo: 1,
+        costo_mano_obra: '90000',
+        costo_maquinaria: '0',
       },
       {
         tipo_actividad: 'Cosecha',

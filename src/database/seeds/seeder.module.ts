@@ -19,6 +19,9 @@ import { Tratamiento } from '../../tratamientos/entities/tratamiento.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
 import { Utiliza } from '../../utiliza/entities/utiliza.entity';
 import { Permiso } from '../../permisos/entities/permiso.entity';
+import { Ingreso } from '../../ingresos/entities/ingreso.entity';
+import { Salida } from '../../salidas/entities/salida.entity';
+import { Movimiento } from '../../movimientos/entities/movimiento.entity';
 import { ActividadSeeder } from '../seeds/actividad.seeder';
 import { AlmacenSeeder } from '../seeds/almacen.seeder';
 import { CategoriaSeeder } from '../seeds/categoria.seeder';
@@ -37,6 +40,9 @@ import { TratamientoSeeder } from '../seeds/tratamiento.seeder';
 import { UsuarioSeeder } from '../seeds/usuario.seeder';
 import { UtilizaSeeder } from '../seeds/utiliza.seeder';
 import { PermisoSeeder } from '../seeds/permiso.seeder';
+import { IngresoSeeder } from '../seeds/ingreso.seeder';
+import { SalidaSeeder } from '../seeds/salida.seeder';
+import { MovimientoSeeder } from '../seeds/movimiento.seeder';
 
 @Module({
   imports: [
@@ -59,6 +65,9 @@ import { PermisoSeeder } from '../seeds/permiso.seeder';
       Usuario,
       Utiliza,
       Permiso,
+      Ingreso,
+      Salida,
+      Movimiento,
     ]),
   ],
   providers: [
@@ -81,6 +90,9 @@ import { PermisoSeeder } from '../seeds/permiso.seeder';
     UsuarioSeeder,
     UtilizaSeeder,
     PermisoSeeder,
+    IngresoSeeder,
+    SalidaSeeder,
+    MovimientoSeeder,
   ],
 })
 export class SeederModule {}
