@@ -24,4 +24,13 @@ export class CreateSalidaDto {
   @IsOptional()
   @IsInt()
   id_cultivo?: number;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 20)
+  unidad_medida?: string;
+
+  @IsOptional()
+  @IsInt()
+  id_insumo?: number;
 }

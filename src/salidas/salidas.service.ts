@@ -15,19 +15,26 @@ export class SalidasService {
   ) {}
 
   async create(createSalidaDto: CreateSalidaDto) {
-    const nuevaSalida = this.salidasRepository.create(createSalidaDto);
-    const salidaGuardada = await this.salidasRepository.save(nuevaSalida);
+    const salida = this.salidasRepository.create({
+      nombre: createSalidaDto.nombre,
+      codigo: createSalidaDto.codigo,
+      cantidad: createSalidaDto.cantidad,
+      observacion: createSalidaDto.observacion,
+      fecha_salida: createSalidaDto.fecha_salida,
+      unidad_medida: createSalidaDto.unidad_medida ?? null,
+      id_cultivo: createSalidaDto.id_cultivo ?? null,
+      ...(createSalidaDto.id_insumo ? { insumo: { id_insumo: createSalidaDto.id_insumo } as any } : {}),
+    } as any);
 
-    if (salidaGuardada.insumo && salidaGuardada.insumo.id_insumo) {
-      await this.inventarioService.reducirCantidad(
-        salidaGuardada.insumo.id_insumo,
-        salidaGuardada.cantidad,
-      );
+    const saved = await this.salidasRepository.save(salida);
+
+    if (createSalidaDto.id_insumo) {
+      await this.inventarioService.reducirCantidad(createSalidaDto.id_insumo, createSalidaDto.cantidad);
     } else {
-      throw new NotFoundException(`El insumo para la salida no fue encontrado.`);
+      throw new NotFoundException('id_insumo es requerido para registrar una salida y ajustar inventario');
     }
 
-    return salidaGuardada;
+    return saved;
   }
 
   async findAll() {

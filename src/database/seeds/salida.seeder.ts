@@ -6,6 +6,7 @@ import { Almacen } from '../../almacenes/entities/almacen.entity';
 import { Insumo } from '../../insumos/entities/insumo.entity';
 import { Repository } from 'typeorm';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
+import { Inventario } from '../../inventario/entities/inventario.entity';
 
 @Injectable()
 export class SalidaSeeder {
@@ -20,6 +21,8 @@ export class SalidaSeeder {
     private readonly insumoRepository: Repository<Insumo>,
     @InjectRepository(Cultivo)
     private readonly cultivoRepository: Repository<Cultivo>,
+    @InjectRepository(Inventario)
+    private readonly inventarioRepository: Repository<Inventario>,
   ) {}
 
   async seed() {
@@ -29,6 +32,8 @@ export class SalidaSeeder {
     const cultivoPlatano = await this.cultivoRepository.findOne({ where: { id_cultivo: 1 } });
 
     if (categoria && almacen && insumo) {
+      const inventarioItem = await this.inventarioRepository.findOne({ where: { id_insumo: insumo.id_insumo } });
+      const unidad = inventarioItem?.unidad_medida || 'unidad';
       const data = [
         {
           cantidad: 30,
@@ -40,6 +45,7 @@ export class SalidaSeeder {
           estado: 'completado',
           id_insumo: insumo.id_insumo,
           id_cultivo: cultivoPlatano?.id_cultivo,
+          unidad_medida: unidad,
         },
         {
           cantidad: 15,
@@ -51,6 +57,7 @@ export class SalidaSeeder {
           estado: 'completado',
           id_insumo: insumo.id_insumo,
           id_cultivo: cultivoPlatano?.id_cultivo,
+          unidad_medida: unidad,
         },
       ];
 
@@ -63,8 +70,8 @@ export class SalidaSeeder {
           .getOne();
         if (!exists) {
           await this.salidaRepository.query(
-            `INSERT INTO salidas (nombre, codigo, cantidad, observacion, fecha_salida, valor_unidad, id_cultivo, id_categorias, id_almacenes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            `INSERT INTO salidas (nombre, codigo, cantidad, observacion, fecha_salida, valor_unidad, unidad_medida, estado, id_insumo, id_cultivo, id_categorias, id_almacenes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
               insumo.nombre_insumo || 'Salida',
               insumo.codigo || 'SAL-001',
@@ -72,6 +79,9 @@ export class SalidaSeeder {
               item.observacion,
               item.fecha_salida,
               item.valor_unidad ?? null,
+              item.unidad_medida ?? unidad,
+              item.estado ?? 'completado',
+              item.id_insumo ?? insumo.id_insumo,
               item.id_cultivo ?? null,
               categoria.id_categoria,
               almacen.id_almacen,

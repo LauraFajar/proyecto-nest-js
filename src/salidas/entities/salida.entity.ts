@@ -10,6 +10,12 @@ export class Salida {
   id_salida: number;
 
   @Column()
+  nombre: string;
+
+  @Column()
+  codigo: string;
+
+  @Column()
   cantidad: number;
 
   @ManyToOne(() => Categoria)
@@ -29,6 +35,9 @@ export class Salida {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   valor_unidad: number;
 
+  @Column({ name: 'unidad_medida', type: 'varchar', length: 64, nullable: true })
+  unidad_medida?: string;
+
   @Column({ default: 'completado' })
   estado: string;
 
@@ -37,7 +46,7 @@ export class Salida {
   insumo: Insumo;
 
   @Column({ name: 'id_cultivo', type: 'int', nullable: true })
-  id_cultivo: number | null;
+  id_cultivo: number;
 
   @ManyToOne(() => Cultivo, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'id_cultivo' })
