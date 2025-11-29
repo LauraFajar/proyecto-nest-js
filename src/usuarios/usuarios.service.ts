@@ -34,6 +34,24 @@ export class UsuariosService {
     return { data, total, page, limit };
   }
 
+  async findAllBasic(paginationDto: PaginationDto) {
+    const { limit = 10, page = 1 } = paginationDto;
+    const [data, total] = await this.usuariosRepository.findAndCount({
+      select: ['id_usuarios', 'nombres'],
+      take: limit,
+      skip: (page - 1) * limit,
+    });
+    const items = data.map(u => ({ id: u.id_usuarios, nombres: u.nombres }));
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      }
+    };
+  }
+
   async findOne(id_usuarios: number) {
     return await this.usuariosRepository.findOne({
       where: { id_usuarios },

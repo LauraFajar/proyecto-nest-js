@@ -6,4 +6,8 @@ export class UpdateActividadeDto extends PartialType(CreateActividadeDto) {
   @IsNumber() 
   @IsOptional()
   id_cultivo?: number;
+
+  @IsNumber()
+  @IsOptional()
+  responsable_id?: number;
 }

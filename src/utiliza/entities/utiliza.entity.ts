@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Column } from 'typeorm';
 import { Actividad } from '../../actividades/entities/actividad.entity';
 import { Insumo } from '../../insumos/entities/insumo.entity';
 
@@ -14,4 +14,13 @@ export class Utiliza {
   @ManyToOne(() => Insumo)
   @JoinColumn({ name: 'id_insumos' })
   id_insumo: Insumo;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
+  cantidad?: string;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  horas_uso?: string;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
+  costo_unitario?: string;
 }

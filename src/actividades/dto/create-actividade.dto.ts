@@ -1,4 +1,5 @@
-import { IsString, IsDateString, IsNumber, IsOptional, IsIn, IsArray } from 'class-validator';
+import { IsString, IsDateString, IsNumber, IsOptional, IsIn, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateActividadeDto {
   @IsString()
@@ -12,6 +13,10 @@ export class CreateActividadeDto {
 
   @IsString()
   responsable: string;
+
+  @IsNumber()
+  @IsOptional()
+  responsable_id?: number;
 
   @IsString()
   detalles: string;
@@ -56,7 +61,26 @@ export class CreateActividadeDto {
   @IsOptional()
   fotografias?: string[];
 
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => RecursoActividadDto)
+  recursos?: RecursoActividadDto[];
+}
+
+export class RecursoActividadDto {
+  @IsNumber()
+  id_insumo: number;
+
   @IsNumber()
   @IsOptional()
-  id_usuario_asignado?: number;
+  cantidad?: number;
+
+  @IsNumber()
+  @IsOptional()
+  horas_uso?: number;
+
+  @IsNumber()
+  @IsOptional()
+  costo_unitario?: number;
 }

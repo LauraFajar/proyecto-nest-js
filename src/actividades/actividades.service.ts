@@ -9,6 +9,9 @@ import { FotoActividad } from './entities/foto-actividad.entity';
 import { CreateFotoDto } from './dto/create-foto.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Utiliza } from '../utiliza/entities/utiliza.entity';
+import { Insumo } from '../insumos/entities/insumo.entity';
+import { Inventario } from '../inventario/entities/inventario.entity';
 
 @Injectable()
 export class ActividadesService {
@@ -17,6 +20,12 @@ export class ActividadesService {
     private readonly actividadesRepository: Repository<Actividad>,
     @InjectRepository(FotoActividad)
     private readonly fotoActividadRepository: Repository<FotoActividad>,
+    @InjectRepository(Utiliza)
+    private readonly utilizaRepository: Repository<Utiliza>,
+    @InjectRepository(Insumo)
+    private readonly insumosRepository: Repository<Insumo>,
+    @InjectRepository(Inventario)
+    private readonly inventarioRepository: Repository<Inventario>,
   ) {}
 
   async create(createActividadDto: CreateActividadeDto) {
@@ -31,17 +40,90 @@ export class ActividadesService {
       throw new NotFoundException(`Cultivo con ID ${createActividadDto.id_cultivo} no encontrado`);
     }
 
-    const actividadData = {
+    const actividadData: Partial<Actividad> = {
       tipo_actividad: createActividadDto.tipo_actividad,
-      fecha: createActividadDto.fecha,
+      fecha: new Date(createActividadDto.fecha),
       responsable: createActividadDto.responsable,
       detalles: createActividadDto.detalles,
       estado: createActividadDto.estado || 'pendiente',
       id_cultivo: createActividadDto.id_cultivo,
     };
 
+    if (createActividadDto.responsable_id) {
+      const user = await this.actividadesRepository.manager
+        .createQueryBuilder()
+        .select(['nombres'])
+        .from('usuarios', 'u')
+        .where('u.id_usuarios = :id', { id: createActividadDto.responsable_id })
+        .getRawOne();
+      actividadData.responsable_id = createActividadDto.responsable_id;
+      if (user && user.nombres) {
+        actividadData.responsable = user.nombres;
+      }
+    }
+
     const actividad = this.actividadesRepository.create(actividadData);
-    return await this.actividadesRepository.save(actividad);
+    const saved = await this.actividadesRepository.save(actividad);
+
+    const recursos = (createActividadDto as any).recursos as Array<{ id_insumo: number; cantidad?: number; horas_uso?: number; costo_unitario?: number }> | undefined;
+    if (Array.isArray(recursos) && recursos.length > 0) {
+      let totalDepreciacion = 0;
+      for (const r of recursos) {
+        if (!r?.id_insumo) continue;
+        const insumo = await this.insumosRepository.findOne({ where: { id_insumo: r.id_insumo } });
+        if (!insumo) continue;
+
+        const utiliza = this.utilizaRepository.create({
+          id_actividades: saved,
+          id_insumo: insumo,
+          cantidad: r.cantidad != null ? String(r.cantidad) : undefined,
+          horas_uso: r.horas_uso != null ? String(r.horas_uso) : undefined,
+          costo_unitario: r.costo_unitario != null ? String(r.costo_unitario) : undefined,
+        });
+        await this.utilizaRepository.save(utiliza);
+
+        if (insumo.es_herramienta) {
+          const horas = Number(r.horas_uso || 0);
+          if (horas > 0) {
+            const costoCompra = Number(insumo.costo_compra || 0);
+            const vidaHoras = Number(insumo.vida_util_horas || 0);
+            let depHora = Number(insumo.depreciacion_por_hora || 0);
+            if (!depHora && costoCompra > 0 && vidaHoras > 0) {
+              depHora = costoCompra / vidaHoras;
+            }
+            const depActividad = depHora * horas;
+            const acumPrev = Number(insumo.depreciacion_acumulada || 0);
+            const acumNext = Math.min(costoCompra || Infinity, acumPrev + depActividad);
+            insumo.depreciacion_acumulada = String(acumNext);
+            await this.insumosRepository.save(insumo);
+            totalDepreciacion += depActividad;
+          }
+        } else {
+          const cant = Number(r.cantidad || 0);
+          if (cant > 0) {
+            const inv = await this.inventarioRepository.findOne({ where: { id_insumo: insumo.id_insumo } });
+            if (inv) {
+              const stockPrev = Number(inv.cantidad_stock || 0);
+              const next = stockPrev - cant;
+              if (next < 0) {
+                // no lanzar; limitar a cero
+                inv.cantidad_stock = 0;
+              } else {
+                inv.cantidad_stock = next;
+              }
+              await this.inventarioRepository.save(inv);
+            }
+          }
+        }
+      }
+
+      if (totalDepreciacion > 0) {
+        saved.costo_maquinaria = String(Number(saved.costo_maquinaria || 0) + totalDepreciacion);
+        await this.actividadesRepository.save(saved);
+      }
+    }
+
+    return saved;
   }
 
   async handlePhotoUpload(actividadId: number, photo: Express.Multer.File) {
@@ -141,7 +223,18 @@ export class ActividadesService {
     if (updateActividadDto.fecha) {
       updateData.fecha = new Date(updateActividadDto.fecha);
     }
-    if (updateActividadDto.responsable) {
+    if (updateActividadDto.responsable_id) {
+      const user = await this.actividadesRepository.manager
+        .createQueryBuilder()
+        .select(['nombres'])
+        .from('usuarios', 'u')
+        .where('u.id_usuarios = :id', { id: updateActividadDto.responsable_id })
+        .getRawOne();
+      updateData.responsable_id = updateActividadDto.responsable_id;
+      if (user && user.nombres) {
+        updateData.responsable = user.nombres;
+      }
+    } else if (updateActividadDto.responsable) {
       updateData.responsable = updateActividadDto.responsable;
     }
     if (updateActividadDto.detalles) {

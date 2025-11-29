@@ -32,6 +32,12 @@ export class UsuariosController {
     return this.usuariosService.findAll(paginationDto);
   }
 
+  @Get('basico')
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
+  findAllBasic(@Query() paginationDto: PaginationDto) {
+    return this.usuariosService.findAllBasic(paginationDto);
+  }
+
   @Get(':id')
   @Roles(Role.Admin)
   @Permisos({ recurso: 'usuarios', accion: 'ver' })

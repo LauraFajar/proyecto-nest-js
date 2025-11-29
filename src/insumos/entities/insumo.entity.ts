@@ -34,4 +34,22 @@ export class Insumo {
 
   @ManyToMany(() => Cultivo, cultivo => cultivo.insumo)
   cultivos: Cultivo[];
+
+  @Column({ type: 'boolean', name: 'es_herramienta', default: false })
+  es_herramienta: boolean;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, name: 'costo_compra' })
+  costo_compra?: string;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true, name: 'vida_util_horas' })
+  vida_util_horas?: string;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, name: 'depreciacion_por_hora' })
+  depreciacion_por_hora?: string;
+
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, default: 0, name: 'depreciacion_acumulada' })
+  depreciacion_acumulada?: string;
+
+  @Column({ type: 'date', nullable: true, name: 'fecha_compra' })
+  fecha_compra?: string;
 }

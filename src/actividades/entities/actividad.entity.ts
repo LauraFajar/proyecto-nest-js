@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 import { FotoActividad } from './foto-actividad.entity';
+import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 @Entity('actividades')
 export class Actividad {
@@ -15,6 +16,9 @@ export class Actividad {
 
   @Column({ name: 'responsable', length: 50, nullable: false })
   responsable: string;
+
+  @Column({ name: 'responsable_id', type: 'int', nullable: true })
+  responsable_id?: number;
 
   @Column({ name: 'detalles', length: 50, nullable: false })
   detalles: string;
@@ -72,6 +76,10 @@ export class Actividad {
   @ManyToOne(() => Cultivo, cultivo => cultivo.actividades, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'id_cultivo' })
   cultivo: Cultivo;
+
+  @ManyToOne(() => Usuario)
+  @JoinColumn({ name: 'responsable_id' })
+  responsableUsuario?: Usuario;
 
   @OneToMany(() => FotoActividad, (foto) => foto.actividad)
   fotos: FotoActividad[];
