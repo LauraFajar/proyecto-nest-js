@@ -12,6 +12,8 @@ import * as path from 'path';
 import { Utiliza } from '../utiliza/entities/utiliza.entity';
 import { Insumo } from '../insumos/entities/insumo.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
+import { Salida } from '../salidas/entities/salida.entity';
+import { MovimientosService } from '../movimientos/movimientos.service';
 
 @Injectable()
 export class ActividadesService {
@@ -26,6 +28,9 @@ export class ActividadesService {
     private readonly insumosRepository: Repository<Insumo>,
     @InjectRepository(Inventario)
     private readonly inventarioRepository: Repository<Inventario>,
+    @InjectRepository(Salida)
+    private readonly salidasRepository: Repository<Salida>,
+    private readonly movimientosService: MovimientosService,
   ) {}
 
   async create(createActividadDto: CreateActividadeDto) {
@@ -47,7 +52,18 @@ export class ActividadesService {
       detalles: createActividadDto.detalles,
       estado: createActividadDto.estado || 'pendiente',
       id_cultivo: createActividadDto.id_cultivo,
+      costo_mano_obra: createActividadDto.costo_mano_obra != null ? String(createActividadDto.costo_mano_obra) : undefined,
+      costo_maquinaria: createActividadDto.costo_maquinaria != null ? String(createActividadDto.costo_maquinaria) : undefined,
+      horas_trabajadas: createActividadDto.horas_trabajadas != null ? String(createActividadDto.horas_trabajadas) : undefined,
+      tarifa_hora: createActividadDto.tarifa_hora != null ? String(createActividadDto.tarifa_hora) : undefined,
     };
+
+    if (actividadData.costo_mano_obra == null && createActividadDto.horas_trabajadas != null && createActividadDto.tarifa_hora != null) {
+      const horas = Number(createActividadDto.horas_trabajadas || 0);
+      const tarifa = Number(createActividadDto.tarifa_hora || 0);
+      const total = horas * tarifa;
+      actividadData.costo_mano_obra = String(total);
+    }
 
     if (createActividadDto.responsable_id) {
       const user = await this.actividadesRepository.manager
@@ -68,6 +84,7 @@ export class ActividadesService {
     const recursos = (createActividadDto as any).recursos as Array<{ id_insumo: number; cantidad?: number; horas_uso?: number; costo_unitario?: number }> | undefined;
     if (Array.isArray(recursos) && recursos.length > 0) {
       let totalDepreciacion = 0;
+      let totalHerramientasCosto = 0;
       for (const r of recursos) {
         if (!r?.id_insumo) continue;
         const insumo = await this.insumosRepository.findOne({ where: { id_insumo: r.id_insumo } });
@@ -97,6 +114,11 @@ export class ActividadesService {
             insumo.depreciacion_acumulada = String(acumNext);
             await this.insumosRepository.save(insumo);
             totalDepreciacion += depActividad;
+
+            const costoHora = r.costo_unitario != null ? Number(r.costo_unitario) : Number(insumo.depreciacion_por_hora || 0);
+            if (costoHora > 0) {
+              totalHerramientasCosto += horas * costoHora;
+            }
           }
         } else {
           const cant = Number(r.cantidad || 0);
@@ -113,12 +135,40 @@ export class ActividadesService {
               }
               await this.inventarioRepository.save(inv);
             }
+
+            try {
+              const valorUnidad = r.costo_unitario != null ? Number(r.costo_unitario) : null;
+              const salida = this.salidasRepository.create({
+                nombre: insumo.nombre_insumo,
+                codigo: insumo.codigo,
+                cantidad: cant,
+                observacion: `Salida automática por actividad ${saved.id_actividad}`,
+                fecha_salida: new Date(createActividadDto.fecha).toISOString().slice(0, 10),
+                unidad_medida: undefined,
+                id_cultivo: saved.id_cultivo,
+                insumo: insumo as any,
+                valor_unidad: valorUnidad,
+              } as any);
+              await this.salidasRepository.save(salida);
+              try {
+                await this.movimientosService.create({
+                  tipo_movimiento: 'Salida',
+                  id_insumo: insumo.id_insumo,
+                  cantidad: cant,
+                  unidad_medida: (inv as any)?.unidad_medida || 'unidad',
+                  fecha_movimiento: new Date(createActividadDto.fecha).toISOString().slice(0, 10),
+                  valor_unidad: valorUnidad ?? undefined,
+                } as any);
+              } catch {}
+            } catch (err) {
+            }
           }
         }
       }
 
-      if (totalDepreciacion > 0) {
-        saved.costo_maquinaria = String(Number(saved.costo_maquinaria || 0) + totalDepreciacion);
+      const sumaMaquinaria = Number(saved.costo_maquinaria || 0) + Number(totalDepreciacion || 0) + Number(totalHerramientasCosto || 0);
+      if (sumaMaquinaria > 0) {
+        saved.costo_maquinaria = String(sumaMaquinaria);
         await this.actividadesRepository.save(saved);
       }
     }
@@ -246,10 +296,72 @@ export class ActividadesService {
     if (updateActividadDto.id_cultivo) {
       updateData.id_cultivo = updateActividadDto.id_cultivo;
     }
+    if (updateActividadDto.horas_trabajadas != null) {
+      updateData.horas_trabajadas = String(updateActividadDto.horas_trabajadas);
+    }
+    if (updateActividadDto.tarifa_hora != null) {
+      updateData.tarifa_hora = String(updateActividadDto.tarifa_hora);
+    }
+    if (updateActividadDto.costo_mano_obra != null) {
+      updateData.costo_mano_obra = String(updateActividadDto.costo_mano_obra);
+    } else if (updateActividadDto.horas_trabajadas != null && updateActividadDto.tarifa_hora != null) {
+      const horas = Number(updateActividadDto.horas_trabajadas || 0);
+      const tarifa = Number(updateActividadDto.tarifa_hora || 0);
+      const total = horas * tarifa;
+      updateData.costo_mano_obra = String(total);
+    }
+    if (updateActividadDto.costo_maquinaria != null) {
+      updateData.costo_maquinaria = String(updateActividadDto.costo_maquinaria);
+    }
 
     Object.assign(actividad, updateData);
-    
-    return await this.actividadesRepository.save(actividad);
+    const saved = await this.actividadesRepository.save(actividad);
+
+    const recursos = (updateActividadDto as any).recursos as Array<{ id_insumo: number; cantidad?: number; horas_uso?: number; costo_unitario?: number }> | undefined;
+    if (Array.isArray(recursos)) {
+      const existentes = await this.utilizaRepository.find({
+        where: { id_actividades: { id_actividad } },
+        relations: ['id_insumo'],
+      });
+      const byInsumo = new Map<number, typeof existentes[number]>();
+      existentes.forEach(u => {
+        const id = Number((u.id_insumo as any)?.id_insumo ?? (u.id_insumo as any)?.id);
+        if (id) byInsumo.set(id, u);
+      });
+
+      const incomingIds = new Set<number>();
+      for (const r of recursos) {
+        if (!r?.id_insumo) continue;
+        incomingIds.add(Number(r.id_insumo));
+        const insumo = await this.insumosRepository.findOne({ where: { id_insumo: Number(r.id_insumo) } });
+        if (!insumo) continue;
+        const existente = byInsumo.get(Number(r.id_insumo));
+        if (existente) {
+          existente.cantidad = r.cantidad != null ? String(r.cantidad) : undefined;
+          existente.horas_uso = r.horas_uso != null ? String(r.horas_uso) : undefined;
+          existente.costo_unitario = r.costo_unitario != null ? String(r.costo_unitario) : undefined;
+          await this.utilizaRepository.save(existente);
+        } else {
+          const nuevo = this.utilizaRepository.create({
+            id_actividades: saved,
+            id_insumo: insumo,
+            cantidad: r.cantidad != null ? String(r.cantidad) : undefined,
+            horas_uso: r.horas_uso != null ? String(r.horas_uso) : undefined,
+            costo_unitario: r.costo_unitario != null ? String(r.costo_unitario) : undefined,
+          });
+          await this.utilizaRepository.save(nuevo);
+        }
+      }
+
+      for (const u of existentes) {
+        const idInsumo = Number((u.id_insumo as any)?.id_insumo ?? (u.id_insumo as any)?.id);
+        if (idInsumo && !incomingIds.has(idInsumo)) {
+          await this.utilizaRepository.remove(u);
+        }
+      }
+    }
+
+    return saved;
   }
 
   async addFoto(actividadId: number, filePath: string, createFotoDto: CreateFotoDto): Promise<FotoActividad> {
@@ -269,6 +381,38 @@ export class ActividadesService {
     return this.fotoActividadRepository.find({
       where: { actividad: { id_actividad: actividadId } },
       order: { fecha_carga: 'DESC' },
+    });
+  }
+
+  async getRecursosByActividad(actividadId: number) {
+    const actividad = await this.findOne(actividadId);
+    if (!actividad) throw new NotFoundException(`Actividad con ID ${actividadId} no encontrada`);
+    const qb = this.utilizaRepository
+      .createQueryBuilder('utiliza')
+      .leftJoinAndSelect('utiliza.id_insumo', 'insumo')
+      .leftJoinAndSelect('insumo.id_categoria', 'categoria')
+      .where('utiliza.id_actividades = :actividadId', { actividadId })
+      .orderBy('utiliza.id_utiliza', 'ASC');
+    const recursos = await qb.getMany();
+    return recursos.map((u) => {
+      const ins = (u as any)?.id_insumo;
+      const rawFlag = ins?.es_herramienta;
+      let es_herramienta = (u.horas_uso != null && String(u.horas_uso) !== '') || rawFlag === true || rawFlag === 1 || rawFlag === '1' ||
+        (typeof rawFlag === 'string' && (rawFlag.toLowerCase() === 'true' || rawFlag.toLowerCase() === 't'));
+      if (!es_herramienta) {
+        const catName = ((ins as any)?.id_categoria?.nombre || '').toString().toLowerCase();
+        if (catName.includes('herramienta') || catName.includes('equipo') || catName.includes('maquinaria') || catName.includes('implemento')) {
+          es_herramienta = true;
+        }
+      }
+      return {
+        id_insumo: Number(ins?.id_insumo ?? ins?.id ?? 0),
+        nombre_insumo: ins?.nombre_insumo ?? '',
+        es_herramienta,
+        cantidad: u.cantidad != null ? Number(u.cantidad) : undefined,
+        horas_uso: u.horas_uso != null ? Number(u.horas_uso) : undefined,
+        costo_unitario: u.costo_unitario != null ? Number(u.costo_unitario) : undefined,
+      };
     });
   }
 
@@ -349,6 +493,8 @@ export class ActividadesService {
       estado: actividad.estado,
       responsable: actividad.responsable,
       id_cultivo: actividad.id_cultivo,
+      costo_mano_obra: actividad.costo_mano_obra,
+      costo_maquinaria: actividad.costo_maquinaria,
       cultivo: cultivoInfo ? {
         id: cultivoInfo.id_cultivo,
         tipo: cultivoInfo.tipo_cultivo

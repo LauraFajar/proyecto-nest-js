@@ -5,6 +5,7 @@ import { Movimiento } from './entities/movimiento.entity';
 import { CreateMovimientoDto } from './dto/create-movimiento.dto';
 import { UpdateMovimientoDto } from './dto/update-movimiento.dto';
 import { Insumo } from '../insumos/entities/insumo.entity';
+import { Salida } from '../salidas/entities/salida.entity';
 
 @Injectable()
 export class MovimientosService {
@@ -13,6 +14,8 @@ export class MovimientosService {
     private movimientosRepository: Repository<Movimiento>,
     @InjectRepository(Insumo)
     private insumosRepository: Repository<Insumo>,
+    @InjectRepository(Salida)
+    private salidasRepository: Repository<Salida>,
   ) {}
 
   async create(createMovimientoDto: CreateMovimientoDto) {
@@ -29,6 +32,25 @@ export class MovimientosService {
     });
 
     const guardado = await this.movimientosRepository.save(nuevoMovimiento);
+
+    // Si es una salida y viene id_cultivo, registrar también una salida financiera
+    if (String(rest.tipo_movimiento).toLowerCase() === 'salida' && (rest as any)?.id_cultivo) {
+      try {
+        const salida = this.salidasRepository.create({
+          nombre: insumo.nombre_insumo,
+          codigo: insumo.codigo,
+          cantidad: rest.cantidad,
+          observacion: 'Salida registrada desde movimientos',
+          fecha_salida: rest.fecha_movimiento,
+          unidad_medida: rest.unidad_medida,
+          id_cultivo: (rest as any).id_cultivo,
+          insumo: insumo as any,
+          valor_unidad: (rest as any).valor_unidad ?? null,
+        } as any);
+        await this.salidasRepository.save(salida);
+      } catch {}
+    }
+
     return await this.findOne(guardado.id_movimiento);
   }
 

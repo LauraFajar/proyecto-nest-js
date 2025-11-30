@@ -20,9 +20,10 @@ export class SalidasService {
       codigo: createSalidaDto.codigo,
       cantidad: createSalidaDto.cantidad,
       observacion: createSalidaDto.observacion,
-      fecha_salida: createSalidaDto.fecha_salida,
+      fecha_salida: createSalidaDto.fecha_salida || new Date().toISOString().slice(0, 10),
       unidad_medida: createSalidaDto.unidad_medida ?? null,
       id_cultivo: createSalidaDto.id_cultivo ?? null,
+      valor_unidad: createSalidaDto.valor_unidad ?? null,
       ...(createSalidaDto.id_insumo ? { insumo: { id_insumo: createSalidaDto.id_insumo } as any } : {}),
     } as any);
 

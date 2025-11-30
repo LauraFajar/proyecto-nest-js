@@ -1,4 +1,5 @@
-import { IsString, Length, IsInt, IsOptional, IsDateString } from 'class-validator';
+import { IsString, Length, IsInt, IsOptional, IsDateString, IsNumber, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateSalidaDto {
   @IsString()
@@ -33,4 +34,10 @@ export class CreateSalidaDto {
   @IsOptional()
   @IsInt()
   id_insumo?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  valor_unidad?: number;
 }

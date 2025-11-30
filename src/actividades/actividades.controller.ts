@@ -53,6 +53,13 @@ export class ActividadesController {
     return this.actividadesService.getFotosByActividad(actividadId);
   }
 
+  @Get(':actividadId/recursos')
+  getRecursosByActividad(
+    @Param('actividadId', ParseIntPipe) actividadId: number,
+  ) {
+    return this.actividadesService.getRecursosByActividad(actividadId);
+  }
+
   @Get()
   findAll(
     @Query(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true })) paginationDto: PaginationDto,
