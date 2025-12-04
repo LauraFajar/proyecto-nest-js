@@ -1,166 +1,308 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import {
+Controller,
+Get,
+Post,
+Put,
+Param,
+ParseIntPipe,
+Body,
+Res,
+HttpStatus,
+Query,
+} from '@nestjs/common';
 import { SensoresService } from './sensores.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Response } from 'express';
+import * as PDFDocument from 'pdfkit';
+import { Workbook } from 'exceljs';
+import { ReportsService } from './services/reports.service';
+import { MqttService } from './services/mqtt.service';
 
 @Controller('sensores')
-@UseGuards(JwtAuthGuard)
 export class SensoresController {
-  constructor(private readonly sensoresService: SensoresService) {}
+constructor(
+  private readonly sensoresService: SensoresService,
+  private readonly reportsService: ReportsService,
+  private readonly mqttService: MqttService,
+) {}
 
-  @Post()
-  create(@Body() createSensorDto: any) {
-    return this.sensoresService.create(createSensorDto);
+// ============================================
+// OBTENER TODOS LOS SENSORES
+// ============================================
+@Get()
+async findAll() {
+return this.sensoresService.findAll();
+}
+
+// ============================================
+// OBTENER UN SENSOR
+// ============================================
+@Get(':id')
+async findOne(@Param('id', ParseIntPipe) id: number) {
+return this.sensoresService.findOne(id);
+}
+
+// ============================================
+// ACTUALIZAR SENSOR
+// ============================================
+@Put(':id')
+async update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
+return this.sensoresService.update(id, data);
+}
+
+// ============================================
+// OBTENER LECTURAS DE UN SENSOR
+// ============================================
+@Get(':id/lecturas')
+async obtenerLecturas(@Param('id', ParseIntPipe) id: number) {
+const fn = (this.sensoresService as any).obtenerLecturasDeSensor;
+if (typeof fn === 'function') {
+  return fn.call(this.sensoresService, id);
+}
+return [];
+}
+
+// ============================================
+// GENERAR PDF
+// ============================================
+@Get('export/pdf')
+async generarPDF(
+  @Query('topic') topic: string,
+  @Query('metric') metric: string,
+  @Res() res: Response,
+  @Query('desde') desde?: string,
+  @Query('hasta') hasta?: string,
+) {
+  if (!topic) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "topic" es obligatorio.' });
   }
 
-  @Get()
-  findAll() {
-    return this.sensoresService.findAll();
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(desde);
+  const dHasta = parse(hasta);
+  if (desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+  if (hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
   }
 
-  @Get('tiempo-real')
-  obtenerDatosTiempoReal(@Query('sensor') id_sensor?: number) {
-    return this.sensoresService.obtenerDatosTiempoReal(id_sensor);
+  try {
+    const buffer = await this.reportsService.buildPDFPorTopic(topic, metric, dDesde, dHasta);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_${encodeURIComponent(topic)}.pdf`);
+    return res.status(HttpStatus.OK).send(buffer);
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el PDF', error: String(e) });
+  }
+}
+
+// ============================================
+// GENERAR EXCEL
+// ============================================
+@Get('export/excel')
+async generarExcel(
+  @Query('topic') topic: string,
+  @Query('metric') metric: string,
+  @Res() res: Response,
+  @Query('desde') desde?: string,
+  @Query('hasta') hasta?: string,
+) {
+  if (!topic) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "topic" es obligatorio.' });
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.sensoresService.findOne(+id);
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(desde);
+  const dHasta = parse(hasta);
+  if (desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+  if (hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
   }
 
-  @Get(':id/historial')
-  obtenerHistorial(
-    @Param('id') id_sensor: number,
-    @Query('limite') limite?: number
+  try {
+    const buffer = await this.reportsService.buildExcelPorTopic(topic, metric, dDesde, dHasta);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_${encodeURIComponent(topic)}.xlsx`);
+    return res.status(HttpStatus.OK).send(buffer);
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el Excel', error: String(e) });
+  }
+}
+
+// ============================================
+// INICIALIZAR MQTT
+// ============================================
+@Post('mqtt/init')
+async inicializarMQTT() {
+await this.sensoresService.inicializarConexionesMqtt();
+return { message: 'MQTT inicializado correctamente.' };
+}
+
+// ============================================
+// NUEVO: REPORTE IoT COMPLETO PDF
+// ============================================
+@Get('reporte-iot/pdf')
+async generarIoTCompletePDF(
+  @Res() res: Response,
+  @Query('fecha_desde') fecha_desde?: string,
+  @Query('fecha_hasta') fecha_hasta?: string,
+) {
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(fecha_desde);
+  const dHasta = parse(fecha_hasta);
+  if (fecha_desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "fecha_desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+  if (fecha_hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "fecha_hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+
+  try {
+    const buffer = await this.reportsService.buildIoTCompletePDF(dDesde, dHasta);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte-iot-completo.pdf`);
+    return res.status(HttpStatus.OK).send(buffer);
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el reporte IoT PDF', error: String(e) });
+  }
+}
+
+// ============================================
+// NUEVO: REPORTE IoT COMPLETO EXCEL
+// ============================================
+@Get('reporte-iot/excel')
+async generarIoTCompleteExcel(
+  @Res() res: Response,
+  @Query('fecha_desde') fecha_desde?: string,
+  @Query('fecha_hasta') fecha_hasta?: string,
+) {
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(fecha_desde);
+  const dHasta = parse(fecha_hasta);
+  if (fecha_desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "fecha_desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+  if (fecha_hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "fecha_hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+
+  try {
+    const buffer = await this.reportsService.buildIoTCompleteExcel(dDesde, dHasta);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte-iot-completo.xlsx`);
+    return res.status(HttpStatus.OK).send(buffer);
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el reporte IoT Excel', error: String(e) });
+  }
+}
+  // ============================================
+  // OBTENER HISTORIAL POR TOPIC
+  // ============================================
+  @Get('historial')
+  async getHistorialByTopic(
+    @Query('topic') topic: string,
+    @Query('metric') metric?: string,
+    @Query('periodo') periodo?: string,
+    @Query('order') order?: 'ASC' | 'DESC',
+    @Query('limit') limit?: string,
+    @Query('fecha_desde') fecha_desde?: string,
+    @Query('fecha_hasta') fecha_hasta?: string,
   ) {
-    return this.sensoresService.obtenerHistorial(id_sensor, limite);
-  }
+    try {
+      if (!topic) {
+        return { error: 'El parámetro "topic" es obligatorio.' };
+      }
 
-  @Get(':id/recomendaciones')
-  generarRecomendaciones(@Param('id') id_sensor: number) {
-    return this.sensoresService.generarRecomendaciones(id_sensor);
-  }
+      const parse = (s?: string) => (s ? new Date(s) : undefined);
+      const dDesde = parse(fecha_desde);
+      const dHasta = parse(fecha_hasta);
+      
+      const queryOptions = {
+        metric,
+        desde: dDesde,
+        hasta: dHasta,
+        order: order || 'ASC',
+        limit: limit ? parseInt(limit, 10) : undefined
+      };
 
-  @Post(':id/lectura')
-  registrarLectura(
-    @Param('id') id_sensor: number,
-    @Body() body: { valor: number; unidad_medida?: string; observaciones?: string }
-  ) {
-    return this.sensoresService.registrarLectura(
-      id_sensor,
-      body.valor,
-      body.unidad_medida,
-      body.observaciones
-    );
-  }
-
-  @Post(':id/configurar')
-  configurarSensor(
-    @Param('id') id_sensor: number,
-    @Body() configuracion: {
-      valor_minimo?: number;
-      valor_maximo?: number;
-      estado?: string;
-      configuracion?: string;
+      const lecturas = await this.reportsService.obtenerLecturasPorTopic(topic, queryOptions);
+      
+      return {
+        topic,
+        metric: metric || 'todas',
+        periodo: periodo || 'general',
+        total_lecturas: lecturas.length,
+        fecha_desde: fecha_desde || null,
+        fecha_hasta: fecha_hasta || null,
+        lecturas: lecturas
+      };
+    } catch (e) {
+      return { error: 'No se pudo obtener el historial', message: String(e) };
     }
-  ) {
-    return this.sensoresService.configurarSensor(id_sensor, configuracion);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSensorDto: any) {
-    return this.sensoresService.update(+id, updateSensorDto);
+@Get('topics')
+async listTopics() {
+  try {
+    const topics = await this.sensoresService.listTopics();
+    return { topics };
+  } catch (e) {
+    return { error: 'Error al obtener topics', message: String(e) };
   }
+}
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.sensoresService.remove(+id);
+@Post('subscribe')
+async subscribeLegacy(@Body('topic') topic: string, @Res() res: Response) {
+  if (!topic) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "topic" es obligatorio.' });
   }
-
-  @Get(':id/graficos')
-  obtenerDatosGraficos(
-    @Param('id') id_sensor: number,
-    @Query('tipo') tipo?: 'linea' | 'barra' | 'area',
-    @Query('periodo') periodo?: 'hora' | 'dia' | 'semana' | 'mes',
-    @Query('limite') limite?: number
-  ) {
-    return this.sensoresService.obtenerDatosGraficos(id_sensor, tipo, periodo, limite);
-  }
-
-  @Get('cultivo/timeline')
-  obtenerTimelineCultivo(
-    @Query('id_sublote') id_sublote?: number,
-    @Query('fecha_inicio') fecha_inicio?: string,
-    @Query('fecha_fin') fecha_fin?: string,
-    @Query('sensores') sensores?: string // comma-separated sensor types
-  ) {
-    return this.sensoresService.obtenerTimelineCultivo(id_sublote, fecha_inicio, fecha_fin, sensores);
-  }
-
-  @Get('estadisticas/generales')
-  obtenerEstadisticasGenerales(
-    @Query('id_sublote') id_sublote?: number,
-    @Query('tipo_sensor') tipo_sensor?: string
-  ) {
-    return this.sensoresService.obtenerEstadisticasGenerales(id_sublote, tipo_sensor);
-  }
-
-  @Post(':id/mqtt/configurar')
-  configurarMqtt(
-    @Param('id') id_sensor: number,
-    @Body() config: {
-      mqtt_host?: string;
-      mqtt_port?: number;
-      mqtt_topic?: string;
-      mqtt_username?: string;
-      mqtt_password?: string;
-      mqtt_enabled?: boolean;
-      mqtt_client_id?: string;
+  try {
+    const fn = (this.mqttService as any).subscribeTopic;
+    if (typeof fn === 'function') {
+      fn.call(this.mqttService, topic);
+      return res.status(HttpStatus.OK).json({ message: `Suscrito al topic ${topic}` });
     }
-  ) {
-    return this.sensoresService.configurarMqtt(id_sensor, config);
+    return res.status(HttpStatus.NOT_IMPLEMENTED).json({ message: 'La función subscribeTopic no está disponible.' });
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo suscribir al topic', error: String(e) });
   }
+}
 
-  @Get(':id/mqtt/estado')
-  obtenerEstadoMqtt(@Param('id') id_sensor: number) {
-    return this.sensoresService.obtenerEstadoMqtt(id_sensor);
+// ============================================
+// NUEVO: INFORMACIÓN IoT PARA FRONTEND
+// ============================================
+@Get('iot/info')
+async obtenerInfoIoT() {
+  try {
+    const sensores = await this.reportsService.obtenerSensoresConUbicaciones();
+    const bombaData = await this.reportsService.contarActivacionesBombaPorPeriodo();
+     
+    return {
+      sensores: sensores,
+      resumen_bomba: bombaData,
+      timestamp: new Date().toISOString()
+    };
+  } catch (e) {
+    return { message: 'No se pudo obtener la información IoT', error: String(e) };
   }
+}
 
-  @Post('mqtt/servidor/registrar')
-  registrarServidorMqtt(@Body() servidor: {
-    nombre: string;
-    host: string;
-    port: number;
-    username?: string;
-    password?: string;
-    descripcion?: string;
-  }) {
-    return this.sensoresService.registrarServidorMqtt(servidor);
+@Post('unsubscribe')
+async unsubscribeLegacy(@Body('topic') topic: string, @Res() res: Response) {
+  if (!topic) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "topic" es obligatorio.' });
   }
-
-  @Get('mqtt/servidores')
-  obtenerServidoresMqtt() {
-    return this.sensoresService.obtenerServidoresMqtt();
-  }
-
-  @Post('mqtt/servidor/:id_servidor/asignar-sensor/:id_sensor')
-  asignarSensorAServidor(
-    @Param('id_servidor') id_servidor: number,
-    @Param('id_sensor') id_sensor: number,
-    @Body() config: {
-      topic: string;
-      client_id?: string;
+  try {
+    const fn = (this.mqttService as any).unsubscribeTopic;
+    if (typeof fn === 'function') {
+      fn.call(this.mqttService, topic);
+      return res.status(HttpStatus.OK).json({ message: `Desuscrito del topic ${topic}` });
     }
-  ) {
-    return this.sensoresService.asignarSensorAServidor(id_servidor, id_sensor, config);
+    return res.status(HttpStatus.NOT_IMPLEMENTED).json({ message: 'La función unsubscribeTopic no está disponible.' });
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo desuscribir del topic', error: String(e) });
   }
-
-  @Post('mqtt/servidor/:id_servidor/test-conexion')
-  probarConexionServidor(@Param('id_servidor') id_servidor: number) {
-    return this.sensoresService.probarConexionServidor(id_servidor);
-  }
-
-  @Post('mqtt/inicializar-conexiones')
-  inicializarConexionesMqtt() {
-    return this.sensoresService.inicializarConexionesMqtt();
-  }
+}
 }

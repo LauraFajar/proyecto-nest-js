@@ -24,6 +24,13 @@ export class AlertSchedulerService {
     try {
       const sensores = await this.sensoresService.findAll();
       
+      if (!sensores || sensores.length === 0) {
+        this.logger.warn('No se encontraron sensores o la consulta falló');
+        return;
+      }
+      
+      this.logger.log(`✅ Encontrados ${sensores.length} sensores para verificar`);
+      
       for (const sensor of sensores) {
         if ((sensor.estado || '').toLowerCase() !== 'activo') continue;
 

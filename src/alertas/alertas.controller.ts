@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request }
 import { AlertasService } from './alertas.service';
 import { AlertSchedulerService } from './services/alert-scheduler.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SkipAuthGuard } from '../auth/guards/skip-auth.guard';
 
 @Controller('alertas')
 @UseGuards(JwtAuthGuard)
@@ -71,6 +72,13 @@ export class AlertasController {
 
   @Post('test-alerts')
   async testAlerts() {
+    return this.alertSchedulerService.testAlerts();
+  }
+
+  // Public route for testing without authentication
+  @UseGuards(SkipAuthGuard)
+  @Post('test-alerts-public')
+  async testAlertsPublic() {
     return this.alertSchedulerService.testAlerts();
   }
 

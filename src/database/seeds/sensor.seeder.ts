@@ -22,17 +22,31 @@ export class SensorSeeder {
           tipo_sensor: 'Humedad del Suelo',
           valor_minimo: 20,
           valor_maximo: 60,
-          valor_actual: 45,  
+          valor_actual: 45,
           estado: 'Activo',
           id_sublote: sublote1,
+          mqtt_topic: 'luixxa/dht11',
+          mqtt_enabled: true,
         },
         {
           tipo_sensor: 'Temperatura Ambiente',
           valor_minimo: 18,
           valor_maximo: 30,
-          valor_actual: 25, 
+          valor_actual: 25,
           estado: 'Activo',
           id_sublote: sublote1,
+          mqtt_topic: 'luixxa/dht11',
+          mqtt_enabled: true,
+        },
+        {
+          tipo_sensor: 'Humedad Ambiente',
+          valor_minimo: 30,
+          valor_maximo: 80,
+          valor_actual: 50,
+          estado: 'Activo',
+          id_sublote: sublote1,
+          mqtt_topic: 'luixxa/dht11',
+          mqtt_enabled: true,
         },
       ];
 
@@ -44,6 +58,11 @@ export class SensorSeeder {
 
         if (!exists) {
           await this.sensorRepository.save(this.sensorRepository.create(item));
+        } else {
+          await this.sensorRepository.update(exists.id_sensor, {
+            mqtt_topic: item.mqtt_topic,
+            mqtt_enabled: item.mqtt_enabled,
+          });
         }
       }
     }
