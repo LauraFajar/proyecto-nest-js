@@ -18,20 +18,14 @@ export class SensoresService {
     private readonly mqttService: MqttService,
   ) {}
 
-  // ---------------------------------------------------------
-  // CRUD Básico de Sensores
-  // ---------------------------------------------------------
   async findAll(): Promise<Sensor[]> {
     try {
-      // Check if repository is properly initialized
       if (!this.sensorRepository || !this.sensorRepository.manager?.connection?.isConnected) {
         this.logger.warn('Database not connected, returning empty array');
         return [];
       }
 
-      // Check if entity metadata is loaded
       try {
-        // This will throw if metadata is not found
         this.sensorRepository.metadata;
       } catch (metadataError) {
         this.logger.warn(`Entity metadata not loaded for Sensor: ${metadataError.message}. Returning empty array.`);
@@ -58,9 +52,7 @@ export class SensoresService {
     return this.findOne(id_sensor);
   }
 
-  // ---------------------------------------------------------
   // Lecturas por Sensor / Topic
-  // ---------------------------------------------------------
   async obtenerLecturasDeSensor(id_sensor: number): Promise<Lectura[]> {
     return this.lecturaRepository.find({
       where: { sensor: { id_sensor } },
@@ -75,15 +67,12 @@ export class SensoresService {
     metric?: string,
   ): Promise<Lectura | null> {
     try {
-      // Check if repository is properly initialized with metadata
       if (!this.lecturaRepository || !this.lecturaRepository.manager?.connection?.isConnected) {
         this.logger.warn('Database not connected, skipping lecture save');
         return null;
       }
 
-      // Check if entity metadata is loaded
       try {
-        // This will throw if metadata is not found
         this.lecturaRepository.metadata;
       } catch (metadataError) {
         this.logger.warn(`Entity metadata not loaded for Lectura: ${metadataError.message}. Skipping save.`);
@@ -123,10 +112,7 @@ export class SensoresService {
       historial_lecturas: historial as any,
     });
   }
-
-  // ---------------------------------------------------------
   // Inicialización de conexiones MQTT (suscripción por sensores activos)
-  // ---------------------------------------------------------
   async inicializarConexionesMqtt(): Promise<void> {
     const sensores = await this.sensorRepository.find();
     for (const sensor of sensores) {
@@ -137,7 +123,6 @@ export class SensoresService {
             (this.mqttService as any).subscribe(sensor);
           }
         } catch (e) {
-          // Continuar con otros sensores aún si falla uno
         }
       }
     }

@@ -19,7 +19,6 @@ export class AlertasService {
   ) {}
 
   async create(createAlertaDto: any) {
-    // Asegurar valores por defecto para columnas NOT NULL
     const now = new Date();
     const fecha = createAlertaDto?.fecha ?? now.toISOString().split('T')[0];
     const hora = createAlertaDto?.hora ?? now.toTimeString().split(' ')[0];
@@ -33,7 +32,6 @@ export class AlertasService {
     try {
       this.alertasGateway.sendAlertToAll(saved);
     } catch (err) {
-      // Silently ignore gateway errors to avoid blocking persistence
     }
     return saved;
   }
