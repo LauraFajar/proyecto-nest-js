@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Polygon } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 import { Sublote } from '../../sublotes/entities/sublote.entity';
 
@@ -23,10 +23,8 @@ export class Lote {
   sublotes: Sublote[];
 
   @Column({
-    type: 'geography',
-    spatialFeatureType: 'Polygon',
-    srid: 4326, // Sistema de coordenadas estándar (WGS 84) para latitud/longitud
+    type: 'jsonb',
     nullable: true,
   })
-  coordenadas: Polygon;
+  coordenadas: any;
 }

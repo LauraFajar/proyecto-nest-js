@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -41,6 +42,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { FinanzasModule } from './finanzas/finanzas.module';
 import { PermisosModule } from './permisos/permisos.module';
 import { SeederModule } from './database/seeds/seeder.module';
+import { IotModule } from './iot/iot.module';
 
 @Module({
   imports: [
@@ -53,23 +55,36 @@ import { SeederModule } from './database/seeds/seeder.module';
       serveRoot: '/uploads',
     }),
     ScheduleModule.forRoot(),
+    MongooseModule.forRoot(
+      process.env.MONGODB_URI || 'mongodb://localhost:27017/iot_dashboard',
+    ),
     TypeOrmModule.forRoot(dataSourceOptions),
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => {
+        const redisEnabled = (process.env.REDIS_ENABLED || 'false').toLowerCase() === 'true';
+        if (!redisEnabled) {
+          return {
+            store: 'memory',
+            ttl: 60,
+          };
+        }
         try {
           const store = await redisStore({
             socket: {
               host: process.env.REDIS_HOST || 'localhost',
               port: parseInt(process.env.REDIS_PORT || '6379', 10),
+              // reduce aggressive reconnect noise; fail fast so we can fallback
+              reconnectStrategy: (retries) => Math.min(retries * 50, 500),
             },
-            ttl: 60 * 60, // 1 hora por defecto
+            // default TTL for Redis cache
+            ttl: 60 * 60,
           });
           return { store };
         } catch (error) {
           return {
             store: 'memory',
-            ttl: 60, // 1 minuto por defecto para la caché en memoria
+            ttl: 60,
           };
         }
       },
@@ -110,6 +125,7 @@ import { SeederModule } from './database/seeds/seeder.module';
     FinanzasModule,
     PermisosModule,
     SeederModule,
+    IotModule,
   ],
   controllers: [AppController],
   providers: [

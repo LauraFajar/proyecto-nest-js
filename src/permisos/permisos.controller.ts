@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles/roles.enum';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('permisos')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -36,12 +37,13 @@ export class PermisosController {
   }
 
   @Get('usuario/me')
-  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
+  @Public()
   async listMyPermissions(@Request() req) {
     const rawId = req.user?.id;
     const userId = Number(rawId);
     if (!Number.isFinite(userId) || userId <= 0) {
-      throw new BadRequestException('ID de usuario inválido');
+      // Usuario no autenticado: devolver lista vacía para modo invitado
+      return [];
     }
     return this.permisosService.getUserPermissions(userId);
   }

@@ -1,12 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Cultivo } from './entities/cultivo.entity';
 import { Lote } from '../lotes/entities/lote.entity';
 import { Insumo } from '../insumos/entities/insumo.entity';
+import { Sensor } from '../sensores/entities/sensor.entity';
+import { Sublote } from '../sublotes/entities/sublote.entity';
 import { CreateCultivoDto } from './dto/create-cultivo.dto';
 import { UpdateCultivoDto } from './dto/update-cultivo.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import PDFDocument from 'pdfkit';
 
 @Injectable()
 export class CultivosService {
@@ -17,6 +20,10 @@ export class CultivosService {
     private readonly loteRepository: Repository<Lote>,
     @InjectRepository(Insumo)
     private readonly insumoRepository: Repository<Insumo>,
+    @InjectRepository(Sensor)
+    private readonly sensoresRepository: Repository<Sensor>,
+    @InjectRepository(Sublote)
+    private readonly subloteRepository: Repository<Sublote>,
   ) {}
 
   async create(createCultivoDto: CreateCultivoDto) {
@@ -65,6 +72,7 @@ export class CultivosService {
   async findOne(id: number) {
     const cultivo = await this.cultivoRepository.findOne({
       where: { id_cultivo: id },
+      relations: ['lote'],
     });
     if (!cultivo) {
       throw new NotFoundException(`Cultivo con ID ${id} no encontrado`);
@@ -191,5 +199,77 @@ export class CultivosService {
     }
 
     return query.getMany();
+  }
+
+  async generarReportePdf(id_cultivo: number, fecha_desde?: string, fecha_hasta?: string, historico: boolean = false): Promise<Buffer> {
+    const cultivo = await this.cultivoRepository.findOne({ where: { id_cultivo }, relations: ['lote'] });
+    if (!cultivo) throw new NotFoundException(`Cultivo con ID ${id_cultivo} no encontrado`);
+    const lote = cultivo.lote;
+
+    // Obtener sensores en los sublotes del lote
+    const sensores = await this.sensoresRepository.find({ relations: ['id_sublote', 'id_sublote.id_lote'] });
+    const sensoresDelLote = sensores.filter(s => s.id_sublote && s.id_sublote.id_lote && (s.id_sublote.id_lote as any).id_lote === (lote ? lote.id_lote : null));
+
+    // Filtrado por fechas
+    const desde = fecha_desde ? new Date(fecha_desde) : undefined;
+    const hasta = fecha_hasta ? new Date(fecha_hasta) : undefined;
+
+    const calcularStats = (lecturas: any[]) => {
+      if (!lecturas || lecturas.length === 0) return { min: null, max: null, avg: null, count: 0 };
+      const vals = lecturas.map(l => l.valor);
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+      const avg = parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2));
+      return { min, max, avg, count: lecturas.length };
+    };
+
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks: Buffer[] = [];
+    return await new Promise<Buffer>((resolve) => {
+      doc.on('data', (chunk) => chunks.push(chunk as Buffer));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+      // Título y metadatos
+      doc.fontSize(18).text('Reporte de Cultivo', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(12).text(`Cultivo: ${cultivo.nombre_cultivo} (ID: ${cultivo.id_cultivo})`);
+      doc.text(`Lote: ${lote ? lote.nombre_lote : 'Sin lote'}`);
+      if (historico) {
+        doc.text('Tipo de reporte: Histórico completo');
+      } else {
+        doc.text(`Rango de fechas: ${desde ? desde.toISOString().slice(0,10) : '-'} a ${hasta ? hasta.toISOString().slice(0,10) : '-'}`);
+      }
+      doc.moveDown(0.5);
+      doc.text(`Generado: ${new Date().toLocaleString()}`);
+      doc.moveDown(1);
+
+      // Encabezado de tabla
+      doc.fontSize(13).text('Sensores asociados al lote');
+      doc.moveDown(0.5);
+      doc.fontSize(10);
+      doc.text('ID   Tipo Sensor                  Sublote            Lote                Lecturas (min/max/avg, count)');
+      doc.moveTo(doc.x, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown(0.5);
+
+      sensoresDelLote.forEach((s) => {
+        const sub = s.id_sublote;
+        const lecturas = (s.historial_lecturas || []).filter((l: any) => {
+          const t = new Date(l.timestamp);
+          if (historico) return true;
+          if (desde && t < desde) return false;
+          if (hasta && t > hasta) return false;
+          return true;
+        });
+        const stats = calcularStats(lecturas);
+        const linea = `${String(s.id_sensor).padEnd(4)} ${String(s.tipo_sensor).padEnd(26)} ${String(sub?.descripcion || '-').padEnd(18)} ${String((sub?.id_lote as any)?.nombre_lote || '-').padEnd(18)} min:${stats.min ?? '-'} max:${stats.max ?? '-'} avg:${stats.avg ?? '-'} n:${stats.count}`;
+        doc.text(linea);
+      });
+
+      if (sensoresDelLote.length === 0) {
+        doc.text('No hay sensores asociados a este lote.');
+      }
+
+      doc.end();
+    });
   }
 }

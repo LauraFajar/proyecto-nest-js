@@ -3,12 +3,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CultivosService } from './cultivos.service';
 import { CultivosController } from './cultivos.controller';
 import { Cultivo } from './entities/cultivo.entity';
+import { Lote } from '../lotes/entities/lote.entity';
+import { Insumo } from '../insumos/entities/insumo.entity';
+import { Sensor } from '../sensores/entities/sensor.entity';
+import { Sublote } from '../sublotes/entities/sublote.entity';
 import { LotesModule } from '../lotes/lotes.module';
 import { InsumosModule } from '../insumos/insumos.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Cultivo]),
+    TypeOrmModule.forFeature([Cultivo, Lote, Insumo, Sensor, Sublote]),
     LotesModule,
     InsumosModule,
   ],

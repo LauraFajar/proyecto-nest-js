@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards,HttpCode,HttpStatus, Query} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards,HttpCode,HttpStatus, Query, Res} from '@nestjs/common';
+import { Response } from 'express';
 import { IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { AuthGuard } from '@nestjs/passport';
@@ -38,6 +39,21 @@ export class CultivosController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.cultivosService.findOne(id);
+  }
+
+  @Get(':id/reporte-pdf')
+  async descargarReportePdf(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('fecha_desde') fecha_desde?: string,
+    @Query('fecha_hasta') fecha_hasta?: string,
+    @Query('historico') historico?: string,
+    @Res() res?: Response,
+  ) {
+    const buffer = await this.cultivosService.generarReportePdf(id, fecha_desde, fecha_hasta, historico === 'true');
+    const nombre = `reporte_cultivo_${id}_${new Date().toISOString().split('T')[0]}.pdf`;
+    res!.setHeader('Content-Type', 'application/pdf');
+    res!.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res!.send(Buffer.from(buffer));
   }
 
   @Patch(':id')

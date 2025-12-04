@@ -12,7 +12,7 @@ async function bootstrap() {
 
   // Configuración de CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true
   });
 
@@ -27,7 +27,7 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT || 3001;
+  const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`Servidor corriendo en http://localhost:${port}`);
 }

@@ -116,12 +116,12 @@ export class MqttService implements OnModuleInit {
           timestamp: new Date(),
           temperatura: data.temperatura,
           humedad_aire: data.humedad_aire,
-          humedad_suelo_adc: data.humedad_suelo_adc,
+          humedad_suelo: data.humedad_suelo_adc ? this.convertAdcToPercentGeneric(data.humedad_suelo_adc) : undefined,
           bomba_estado: data.bomba_estado,
           // Include English field names for compatibility
           temperature: data.temperatura,
           humidity: data.humedad_aire,
-          soilHumidity: data.humedad_suelo_adc,
+          soilHumidity: data.humedad_suelo_adc ? this.convertAdcToPercentGeneric(data.humedad_suelo_adc) : undefined,
           pumpState: data.bomba_estado,
           value: data.temperatura || data.humedad_aire || 0,
         };

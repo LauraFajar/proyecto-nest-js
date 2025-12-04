@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeederService } from '../seeds/seeder.service';
 import { Actividad } from '../../actividades/entities/actividad.entity';
+import { FotoActividad } from '../../actividades/entities/foto-actividad.entity';
 import { Almacen } from '../../almacenes/entities/almacen.entity';
 import { Categoria } from '../../categorias/entities/categoria.entity';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
@@ -48,6 +49,7 @@ import { MovimientoSeeder } from '../seeds/movimiento.seeder';
   imports: [
     TypeOrmModule.forFeature([
       Actividad,
+      FotoActividad,
       Almacen,
       Categoria,
       Cultivo,

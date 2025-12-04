@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn, Polygon } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Lote } from '../../lotes/entities/lote.entity';
 import { Sensor } from '../../sensores/entities/sensor.entity';
 
@@ -21,10 +21,8 @@ export class Sublote {
   sensores: Sensor[];
 
   @Column({
-    type: 'geography',
-    spatialFeatureType: 'Polygon',
-    srid: 4326,
+    type: 'jsonb',
     nullable: true,
   })
-  coordenadas: Polygon | null;
+  coordenadas: any;
 }
