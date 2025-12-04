@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Sublote } from '../../sublotes/entities/sublote.entity';
+import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 
 @Entity('sensores')
 export class Sensor {
@@ -82,4 +83,8 @@ export class Sensor {
   @ManyToOne(() => Sublote)
   @JoinColumn({ name: 'id_sublote' })
   id_sublote: Sublote;
+
+  @ManyToOne(() => Cultivo, { nullable: true })
+  @JoinColumn({ name: 'cultivo_id' })
+  cultivo: Cultivo | null;
 }

@@ -19,8 +19,23 @@ export class AlertasService {
   ) {}
 
   async create(createAlertaDto: any) {
-    const nuevaAlerta = this.alertasRepository.create(createAlertaDto);
-    return await this.alertasRepository.save(nuevaAlerta);
+    // Asegurar valores por defecto para columnas NOT NULL
+    const now = new Date();
+    const fecha = createAlertaDto?.fecha ?? now.toISOString().split('T')[0];
+    const hora = createAlertaDto?.hora ?? now.toTimeString().split(' ')[0];
+
+    const nuevaAlerta = this.alertasRepository.create({
+      ...createAlertaDto,
+      fecha,
+      hora,
+    });
+    const saved = await this.alertasRepository.save(nuevaAlerta);
+    try {
+      this.alertasGateway.sendAlertToAll(saved);
+    } catch (err) {
+      // Silently ignore gateway errors to avoid blocking persistence
+    }
+    return saved;
   }
 
   async findAll() {
