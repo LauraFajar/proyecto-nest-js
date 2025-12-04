@@ -24,6 +24,12 @@ function normalizeMetric(metric?: string): MetricKey | undefined {
 
 // Función para convertir valores ADC de humedad del suelo a porcentaje
 function convertirHumedadSuelo(valor: number): number {
+  // Para sensores de humedad del suelo típicos:
+  // - Valor ADC seco: ~1023 (o 4095 para 12-bit)
+  // - Valor ADC húmedo: ~0
+  // Conversión: humedad = ((valor_maximo - valor_actual) / valor_maximo) * 100
+  
+  // Detectar si es valor de 10-bit (0-1023) o 12-bit (0-4095)
   const valorMaximo = valor > 2000 ? 4095 : 1023;
   
   // Conversión a porcentaje
@@ -63,6 +69,7 @@ export class ReportsService {
       
       return lecturas;
     } catch (error) {
+      // Si hay error en la consulta, generar datos demo
       return this.generateDemoLecturasByTopic(topic, options);
     }
   }
@@ -73,12 +80,13 @@ export class ReportsService {
     const fechaFin = options?.hasta || new Date();
     const limit = options?.limit || 50;
     
-    const lecturas: any[] = []; 
+    const lecturas: any[] = []; // Especificar tipo any para evitar errores de TypeScript
     const ahora = fechaFin.getTime();
     const inicio = fechaInicio.getTime();
     const duracion = ahora - inicio;
-    const intervalo = Math.max(60 * 60 * 1000, duracion / limit); 
+    const intervalo = Math.max(60 * 60 * 1000, duracion / limit); // Al menos cada hora, o más frecuente si hay límite alto
     
+    // Determinar qué métricas generar
     const metricasAGenerar = metric ? [metric] : ['temperatura', 'humedad_aire', 'humedad_suelo_porcentaje', 'bomba_estado'];
     
     for (let tiempo = inicio; tiempo <= ahora && lecturas.length < limit; tiempo += intervalo) {
@@ -110,6 +118,7 @@ export class ReportsService {
             break;
             
           case 'bomba_estado':
+            // Simular estado de bomba basado en humedad del suelo
             valor = Math.random() > 0.8 ? 1 : 0;
             observaciones = valor === 1 ? 'Riego activado' : 'Sistema en espera';
             break;
@@ -141,10 +150,12 @@ export class ReportsService {
       const valor = Number(l.valor);
       if (!Number.isFinite(valor)) return null;
       
+      // Aplicar conversión solo para valores ADC antiguos
       if (l.unidad_medida === 'humedad_suelo_adc') {
         return convertirHumedadSuelo(valor);
       }
       
+      // Los nuevos valores ya vienen como porcentaje, usar directamente
       return valor;
     }).filter((v) => v !== null);
     
@@ -214,6 +225,7 @@ export class ReportsService {
       if (l.unidad_medida === 'humedad_suelo_adc') {
         valor = convertirHumedadSuelo(valor);
       }
+      // Los nuevos valores ya vienen como porcentaje
       wsDatos.addRow({
         fecha: l.fecha,
         metric: l.unidad_medida === 'humedad_suelo_adc' ? 'humedad_suelo_porcentaje' : (l.unidad_medida ?? ''),
@@ -282,16 +294,20 @@ export class ReportsService {
         pdf.fontSize(12).text(`Máximo: ${resumen.max ?? '—'}`);
         pdf.moveDown();
 
+        // Tabla simple de lecturas
         pdf.fontSize(14).text('Lecturas:');
         for (const l of lecturas.slice(0, 100)) {
           let valor = Number(l.valor);
+          // Aplicar conversión solo para ADC antiguos
           if (l.unidad_medida === 'humedad_suelo_adc') {
             valor = convertirHumedadSuelo(valor);
           }
+          // Los nuevos valores ya vienen como porcentaje
           pdf.fontSize(10).text(`${l.fecha.toISOString()} | ${l.unidad_medida ?? ''} | ${valor} ${l.observaciones ? '| ' + l.observaciones : ''}`);
         }
         pdf.addPage();
 
+        // Gráfica simple (línea)
         const serie = metricNorm ? lecturas.filter((l) => l.unidad_medida === metricNorm) : lecturas;
         const pts = serie.map((l) => ({ x: l.fecha.getTime(), y: Number(l.valor) })).filter((p) => Number.isFinite(p.y));
         if (pts.length >= 2) {
@@ -324,6 +340,9 @@ export class ReportsService {
     });
   }
 
+  // ============================================
+  // NUEVAS FUNCIONES PARA REPORTES IoT COMPLETOS
+  // ============================================
 
   async obtenerSensoresConUbicaciones() {
     try {
@@ -337,6 +356,7 @@ export class ReportsService {
 
       if (!sensores || sensores.length === 0) {
         console.warn('⚠️ No se encontraron sensores reales - generando datos demo para testing');
+        // Generar datos demo SOLO para testing cuando no hay sensores reales
         return this.generateDemoSensoresData();
       }
 
@@ -370,6 +390,7 @@ export class ReportsService {
       }));
     } catch (error) {
       console.error('❌ Error obteniendo sensores:', error);
+      // Generar datos demo en caso de error para testing
       return this.generateDemoSensoresData();
     }
   }
@@ -472,6 +493,7 @@ export class ReportsService {
       
       if (!lecturas || lecturas.length === 0) {
         console.warn('⚠️ No se encontraron lecturas históricas reales - generando datos demo para testing');
+        // Generar datos demo SOLO para testing cuando no hay datos reales
         return this.generateDemoLecturasData(desde, hasta);
       }
       
@@ -509,13 +531,14 @@ export class ReportsService {
       }));
     } catch (error) {
       console.error('❌ Error obteniendo lecturas IoT:', error);
+      // Generar datos demo en caso de error para testing
       return this.generateDemoLecturasData(desde, hasta);
     }
   }
 
   private generateDemoLecturasData(desde?: Date, hasta?: Date) {
     console.log('🎭 Generando datos demo de lecturas...');
-    const lecturas: any[] = []; 
+    const lecturas: any[] = []; // Especificar tipo any para evitar errores de TypeScript
     const fechaInicio = desde || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 días atrás
     const fechaFin = hasta || new Date();
     
@@ -776,6 +799,7 @@ export class ReportsService {
     const bombaData = await this.contarActivacionesBombaPorPeriodo(desde, hasta);
     console.log('💧 Datos de bomba:', bombaData);
 
+    // ======== CONFIGURACIÓN PDF CON UTF-8 =========
     const pdf = new PDFDocument({ 
       margin: 50,
       size: 'A4',
@@ -933,6 +957,7 @@ export class ReportsService {
 
     if (puntos.length < 2) return;
 
+    // Calcular escalas
     const fechas = puntos.map(p => p.fecha);
     const valores = puntos.map(p => p.valor);
     const minFecha = Math.min(...fechas);
@@ -960,6 +985,7 @@ export class ReportsService {
     pdf.text(`${minValor.toFixed(1)}`, plotX - 15, plotY + plotHeight - 6);
     pdf.text(`${maxValor.toFixed(1)}`, plotX - 15, plotY - 6);
 
+    // Restaurar color
     pdf.fillColor('#000000');
   }
 
@@ -976,11 +1002,14 @@ export class ReportsService {
     const plotWidth = width - 2 * margin;
     const plotHeight = height - 2 * margin;
 
+    // Obtener datos con conversión solo para ADC antiguos
     const puntos = lecturas.map(l => {
       let valor = Number(l.valor);
+      // Aplicar conversión solo para valores ADC antiguos
       if (l.unidad_medida === 'humedad_suelo_adc') {
         valor = convertirHumedadSuelo(valor);
       }
+      // Los nuevos valores ya vienen como porcentaje
       return { 
         fecha: new Date(l.fecha).getTime(), 
         valor: valor 
@@ -989,6 +1018,7 @@ export class ReportsService {
 
     if (puntos.length < 2) return;
 
+    // Calcular escalas
     const fechas = puntos.map(p => p.fecha);
     const valores = puntos.map(p => p.valor);
     const minFecha = Math.min(...fechas);
@@ -996,8 +1026,10 @@ export class ReportsService {
     const minValor = Math.min(...valores);
     const maxValor = Math.max(...valores);
 
+    // Dibujar ejes y área de gráfico
     pdf.rect(plotX, plotY, plotWidth, plotHeight).stroke();
 
+    // Dibujar línea de datos
     const scaleX = (fecha: number) => plotX + ((fecha - minFecha) / (maxFecha - minFecha || 1)) * plotWidth;
     const scaleY = (valor: number) => plotY + plotHeight - ((valor - minValor) / (maxValor - minValor || 1)) * plotHeight;
 
@@ -1009,6 +1041,7 @@ export class ReportsService {
     }
     pdf.stroke();
 
+    // Etiquetas de ejes
     pdf.fontSize(9).fillColor('#6b7280');
     pdf.text(`${minValor.toFixed(1)}`, plotX - 20, plotY + plotHeight - 8);
     pdf.text(`${maxValor.toFixed(1)}`, plotX - 20, plotY - 8);
@@ -1018,6 +1051,7 @@ export class ReportsService {
     pdf.text(fechaInicio, plotX, plotY + plotHeight + 10);
     pdf.text(fechaFin, plotX + plotWidth - 40, plotY + plotHeight + 10);
 
+    // Restaurar color
     pdf.fillColor('#000000');
   }
 
@@ -1025,10 +1059,12 @@ export class ReportsService {
     console.log('🚀 Iniciando generación de Excel IoT...');
     console.log('📅 Rango de fechas:', { desde, hasta });
     
+    // ======== OBTENER DATOS (REALES O DEMO) =========
     let lecturas = await this.obtenerLecturasIoTCompletas(desde, hasta);
     
     console.log('✅ Datos obtenidos para Excel:', lecturas.length, 'lecturas');
     
+    // Si no hay datos, generar demo para mostrar funcionalidad
     if (!lecturas || lecturas.length === 0) {
       console.warn('⚠️ No hay datos reales, generando datos demo para Excel');
       lecturas = this.generateDemoLecturasData(desde, hasta);
@@ -1041,8 +1077,10 @@ export class ReportsService {
 
     const workbook = new Workbook();
 
+    // ======== HOJA 1: RESUMEN GENERAL =========
     const wsResumen = workbook.addWorksheet('Resumen General');
     
+    // Promedios
     const lecturasTemperatura = lecturas.filter(l => l.unidad_medida === 'temperatura');
     const resumenTemp = this.calcularResumen(lecturasTemperatura);
     
@@ -1052,6 +1090,7 @@ export class ReportsService {
     const lecturasHumSuelo = lecturas.filter(l => l.unidad_medida === 'humedad_suelo_porcentaje');
     const resumenHumSuelo = this.calcularResumen(lecturasHumSuelo);
     
+    // Encabezados y datos del resumen
     wsResumen.addRow(['MÉTRICA', 'PROMEDIO', 'MÍNIMO', 'MÁXIMO']);
     wsResumen.addRow(['Temperatura (°C)', resumenTemp.avg?.toFixed(2) || 'N/A', resumenTemp.min || 'N/A', resumenTemp.max || 'N/A']);
     wsResumen.addRow(['Humedad Ambiente (%)', resumenHumAire.avg?.toFixed(2) || 'N/A', resumenHumAire.min || 'N/A', resumenHumAire.max || 'N/A']);
@@ -1062,6 +1101,7 @@ export class ReportsService {
     wsResumen.addRow(['Total de registros', lecturas.length]);
     wsResumen.addRow(['Activaciones de bomba', bombaData.activaciones_semanales]);
 
+    // ======== HOJA 2: TEMPERATURA =========
     const wsTemperatura = workbook.addWorksheet('Temperatura');
     wsTemperatura.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },
@@ -1079,6 +1119,7 @@ export class ReportsService {
         });
       });
 
+    // ======== HOJA 3: HUMEDAD AMBIENTE =========
     const wsHumedadAire = workbook.addWorksheet('Humedad Ambiente');
     wsHumedadAire.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },
@@ -1096,6 +1137,7 @@ export class ReportsService {
         });
       });
 
+    // ======== HOJA 4: HUMEDAD DEL SUELO =========
     const wsHumedadSuelo = workbook.addWorksheet('Humedad del Suelo');
     wsHumedadSuelo.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },
@@ -1117,6 +1159,7 @@ export class ReportsService {
         });
       });
 
+    // ======== HOJA 5: ESTADO DE LA BOMBA =========
     const wsBomba = workbook.addWorksheet('Estado de la Bomba');
     wsBomba.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },

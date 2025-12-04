@@ -25,20 +25,33 @@ constructor(
   private readonly mqttService: MqttService,
 ) {}
 
+// ============================================
+// OBTENER TODOS LOS SENSORES
+// ============================================
+@Get()
 async findAll() {
 return this.sensoresService.findAll();
 }
 
+// ============================================
+// OBTENER UN SENSOR
+// ============================================
 @Get(':id')
 async findOne(@Param('id', ParseIntPipe) id: number) {
 return this.sensoresService.findOne(id);
 }
 
+// ============================================
+// ACTUALIZAR SENSOR
+// ============================================
 @Put(':id')
 async update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
 return this.sensoresService.update(id, data);
 }
 
+// ============================================
+// OBTENER LECTURAS DE UN SENSOR
+// ============================================
 @Get(':id/lecturas')
 async obtenerLecturas(@Param('id', ParseIntPipe) id: number) {
 const fn = (this.sensoresService as any).obtenerLecturasDeSensor;
@@ -48,6 +61,9 @@ if (typeof fn === 'function') {
 return [];
 }
 
+// ============================================
+// GENERAR PDF
+// ============================================
 @Get('export/pdf')
 async generarPDF(
   @Query('topic') topic: string,
@@ -80,6 +96,9 @@ async generarPDF(
   }
 }
 
+// ============================================
+// GENERAR EXCEL
+// ============================================
 @Get('export/excel')
 async generarExcel(
   @Query('topic') topic: string,
@@ -112,12 +131,18 @@ async generarExcel(
   }
 }
 
+// ============================================
+// INICIALIZAR MQTT
+// ============================================
 @Post('mqtt/init')
 async inicializarMQTT() {
 await this.sensoresService.inicializarConexionesMqtt();
 return { message: 'MQTT inicializado correctamente.' };
 }
 
+// ============================================
+// NUEVO: REPORTE IoT COMPLETO PDF
+// ============================================
 @Get('reporte-iot/pdf')
 async generarIoTCompletePDF(
   @Res() res: Response,
@@ -144,6 +169,9 @@ async generarIoTCompletePDF(
   }
 }
 
+// ============================================
+// NUEVO: REPORTE IoT COMPLETO EXCEL
+// ============================================
 @Get('reporte-iot/excel')
 async generarIoTCompleteExcel(
   @Res() res: Response,
@@ -169,6 +197,9 @@ async generarIoTCompleteExcel(
     return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el reporte IoT Excel', error: String(e) });
   }
 }
+  // ============================================
+  // OBTENER HISTORIAL POR TOPIC
+  // ============================================
   @Get('historial')
   async getHistorialByTopic(
     @Query('topic') topic: string,
@@ -239,6 +270,9 @@ async subscribeLegacy(@Body('topic') topic: string, @Res() res: Response) {
   }
 }
 
+// ============================================
+// NUEVO: INFORMACIÓN IoT PARA FRONTEND
+// ============================================
 @Get('iot/info')
 async obtenerInfoIoT() {
   try {

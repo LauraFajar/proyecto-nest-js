@@ -75,6 +75,7 @@ export class AlertasController {
     return this.alertSchedulerService.testAlerts();
   }
 
+  // Public route for testing without authentication
   @UseGuards(SkipAuthGuard)
   @Post('test-alerts-public')
   async testAlertsPublic() {
