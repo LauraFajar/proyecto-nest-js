@@ -12,7 +12,7 @@ import { AlertasGateway } from './alertas.gateway';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Alerta]),
-    SensoresModule,
+    forwardRef(() => SensoresModule),
     forwardRef(() => InventarioModule),
     ActividadesModule,
   ],
