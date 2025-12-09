@@ -9,6 +9,8 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
+  namespace: '/alerts',
+  path: '/socket-alerts',
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true

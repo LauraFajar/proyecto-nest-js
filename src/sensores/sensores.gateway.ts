@@ -3,8 +3,10 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
+  namespace: process.env.SOCKET_IO_NAMESPACE || '/iot',
+  path: process.env.SOCKET_IO_PATH || '/socket.io',
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   },
 })
