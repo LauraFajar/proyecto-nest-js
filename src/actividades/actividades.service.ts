@@ -99,7 +99,7 @@ export class ActividadesService {
         });
         await this.utilizaRepository.save(utiliza);
 
-        if (insumo.es_herramienta) {
+        if (insumo.es_herramienta || insumo.tipo_insumo === 'herramienta') {
           const horas = Number(r.horas_uso || 0);
           if (horas > 0) {
             const costoCompra = Number(insumo.costo_compra || 0);
@@ -325,7 +325,7 @@ export class ActividadesService {
       });
       const byInsumo = new Map<number, typeof existentes[number]>();
       existentes.forEach(u => {
-        const id = Number((u.id_insumo as any)?.id_insumo ?? (u.id_insumo as any)?.id);
+        const id = Number((u.id_insumo as any)?.id_insumo);
         if (id) byInsumo.set(id, u);
       });
 
@@ -354,9 +354,44 @@ export class ActividadesService {
       }
 
       for (const u of existentes) {
-        const idInsumo = Number((u.id_insumo as any)?.id_insumo ?? (u.id_insumo as any)?.id);
+        const idInsumo = Number((u.id_insumo as any)?.id_insumo);
         if (idInsumo && !incomingIds.has(idInsumo)) {
           await this.utilizaRepository.remove(u);
+        }
+      }
+
+      console.log(`[ActividadesService] Actualizando inventario para la actividad ${id_actividad}`);
+      
+      const recursosMap = new Map<number, typeof recursos[number]>();
+      recursos.forEach(r => {
+        if (r?.id_insumo) recursosMap.set(Number(r.id_insumo), r);
+      });
+
+      for (const existente of existentes) {
+        const idInsumo = Number((existente.id_insumo as any)?.id_insumo);
+        if (!idInsumo) continue;
+
+        const insumo = await this.insumosRepository.findOne({ where: { id_insumo: idInsumo } });
+        if (!insumo) continue;
+
+        const nuevoRecurso = recursosMap.get(idInsumo);
+        const cantAnterior = Number(existente.cantidad || 0);
+        const cantNueva = Number(nuevoRecurso?.cantidad || 0);
+        const diferencia = cantNueva - cantAnterior;
+
+        if (!insumo.es_herramienta && insumo.tipo_insumo !== 'herramienta' && diferencia !== 0) {
+            console.log(`[ActividadesService] Insumo ${insumo.nombre_insumo}: Cantidad anterior ${cantAnterior}, nueva ${cantNueva}, diferencia ${diferencia}`);
+            const inv = await this.inventarioRepository.findOne({ where: { id_insumo: insumo.id_insumo } });
+            if (inv) {
+                const stockPrev = Number(inv.cantidad_stock || 0);
+                const next = stockPrev - diferencia;
+                console.log(`[ActividadesService] Inventario: Stock previo ${stockPrev}, ajuste ${diferencia}, nuevo stock ${next}`);
+                inv.cantidad_stock = next;
+                await this.inventarioRepository.save(inv);
+                console.log(`[ActividadesService] Inventario actualizado correctamente.`);
+            } else {
+                console.warn(`[ActividadesService] No se encontró registro en inventario para el insumo ID ${insumo.id_insumo}`);
+            }
         }
       }
     }

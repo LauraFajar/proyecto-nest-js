@@ -6,6 +6,8 @@ import { CreateInsumoDto } from './dto/create-insumo.dto';
 import { UpdateInsumoDto } from './dto/update-insumo.dto';
 import { Categoria } from '../categorias/entities/categoria.entity';
 import { Almacen } from '../almacenes/entities/almacen.entity';
+import { InventarioService } from '../inventario/inventario.service';
+import { Inventario } from '../inventario/entities/inventario.entity';
 
 @Injectable()
 export class InsumosService {
@@ -16,10 +18,11 @@ export class InsumosService {
     private categoriasRepository: Repository<Categoria>,
     @InjectRepository(Almacen)
     private almacenesRepository: Repository<Almacen>,
+    private inventarioService: InventarioService,
   ) {}
 
   async create(createInsumoDto: CreateInsumoDto) {
-    const { id_categoria, id_almacen, ...rest } = createInsumoDto;
+    const { id_categoria, id_almacen, es_herramienta, ...rest } = createInsumoDto;
 
     let categoriaEntity: Categoria | undefined;
     let almacenEntity: Almacen | undefined;
@@ -47,6 +50,15 @@ export class InsumosService {
     });
 
     const guardado = await this.insumosRepository.save(nuevoInsumo);
+
+    if (!es_herramienta) {
+      await this.inventarioService.create({
+        id_insumo: guardado.id_insumo,
+        cantidad_stock: 0,
+        unidad_medida: 'unidad',
+        fecha: new Date().toISOString().slice(0, 10),
+      } as any);
+    }
     return await this.findOne(guardado.id_insumo);
   }
 

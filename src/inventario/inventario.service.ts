@@ -109,12 +109,12 @@ export class InventarioService {
 
   async reducirCantidad(id_insumo: number, cantidadReducir: number) {
     const inventarioItem = await this.inventarioRepository.findOne({
-      where: { insumo: { id_insumo: id_insumo } },
+      where: { id_insumo: id_insumo },
       relations: ['insumo'],
     });
 
     if (!inventarioItem) {
-      throw new NotFoundException(`Item de inventario con ID ${id_insumo} no encontrado.`);
+      throw new NotFoundException(`No se encontró un item de inventario para el insumo con ID ${id_insumo}.`);
     }
 
     inventarioItem.cantidad_stock -= cantidadReducir;

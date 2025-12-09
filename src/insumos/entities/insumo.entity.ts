@@ -52,4 +52,7 @@ export class Insumo {
 
   @Column({ type: 'date', nullable: true, name: 'fecha_compra' })
   fecha_compra?: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'tipo_insumo', default: 'consumible' })
+  tipo_insumo?: string;
 }

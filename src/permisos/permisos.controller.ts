@@ -22,6 +22,17 @@ export class PermisosController {
     return this.permisosService.findAll();
   }
 
+  @Get('usuario/me')
+  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
+  async listMyPermissions(@Request() req) {
+    const rawId = req.user?.id;
+    const userId = Number(rawId);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      throw new BadRequestException('ID de usuario inválido');
+    }
+    return this.permisosService.getUserPermissions(userId);
+  }
+
   @Get('usuario/:id')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
   async listByUser(@Param('id', new ParseIntPipe()) id: number, @Request() req) {
@@ -33,17 +44,6 @@ export class PermisosController {
       throw new ForbiddenException('No puedes consultar permisos de otros usuarios');
     }
     return this.permisosService.getUserPermissions(requestedId);
-  }
-
-  @Get('usuario/me')
-  @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
-  async listMyPermissions(@Request() req) {
-    const rawId = req.user?.id;
-    const userId = Number(rawId);
-    if (!Number.isFinite(userId) || userId <= 0) {
-      throw new BadRequestException('ID de usuario inválido');
-    }
-    return this.permisosService.getUserPermissions(userId);
   }
 
   @Post('asignar')

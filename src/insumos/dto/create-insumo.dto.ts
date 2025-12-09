@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Length } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsOptional, IsString, Length, IsBoolean } from 'class-validator';
 
 export class CreateInsumoDto {
   @IsString()
@@ -23,5 +23,9 @@ export class CreateInsumoDto {
   @IsNumber()
   @IsOptional()
   id_almacen?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  es_herramienta?: boolean;
 
 }
