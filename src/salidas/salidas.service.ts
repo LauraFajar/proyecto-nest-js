@@ -19,6 +19,8 @@ export class SalidasService {
   ) {}
 
   async create(createSalidaDto: CreateSalidaDto, queryRunner?: QueryRunner): Promise<Salida> {
+    console.log('DEBUG: SalidasService.create llamado con:', createSalidaDto);
+    
     if (!createSalidaDto.id_insumo) {
       throw new NotFoundException('id_insumo es requerido para registrar una salida y ajustar inventario');
     }
@@ -32,16 +34,40 @@ export class SalidasService {
       unidad_medida: createSalidaDto.unidad_medida ?? undefined,
       id_cultivo: createSalidaDto.id_cultivo ?? undefined,
       valor_unidad: createSalidaDto.valor_unidad ?? undefined,
-      insumo: { id_insumo: createSalidaDto.id_insumo } as any, 
+      insumo: { id_insumo: createSalidaDto.id_insumo } as any,
     };
+
+    console.log('DEBUG: Datos de salida a guardar:', salidaData);
 
     let savedSalida: Salida;
     if (queryRunner) {
       const newSalida = queryRunner.manager.create(Salida, salidaData);
       savedSalida = await queryRunner.manager.save(newSalida);
+      console.log('DEBUG: Salida guardada con ID:', savedSalida.id_salida);
+      const salidaWithRelation = await queryRunner.manager.findOne(Salida, {
+        where: { id_salida: savedSalida.id_salida },
+        relations: ['insumo']
+      });
+      if (!salidaWithRelation) {
+        console.log('DEBUG: No se pudo encontrar la salida guardada');
+        throw new NotFoundException('No se pudo encontrar la salida guardada');
+      }
+      console.log('DEBUG: Salida con relación cargada:', salidaWithRelation);
+      savedSalida = salidaWithRelation;
     } else {
       const newSalida = this.salidasRepository.create(salidaData);
       savedSalida = await this.salidasRepository.save(newSalida);
+      console.log('DEBUG: Salida guardada sin queryRunner con ID:', savedSalida.id_salida);
+      const salidaWithRelation = await this.salidasRepository.findOne({
+        where: { id_salida: savedSalida.id_salida },
+        relations: ['insumo']
+      });
+      if (!salidaWithRelation) {
+        console.log('DEBUG: No se pudo encontrar la salida guardada sin queryRunner');
+        throw new NotFoundException('No se pudo encontrar la salida guardada');
+      }
+      console.log('DEBUG: Salida con relación cargada sin queryRunner:', salidaWithRelation);
+      savedSalida = salidaWithRelation;
     }
 
     if (queryRunner) {

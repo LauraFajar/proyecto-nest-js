@@ -327,17 +327,24 @@ export class ActividadesService {
                   }
                   try {
                     const valorUnidad = recursoDto.costo_unitario != null ? Number(recursoDto.costo_unitario) : null;
+                    console.log('DEBUG: Creando salida automática:', {
+                      id_insumo: insumo.id_insumo,
+                      nombre: insumo.nombre_insumo,
+                      cantidad: Math.round(diferencia),
+                      actividadId: actividad.id_actividad
+                    });
                     await this.salidasService.create({
                       id_insumo: insumo.id_insumo,
                       nombre: insumo.nombre_insumo,
                       codigo: insumo.codigo,
-                      cantidad: diferencia,
+                      cantidad: Math.round(diferencia),
                       observacion: `Salida autom. act. ID ${actividad.id_actividad}`,
                       fecha_salida: new Date().toISOString().slice(0, 10),
                       unidad_medida: inventarioItem.unidad_medida, 
                       id_cultivo: actividad.id_cultivo,
                       valor_unidad: valorUnidad ?? undefined, 
                     }, queryRunner); 
+                    console.log('DEBUG: Salida automática creada exitosamente');
                   } catch (err) {
                     console.error('Error al crear movimiento automático de salida en update (ActividadesService - diferencia > 0):', err);
                     throw new InternalServerErrorException('Error al registrar la salida automática: ' + err.message);

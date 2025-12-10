@@ -55,6 +55,7 @@ export class MovimientosService {
   }
 
   async findAll() {
+    return await this.movimientosRepository.find({
       relations: ['id_insumo', 'id_insumo.id_categoria', 'id_insumo.id_almacen'],
     });
   }
