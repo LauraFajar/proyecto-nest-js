@@ -94,6 +94,8 @@ export class TratamientosService {
     try {
       const qb = this.tratamientosRepository.createQueryBuilder('tratamiento')
         .leftJoinAndSelect('tratamiento.id_epa', 'epa')
+        .leftJoinAndSelect('tratamiento.tratamientoInsumos', 'tratamientoInsumos')
+        .leftJoinAndSelect('tratamientoInsumos.id_insumos', 'insumos')
         .select([
           'tratamiento.id_tratamiento', 
           'tratamiento.descripcion', 
@@ -101,7 +103,12 @@ export class TratamientosService {
           'tratamiento.frecuencia',
           'tratamiento.tipo',
           'epa.id_epa', 
-          'epa.nombre_epa'
+          'epa.nombre_epa',
+          'tratamientoInsumos.id_tratamiento_insumo',
+          'tratamientoInsumos.cantidad_usada',
+          'tratamientoInsumos.unidad_medida',
+          'insumos.id_insumo',
+          'insumos.nombre_insumo'
         ]);
 
       if (typeof epaId === 'number' && Number.isFinite(epaId)) {
@@ -128,13 +135,21 @@ export class TratamientosService {
     try {
       const tratamiento = await this.tratamientosRepository.createQueryBuilder('tratamiento')
         .leftJoinAndSelect('tratamiento.id_epa', 'epa')
+        .leftJoinAndSelect('tratamiento.tratamientoInsumos', 'tratamientoInsumos')
+        .leftJoinAndSelect('tratamientoInsumos.id_insumos', 'insumos')
         .select([
           'tratamiento.id_tratamiento', 
           'tratamiento.descripcion', 
           'tratamiento.dosis', 
           'tratamiento.frecuencia',
+          'tratamiento.tipo',
           'epa.id_epa',
-          'epa.nombre_epa'
+          'epa.nombre_epa',
+          'tratamientoInsumos.id_tratamiento_insumo',
+          'tratamientoInsumos.cantidad_usada',
+          'tratamientoInsumos.unidad_medida',
+          'insumos.id_insumo',
+          'insumos.nombre_insumo'
         ])
         .where('tratamiento.id_tratamiento = :id', { id: id_tratamiento })
         .getOne();
