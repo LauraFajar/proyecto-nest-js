@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ActividadesService } from './actividades.service';
 import { ActividadesController } from './actividades.controller';
@@ -8,14 +8,15 @@ import { Utiliza } from '../utiliza/entities/utiliza.entity';
 import { Insumo } from '../insumos/entities/insumo.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { UploadsModule } from '../uploads/uploads.module';
-import { Salida } from '../salidas/entities/salida.entity';
 import { MovimientosModule } from '../movimientos/movimientos.module';
+import { SalidasModule } from '../salidas/salidas.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Actividad, FotoActividad, Utiliza, Insumo, Inventario, Salida]),
+    TypeOrmModule.forFeature([Actividad, FotoActividad, Utiliza, Insumo, Inventario]), 
     UploadsModule,
     MovimientosModule,
+    forwardRef(() => SalidasModule), 
   ],
   controllers: [ActividadesController],
   providers: [ActividadesService],

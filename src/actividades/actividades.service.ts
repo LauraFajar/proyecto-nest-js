@@ -12,7 +12,7 @@ import * as path from 'path';
 import { Utiliza } from '../utiliza/entities/utiliza.entity';
 import { Insumo } from '../insumos/entities/insumo.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
-import { Salida } from '../salidas/entities/salida.entity';
+import { SalidasService } from '../salidas/salidas.service';
 import { MovimientosService } from '../movimientos/movimientos.service';
 
 type RecursoDto = { id_insumo: number; cantidad?: number; horas_uso?: number; costo_unitario?: number };
@@ -30,8 +30,7 @@ export class ActividadesService {
     private readonly insumosRepository: Repository<Insumo>,
     @InjectRepository(Inventario)
     private readonly inventarioRepository: Repository<Inventario>,
-    @InjectRepository(Salida)
-    private readonly salidasRepository: Repository<Salida>,
+    private readonly salidasService: SalidasService, 
     private readonly movimientosService: MovimientosService,
     private readonly dataSource: DataSource,
   ) {}
@@ -126,44 +125,25 @@ export class ActividadesService {
         } else {
           const cant = Number(r.cantidad || 0);
           if (cant > 0) {
-            const inv = await this.inventarioRepository.findOne({ where: { id_insumo: insumo.id_insumo } });
-            if (inv) {
-              const stockPrev = Number(inv.cantidad_stock || 0);
-              const next = stockPrev - cant;
-              if (next < 0) {
-                // no lanzar; limitar a cero
-                inv.cantidad_stock = 0;
-              } else {
-                inv.cantidad_stock = next;
-              }
-              await this.inventarioRepository.save(inv);
+            const inventarioItem = await this.inventarioRepository.findOne({ where: { id_insumo: insumo.id_insumo } });
+            if (!inventarioItem) {
+              console.error(`Inventario para el insumo ${insumo.nombre_insumo} no encontrado al crear actividad.`);
+              continue; 
             }
-
             try {
               const valorUnidad = r.costo_unitario != null ? Number(r.costo_unitario) : null;
-              const salida = this.salidasRepository.create({
+              await this.salidasService.create({
+                id_insumo: insumo.id_insumo,
                 nombre: insumo.nombre_insumo,
                 codigo: insumo.codigo,
                 cantidad: cant,
-                observacion: `Salida automática por actividad ${saved.id_actividad}`,
-                fecha_salida: new Date(createActividadDto.fecha).toISOString().slice(0, 10),
-                unidad_medida: undefined,
+                                   observacion: `Salida autom. act. ID ${saved.id_actividad}`,                fecha_salida: new Date(createActividadDto.fecha).toISOString().slice(0, 10),
+                unidad_medida: inventarioItem.unidad_medida, 
                 id_cultivo: saved.id_cultivo,
-                insumo: insumo as any,
-                valor_unidad: valorUnidad,
-              } as any);
-              await this.salidasRepository.save(salida);
-              try {
-                await this.movimientosService.create({
-                  tipo_movimiento: 'Salida',
-                  id_insumo: insumo.id_insumo,
-                  cantidad: cant,
-                  unidad_medida: (inv as any)?.unidad_medida || 'unidad',
-                  fecha_movimiento: new Date(createActividadDto.fecha).toISOString().slice(0, 10),
-                  valor_unidad: valorUnidad ?? undefined,
-                } as any);
-              } catch {}
+                valor_unidad: valorUnidad ?? undefined, 
+              });
             } catch (err) {
+              console.error('Error al crear movimiento automático de salida en create (ActividadesService):', err);
             }
           }
         }
@@ -336,41 +316,36 @@ export class ActividadesService {
              const inventario = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumo.id_insumo } });
              if(inventario){
                 const stockActual = Number(inventario.cantidad_stock); 
-                if (stockActual < diferencia) {
+                if (diferencia > 0 && stockActual < diferencia) { 
                     throw new BadRequestException(`Stock insuficiente para ${insumo.nombre_insumo}.`);
                 }
-                await queryRunner.manager.decrement(Inventario, { id_insumo: insumo.id_insumo }, 'cantidad_stock', diferencia);
-
-                // Crear movimiento automático por la diferencia
+                
                 if (diferencia > 0) {
+                  const inventarioItem = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumo.id_insumo } });
+                  if (!inventarioItem) {
+                    throw new InternalServerErrorException(`Inventario para el insumo ${insumo.nombre_insumo} no encontrado al actualizar actividad.`);
+                  }
                   try {
                     const valorUnidad = recursoDto.costo_unitario != null ? Number(recursoDto.costo_unitario) : null;
-                    const salida = this.salidasRepository.create({
+                    await this.salidasService.create({
+                      id_insumo: insumo.id_insumo,
                       nombre: insumo.nombre_insumo,
                       codigo: insumo.codigo,
                       cantidad: diferencia,
-                      observacion: `Salida automática por actualización de actividad ${actividad.id_actividad}`,
+                      observacion: `Salida autom. act. ID ${actividad.id_actividad}`,
                       fecha_salida: new Date().toISOString().slice(0, 10),
-                      unidad_medida: undefined,
+                      unidad_medida: inventarioItem.unidad_medida, 
                       id_cultivo: actividad.id_cultivo,
-                      insumo: insumo as any,
-                      valor_unidad: valorUnidad,
-                    } as any);
-                    await queryRunner.manager.save(salida);
-                    
-                    try {
-                      await this.movimientosService.create({
-                        tipo_movimiento: 'Salida',
-                        id_insumo: insumo.id_insumo,
-                        cantidad: diferencia,
-                        unidad_medida: (inventario as any)?.unidad_medida || 'unidad',
-                        fecha_movimiento: new Date().toISOString().slice(0, 10),
-                        valor_unidad: valorUnidad ?? undefined,
-                      } as any);
-                    } catch {}
+                      valor_unidad: valorUnidad ?? undefined, 
+                    }, queryRunner); 
                   } catch (err) {
-                    console.error('Error al crear movimiento automático:', err);
+                    console.error('Error al crear movimiento automático de salida en update (ActividadesService - diferencia > 0):', err);
+                    throw new InternalServerErrorException('Error al registrar la salida automática: ' + err.message);
                   }
+                }
+                
+                if (diferencia < 0) {
+                    await queryRunner.manager.increment(Inventario, { id_insumo: insumo.id_insumo }, 'cantidad_stock', Math.abs(diferencia));
                 }
              } else {
                  throw new NotFoundException(`Inventario para el insumo ${insumo.nombre_insumo} no encontrado.`);
@@ -382,37 +357,28 @@ export class ActividadesService {
             actual.horas_uso = recursoDto.horas_uso != null ? String(recursoDto.horas_uso) : undefined;
             actual.costo_unitario = recursoDto.costo_unitario != null ? String(recursoDto.costo_unitario) : undefined;
             await queryRunner.manager.save(actual);
-          } else {
+          } else { 
             const cantidadNueva = Number(recursoDto.cantidad || 0);
             if (cantidadNueva > 0) {
+              const inventarioItem = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumo.id_insumo } });
+              if (!inventarioItem) {
+                throw new InternalServerErrorException(`Inventario para el insumo ${insumo.nombre_insumo} no encontrado al asociar nuevo insumo.`);
+              }
               try {
-                const inventario = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumo.id_insumo } });
                 const valorUnidad = recursoDto.costo_unitario != null ? Number(recursoDto.costo_unitario) : null;
-                const salida = this.salidasRepository.create({
+                await this.salidasService.create({
+                  id_insumo: insumo.id_insumo,
                   nombre: insumo.nombre_insumo,
                   codigo: insumo.codigo,
                   cantidad: cantidadNueva,
-                  observacion: `Salida automática por nueva asociación con actividad ${actividad.id_actividad}`,
-                  fecha_salida: new Date().toISOString().slice(0, 10),
-                  unidad_medida: undefined,
+                                     observacion: `Salida autom. nueva asoc. act. ${actividad.id_actividad}`,                  fecha_salida: new Date().toISOString().slice(0, 10),
+                  unidad_medida: inventarioItem.unidad_medida, 
                   id_cultivo: actividad.id_cultivo,
-                  insumo: insumo as any,
-                  valor_unidad: valorUnidad,
-                } as any);
-                await queryRunner.manager.save(salida);
-                
-                try {
-                  await this.movimientosService.create({
-                    tipo_movimiento: 'Salida',
-                    id_insumo: insumo.id_insumo,
-                    cantidad: cantidadNueva,
-                    unidad_medida: (inventario as any)?.unidad_medida || 'unidad',
-                    fecha_movimiento: new Date().toISOString().slice(0, 10),
-                    valor_unidad: valorUnidad ?? undefined,
-                  } as any);
-                } catch {}
+                  valor_unidad: valorUnidad ?? undefined, 
+                }, queryRunner); 
               } catch (err) {
-                console.error('Error al crear movimiento automático para nuevo insumo:', err);
+                console.error('Error al crear movimiento automático de salida para nuevo insumo en update (ActividadesService):', err);
+                throw new InternalServerErrorException('Error al registrar la salida automática para nuevo insumo: ' + err.message);
               }
             }
 
@@ -531,7 +497,6 @@ export class ActividadesService {
               throw new NotFoundException(`Actividad con ID ${id_actividad} no encontrada`);
           }
   
-          // Devolver stock de insumos consumibles
           if (actividad.utilizas) {
               for (const uso of actividad.utilizas) {
                   const insumo = uso.id_insumo;
@@ -542,7 +507,7 @@ export class ActividadesService {
                       }
                   }
               }
-              await queryRunner.manager.remove(Utiliza, actividad.utilizas); // Remove Utiliza entities explicitly
+              await queryRunner.manager.remove(Utiliza, actividad.utilizas); 
           }
   
           // Eliminar fotos asociadas si es necesario (lógica de fs.unlink)
@@ -564,7 +529,7 @@ export class ActividadesService {
           await queryRunner.commitTransaction();
           } catch (error) {
               await queryRunner.rollbackTransaction();
-              console.error(`[ActividadesService] Error en remove:`, error); // Added console.error
+              console.error(`[ActividadesService] Error en remove:`, error); 
               if (error instanceof NotFoundException) {
                   throw error;
               }
