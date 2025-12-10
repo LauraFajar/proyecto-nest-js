@@ -149,12 +149,34 @@ export class AlertSchedulerService {
   }
 
   private async getUltimaLecturaSensor(id_sensor: number) {
-    const valorSimulado = Math.random() * 100;
+    const sensor = await this.sensoresService.findOne(id_sensor);
+    
+    if (!sensor || !sensor.valor_actual || !sensor.ultima_lectura) {
+      return null;
+    }
+
+    const ahora = new Date();
+    const ultimaLecturaDate = new Date(sensor.ultima_lectura);
+    const diferenciaMinutos = (ahora.getTime() - ultimaLecturaDate.getTime()) / (1000 * 60);
+
+    if (diferenciaMinutos > 15) {
+      this.logger.warn(`Sensor ID ${id_sensor} con datos antiguos (${diferenciaMinutos.toFixed(0)} min). Ignorando.`);
+      return null;
+    }
+    
+    let unidad = '%'; // Valor por defecto
+    
+    if (sensor.historial_lecturas && sensor.historial_lecturas.length > 0) {
+      const ultimaLecturaHistorial = sensor.historial_lecturas[sensor.historial_lecturas.length - 1];
+      if (ultimaLecturaHistorial.unidad_medida) {
+        unidad = ultimaLecturaHistorial.unidad_medida;
+      }
+    }
     
     return {
-      valor: valorSimulado,
-      fecha: new Date(),
-      unidad: '%'
+      valor: sensor.valor_actual,
+      fecha: sensor.ultima_lectura,
+      unidad: unidad
     };
   }
 

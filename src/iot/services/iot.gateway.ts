@@ -1,6 +1,20 @@
 import { Injectable } from '@nestjs/common';
+import { Server } from 'socket.io';
 
 @Injectable()
 export class IotGateway {
-  emitNewReading(_reading: any): void {}
+  private server: Server;
+
+  constructor() {
+  }
+
+  setServer(server: Server) {
+    this.server = server;
+  }
+
+  emitNewReading(reading: any): void {
+    if (this.server) {
+      this.server.emit('reading', reading);
+    }
+  }
 }

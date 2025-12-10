@@ -37,4 +37,8 @@ export class SensoresGateway implements OnGatewayConnection, OnGatewayDisconnect
   emitLecturaGeneric(topic: string, lectura: { valor: number; timestamp: string; tipo: string; unidad: string }) {
     this.server.emit('mqttLectura', { topic, ...lectura });
   }
+
+  emitIotReading(reading: any) {
+    this.server.emit('reading', reading);
+  }
 }

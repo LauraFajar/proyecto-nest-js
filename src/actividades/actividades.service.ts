@@ -318,7 +318,10 @@ export class ActividadesService {
     const saved = await this.actividadesRepository.save(actividad);
 
     const recursos = (updateActividadDto as any).recursos as Array<{ id_insumo: number; cantidad?: number; horas_uso?: number; costo_unitario?: number }> | undefined;
+    console.log(`[ActividadesService] UPDATE: Recursos recibidos:`, JSON.stringify(recursos, null, 2));
+    
     if (Array.isArray(recursos)) {
+      console.log(`[ActividadesService] UPDATE: Es array de recursos, procesando...`);
       const existentes = await this.utilizaRepository.find({
         where: { id_actividades: { id_actividad } },
         relations: ['id_insumo'],
@@ -379,6 +382,8 @@ export class ActividadesService {
         const cantNueva = Number(nuevoRecurso?.cantidad || 0);
         const diferencia = cantNueva - cantAnterior;
 
+        console.log(`[ActividadesService] UPDATE: Insumo ${insumo.nombre_insumo}: es_herramienta=${insumo.es_herramienta}, tipo_insumo=${insumo.tipo_insumo}, diferencia=${diferencia}`);
+        
         if (!insumo.es_herramienta && insumo.tipo_insumo !== 'herramienta' && diferencia !== 0) {
             console.log(`[ActividadesService] Insumo ${insumo.nombre_insumo}: Cantidad anterior ${cantAnterior}, nueva ${cantNueva}, diferencia ${diferencia}`);
             const inv = await this.inventarioRepository.findOne({ where: { id_insumo: insumo.id_insumo } });

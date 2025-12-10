@@ -3,7 +3,6 @@ import { connect, MqttClient } from 'mqtt';
 import { SensoresGateway } from '../sensores.gateway';
 import { Sensor } from '../entities/sensor.entity';
 import { SensoresService } from '../sensores.service';
-import { IotGateway } from '../../iot/services/iot.gateway';
 
 @Injectable()
 export class MqttService implements OnModuleInit {
@@ -17,7 +16,6 @@ export class MqttService implements OnModuleInit {
     private readonly sensoresGateway: SensoresGateway,
     @Inject(forwardRef(() => SensoresService))
     private readonly sensoresService: SensoresService,
-    private readonly iotGateway: IotGateway,
   ) {}
 
   onModuleInit() {
@@ -126,10 +124,8 @@ export class MqttService implements OnModuleInit {
           value: data.temperatura || data.humedad_aire || 0,
         };
         
-        // Emit to IoT gateway for frontend consumption
-        this.iotGateway.emitNewReading(completeReading);
+        this.sensoresGateway.emitIotReading(completeReading);
         
-        // Also emit individual readings to SensoresGateway for backward compatibility
         if (data.temperatura !== undefined) {
           const valor = Number(data.temperatura);
           this.sensoresGateway.emitLecturaGeneric(topic, {
