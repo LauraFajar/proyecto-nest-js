@@ -1,33 +1,96 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Tratamiento } from './entities/tratamiento.entity';
+import { TratamientoInsumo } from './entities/tratamiento-insumo.entity';
 import { Epa } from '../epa/entities/epa.entity';
-import { CreateTratamientoDto } from './dto/create-tratamiento.dto';
+import { Insumo } from '../insumos/entities/insumo.entity';
+import { Inventario } from '../inventario/entities/inventario.entity';
+import { CreateTratamientoDto, TratamientoInsumoDto } from './dto/create-tratamiento.dto';
 import { UpdateTratamientoDto } from './dto/update-tratamiento.dto';
 
 @Injectable()
 export class TratamientosService {
   constructor(
     @InjectRepository(Tratamiento)
-    private tratamientosRepository: Repository<Tratamiento>,
+    private readonly tratamientosRepository: Repository<Tratamiento>,
     @InjectRepository(Epa)
-    private epaRepository: Repository<Epa>,
+    private readonly epaRepository: Repository<Epa>,
+    @InjectRepository(TratamientoInsumo)
+    private readonly tratamientoInsumoRepository: Repository<TratamientoInsumo>,
+    @InjectRepository(Insumo)
+    private readonly insumosRepository: Repository<Insumo>,
+    @InjectRepository(Inventario)
+    private readonly inventarioRepository: Repository<Inventario>,
+    private readonly dataSource: DataSource,
   ) {}
 
-  async create(createTratamientoDto: CreateTratamientoDto) {
+  async create(createTratamientoDto: CreateTratamientoDto): Promise<Tratamiento> {
+    const { insumos, ...tratamientoData } = createTratamientoDto;
+    
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-      const nuevoTratamiento = this.tratamientosRepository.create({
-        ...createTratamientoDto,
-        id_epa: { id_epa: createTratamientoDto.id_epa }
-      });
-      return await this.tratamientosRepository.save(nuevoTratamiento);
+      const epa = await queryRunner.manager.findOne(Epa, { where: { id_epa: tratamientoData.id_epa } });
+      if (!epa) {
+        throw new NotFoundException(`Epa con ID ${tratamientoData.id_epa} no encontrado`);
+      }
+
+      const nuevoTratamiento = queryRunner.manager.create(Tratamiento, { ...tratamientoData, id_epa: epa });
+      const tratamientoGuardado = await queryRunner.manager.save(nuevoTratamiento);
+
+      if (insumos && insumos.length > 0) {
+        for (const insumoDto of insumos) {
+          await this.ajustarInventarioYRelacion(queryRunner, tratamientoGuardado.id_tratamiento, insumoDto, true);
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      return tratamientoGuardado;
     } catch (error) {
-      throw new BadRequestException('Error al crear el tratamiento: ' + error.message);
+      await queryRunner.rollbackTransaction();
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al crear el tratamiento: ' + error.message);
+    } finally {
+      await queryRunner.release();
     }
   }
 
+  private async ajustarInventarioYRelacion(queryRunner: any, id_tratamiento: number, insumoDto: TratamientoInsumoDto, esNuevo: boolean) {
+    const insumo = await queryRunner.manager.findOne(Insumo, { where: { id_insumo: insumoDto.id_insumo } });
+    if (!insumo) throw new NotFoundException(`Insumo con ID ${insumoDto.id_insumo} no encontrado`);
+    if (insumo.es_herramienta || insumo.tipo_insumo === 'herramienta') return; // No se consumen herramientas
+
+    const inventario = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumo.id_insumo } });
+    if (!inventario) throw new NotFoundException(`No existe inventario para el insumo ${insumo.nombre_insumo}`);
+
+    const cantidadRequerida = Number(insumoDto.cantidad_usada);
+    const stockActual = Number(inventario.cantidad_stock);
+
+    if (stockActual < cantidadRequerida) {
+      throw new BadRequestException(`Stock insuficiente para ${insumo.nombre_insumo}. Disponible: ${stockActual}, Requerido: ${cantidadRequerida}`);
+    }
+
+    inventario.cantidad_stock = stockActual - cantidadRequerida;
+    await queryRunner.manager.save(inventario);
+
+    if (esNuevo) {
+      const tratamientoInsumo = queryRunner.manager.create(TratamientoInsumo, {
+        id_tratamiento,
+        id_insumo: insumo.id_insumo,
+        cantidad_usada: cantidadRequerida,
+        unidad_medida: insumoDto.unidad_medida || 'unidades'
+      });
+      await queryRunner.manager.save(tratamientoInsumo);
+    }
+  }
+  
   async findAll(epaId?: number, tipo?: string) {
+    // Esta función no necesita cambios y se mantiene como estaba
     try {
       const qb = this.tratamientosRepository.createQueryBuilder('tratamiento')
         .leftJoinAndSelect('tratamiento.id_epa', 'epa')
@@ -61,6 +124,7 @@ export class TratamientosService {
   }
 
   async findOne(id_tratamiento: number) {
+    // Esta función no necesita cambios y se mantiene como estaba
     try {
       const tratamiento = await this.tratamientosRepository.createQueryBuilder('tratamiento')
         .leftJoinAndSelect('tratamiento.id_epa', 'epa')
@@ -89,60 +153,149 @@ export class TratamientosService {
     }
   }
 
-  async findByEpaId(epaId: number) {
-    return await this.tratamientosRepository.find({
-      where: { id_epa: { id_epa: epaId } },
-      relations: ['id_epa']
-    });
+  async update(id_tratamiento: number, updateTratamientoDto: UpdateTratamientoDto): Promise<Tratamiento> {
+    const { insumos, ...tratamientoData } = updateTratamientoDto;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const tratamiento = await queryRunner.manager.findOne(Tratamiento, { where: { id_tratamiento } });
+      if (!tratamiento) {
+        throw new NotFoundException(`Tratamiento con ID ${id_tratamiento} no encontrado`);
+      }
+
+      // Actualizar propiedades del tratamiento
+      Object.assign(tratamiento, tratamientoData);
+      if (tratamientoData.id_epa) {
+        const epa = await queryRunner.manager.findOne(Epa, { where: { id_epa: tratamientoData.id_epa } });
+        if (!epa) throw new NotFoundException(`EPA con ID ${tratamientoData.id_epa} no encontrado`);
+        tratamiento.id_epa = epa;
+      }
+      await queryRunner.manager.save(tratamiento);
+
+      if (insumos) {
+        const insumosActuales = await queryRunner.manager.find(TratamientoInsumo, {
+          where: { id_tratamiento },
+          relations: ['id_insumos'],
+        });
+
+        const insumosActualesMap = new Map(insumosActuales.map(ti => [ti.id_insumos.id_insumo, ti]));
+        const insumosNuevosMap = new Map(insumos.map(i => [i.id_insumo, i]));
+
+        // 1. Insumos a eliminar: Reembolsar stock
+        for (const actual of insumosActuales) {
+          if (!insumosNuevosMap.has(actual.id_insumos.id_insumo)) {
+            const insumoEntity = actual.id_insumos;
+            if (!insumoEntity.es_herramienta && insumoEntity.tipo_insumo !== 'herramienta') {
+              const inventario = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumoEntity.id_insumo } });
+              if (inventario) {
+                inventario.cantidad_stock = Number(inventario.cantidad_stock) + Number(actual.cantidad_usada);
+                await queryRunner.manager.save(inventario);
+              }
+            }
+            await queryRunner.manager.remove(actual);
+          }
+        }
+
+        // 2. Insumos a añadir o actualizar
+        for (const insumoDto of insumos) {
+          const insumoEntity = await queryRunner.manager.findOne(Insumo, { where: { id_insumo: insumoDto.id_insumo } });
+          if (!insumoEntity) throw new NotFoundException(`Insumo con ID ${insumoDto.id_insumo} no encontrado`);
+          if (insumoEntity.es_herramienta || insumoEntity.tipo_insumo === 'herramienta') continue;
+          
+          const actual = insumosActualesMap.get(insumoDto.id_insumo);
+          const cantidadNueva = Number(insumoDto.cantidad_usada);
+          const cantidadAnterior = actual ? Number(actual.cantidad_usada) : 0;
+          const diferencia = cantidadNueva - cantidadAnterior;
+
+          if (diferencia !== 0) {
+            const inventario = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumoEntity.id_insumo } });
+            if (!inventario) throw new NotFoundException(`Inventario para el insumo ${insumoEntity.nombre_insumo} no encontrado.`);
+            
+            const stockActual = Number(inventario.cantidad_stock);
+            if (stockActual < diferencia) {
+              throw new BadRequestException(`Stock insuficiente para ${insumoEntity.nombre_insumo}. Disponible: ${stockActual}, ajuste requerido: ${diferencia}`);
+            }
+            inventario.cantidad_stock = stockActual - diferencia;
+            await queryRunner.manager.save(inventario);
+          }
+
+          if (actual) { // Actualizar existente
+            actual.cantidad_usada = cantidadNueva;
+            actual.unidad_medida = insumoDto.unidad_medida || actual.unidad_medida;
+            await queryRunner.manager.save(actual);
+          } else { // Crear nuevo
+            const nuevoInsumo = queryRunner.manager.create(TratamientoInsumo, {
+              id_tratamiento: tratamiento.id_tratamiento,
+              id_insumo: insumoDto.id_insumo,
+              cantidad_usada: cantidadNueva,
+              unidad_medida: insumoDto.unidad_medida
+            });
+            await queryRunner.manager.save(nuevoInsumo);
+          }
+        }
+      }
+
+      await queryRunner.commitTransaction();
+      const updatedTratamiento = await this.tratamientosRepository.findOne({ where: { id_tratamiento }, relations: ['id_epa', 'tratamientoInsumos', 'tratamientoInsumos.id_insumos'] });
+      if (!updatedTratamiento) {
+        // This should not happen as we just updated it
+        throw new InternalServerErrorException('No se pudo encontrar el tratamiento después de la actualización.');
+      }
+      return updatedTratamiento;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al actualizar el tratamiento: ' + error.message);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
-  async update(id_tratamiento: number, updateTratamientoDto: UpdateTratamientoDto) {
-    const tratamiento = await this.findOne(id_tratamiento);
-    
-    if (!tratamiento) {
-      throw new NotFoundException(`Tratamiento con ID ${id_tratamiento} no encontrado`);
-    }
-    
-    const updateData: Partial<Tratamiento> = {};
+  async remove(id_tratamiento: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (updateTratamientoDto.descripcion !== undefined) {
-      updateData.descripcion = updateTratamientoDto.descripcion;
-    }
-    if (updateTratamientoDto.dosis !== undefined) {
-      updateData.dosis = updateTratamientoDto.dosis;
-    }
-    if (updateTratamientoDto.frecuencia !== undefined) {
-      updateData.frecuencia = updateTratamientoDto.frecuencia;
-    }
-    if (updateTratamientoDto.tipo !== undefined) {
-      const t = updateTratamientoDto.tipo?.toString().trim();
-      if (t === 'Biologico' || t === 'Quimico') {
-        updateData.tipo = t as any;
-      }
-    }
-    if (updateTratamientoDto.id_epa !== undefined) {
-      const epaIdNum = Number(updateTratamientoDto.id_epa);
-      if (!Number.isFinite(epaIdNum) || epaIdNum <= 0) {
-        throw new BadRequestException('id_epa debe ser un entero válido');
-      }
-      const epa = await this.epaRepository.findOne({ where: { id_epa: epaIdNum } });
-      if (!epa) {
-        throw new NotFoundException(`EPA con ID ${epaIdNum} no encontrado`);
-      }
-      updateData.id_epa = epa as any;
-    }
+    try {
+      const tratamiento = await queryRunner.manager.findOne(Tratamiento, {
+        where: { id_tratamiento },
+        relations: ['tratamientoInsumos', 'tratamientoInsumos.id_insumos'],
+      });
 
-    Object.assign(tratamiento, updateData);
-    return await this.tratamientosRepository.save(tratamiento);
-  }
+      if (!tratamiento) {
+        throw new NotFoundException(`Tratamiento con ID ${id_tratamiento} no encontrado`);
+      }
 
-  async remove(id_tratamiento: number) {
-    const tratamiento = await this.findOne(id_tratamiento);
-    
-    if (!tratamiento) {
-      throw new NotFoundException(`Tratamiento con ID ${id_tratamiento} no encontrado`);
+      // Reembolsar todos los insumos consumibles al inventario
+      for (const tratamientoInsumo of tratamiento.tratamientoInsumos) {
+        const insumo = tratamientoInsumo.id_insumos;
+        if (!insumo.es_herramienta && insumo.tipo_insumo !== 'herramienta') {
+          const inventario = await queryRunner.manager.findOne(Inventario, { where: { id_insumo: insumo.id_insumo } });
+          if (inventario) {
+            inventario.cantidad_stock = Number(inventario.cantidad_stock) + Number(tratamientoInsumo.cantidad_usada);
+            await queryRunner.manager.save(inventario);
+          }
+        }
+      }
+
+      // Eliminar el tratamiento (y las relaciones en cascada si está configurado, aunque aquí lo hacemos explícito)
+      await queryRunner.manager.remove(TratamientoInsumo, tratamiento.tratamientoInsumos);
+      await queryRunner.manager.remove(tratamiento);
+
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al eliminar el tratamiento: ' + error.message);
+    } finally {
+      await queryRunner.release();
     }
-    
-    return await this.tratamientosRepository.delete(id_tratamiento);
   }
 }

@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMan
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 import { FotoActividad } from './foto-actividad.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
+import { Utiliza } from '../../utiliza/entities/utiliza.entity';
 
 @Entity('actividades')
 export class Actividad {
@@ -83,4 +84,7 @@ export class Actividad {
 
   @OneToMany(() => FotoActividad, (foto) => foto.actividad)
   fotos: FotoActividad[];
+
+  @OneToMany(() => Utiliza, utiliza => utiliza.id_actividades)
+  utilizas: Utiliza[];
 }

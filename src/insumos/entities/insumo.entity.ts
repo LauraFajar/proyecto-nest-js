@@ -3,6 +3,7 @@ import { Categoria } from 'src/categorias/entities/categoria.entity';
 import { Almacen } from 'src/almacenes/entities/almacen.entity';
 import { Salida } from 'src/salidas/entities/salida.entity';
 import { Cultivo } from 'src/cultivos/entities/cultivo.entity';
+import { TratamientoInsumo } from 'src/tratamientos/entities/tratamiento-insumo.entity';
 
 @Entity('insumos')
 export class Insumo {
@@ -34,6 +35,9 @@ export class Insumo {
 
   @ManyToMany(() => Cultivo, cultivo => cultivo.insumo)
   cultivos: Cultivo[];
+
+  @OneToMany(() => TratamientoInsumo, tratamientoInsumo => tratamientoInsumo.id_insumos)
+  tratamientoInsumos: TratamientoInsumo[];
 
   @Column({ type: 'boolean', name: 'es_herramienta', default: false })
   es_herramienta: boolean;
