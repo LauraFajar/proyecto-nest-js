@@ -330,15 +330,15 @@ export class ActividadesService {
                     console.log('DEBUG: Creando salida automática:', {
                       id_insumo: insumo.id_insumo,
                       nombre: insumo.nombre_insumo,
-                      cantidad: Math.round(diferencia),
+                      cantidad: Math.round(cantidadNueva), 
                       actividadId: actividad.id_actividad
                     });
                     await this.salidasService.create({
                       id_insumo: insumo.id_insumo,
                       nombre: insumo.nombre_insumo,
                       codigo: insumo.codigo,
-                      cantidad: Math.round(diferencia),
-                      observacion: `Salida autom. act. ID ${actividad.id_actividad}`,
+                      cantidad: Math.round(cantidadNueva), 
+                      observacion: `Salida autom. act. ID ${actividad.id_actividad} (actualizado)`,
                       fecha_salida: new Date().toISOString().slice(0, 10),
                       unidad_medida: inventarioItem.unidad_medida, 
                       id_cultivo: actividad.id_cultivo,
