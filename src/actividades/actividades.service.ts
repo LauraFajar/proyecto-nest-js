@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, Like } from 'typeorm';
 import { Actividad } from './entities/actividad.entity';
 import { CreateActividadeDto } from './dto/create-actividade.dto';
 import { UpdateActividadeDto } from './dto/update-actividade.dto';
@@ -14,6 +14,7 @@ import { Insumo } from '../insumos/entities/insumo.entity';
 import { Inventario } from '../inventario/entities/inventario.entity';
 import { SalidasService } from '../salidas/salidas.service';
 import { MovimientosService } from '../movimientos/movimientos.service';
+import { Salida } from '../salidas/entities/salida.entity';
 
 type RecursoDto = { id_insumo: number; cantidad?: number; horas_uso?: number; costo_unitario?: number };
 
@@ -327,26 +328,49 @@ export class ActividadesService {
                   }
                   try {
                     const valorUnidad = recursoDto.costo_unitario != null ? Number(recursoDto.costo_unitario) : null;
-                    console.log('DEBUG: Creando salida automática:', {
+                    console.log('DEBUG: Buscando salida existente para actualizar:', {
                       id_insumo: insumo.id_insumo,
-                      nombre: insumo.nombre_insumo,
-                      cantidad: Math.round(cantidadNueva), 
-                      actividadId: actividad.id_actividad
+                      actividadId: actividad.id_actividad,
+                      cantidadNueva: Math.round(cantidadNueva)
                     });
-                    await this.salidasService.create({
-                      id_insumo: insumo.id_insumo,
-                      nombre: insumo.nombre_insumo,
-                      codigo: insumo.codigo,
-                      cantidad: Math.round(cantidadNueva), 
-                      observacion: `Salida autom. act. ID ${actividad.id_actividad} (actualizado)`,
-                      fecha_salida: new Date().toISOString().slice(0, 10),
-                      unidad_medida: inventarioItem.unidad_medida, 
-                      id_cultivo: actividad.id_cultivo,
-                      valor_unidad: valorUnidad ?? undefined, 
-                    }, queryRunner); 
-                    console.log('DEBUG: Salida automática creada exitosamente');
+                    
+                    const salidaExistente = await queryRunner.manager.findOne(Salida, {
+                      where: { 
+                        id_cultivo: actividad.id_cultivo,
+                        insumo: { id_insumo: insumo.id_insumo },
+                        observacion: Like(`%act. ID ${actividad.id_actividad}%`)
+                      },
+                      relations: ['insumo']
+                    });
+                    
+                    if (salidaExistente) {
+                      console.log('DEBUG: Actualizando salida existente ID:', salidaExistente.id_salida);
+                      await queryRunner.manager.update(Salida, 
+                        salidaExistente.id_salida, 
+                        {
+                          cantidad: Math.round(cantidadNueva),
+                          observacion: `Salida autom. act. ID ${actividad.id_actividad} (actualizado)`,
+                          valor_unidad: valorUnidad ?? undefined
+                        }
+                      );
+                      console.log('DEBUG: Salida actualizada exitosamente');
+                    } else {
+                      console.log('DEBUG: Creando nueva salida (no existía)');
+                      await this.salidasService.create({
+                        id_insumo: insumo.id_insumo,
+                        nombre: insumo.nombre_insumo,
+                        codigo: insumo.codigo,
+                        cantidad: Math.round(cantidadNueva),
+                        observacion: `Salida autom. act. ID ${actividad.id_actividad}`,
+                        fecha_salida: new Date().toISOString().slice(0, 10),
+                        unidad_medida: inventarioItem.unidad_medida, 
+                        id_cultivo: actividad.id_cultivo,
+                        valor_unidad: valorUnidad ?? undefined, 
+                      }, queryRunner);
+                      console.log('DEBUG: Nueva salida creada exitosamente');
+                    }
                   } catch (err) {
-                    console.error('Error al crear movimiento automático de salida en update (ActividadesService - diferencia > 0):', err);
+                    console.error('Error al actualizar/crear salida automática en update (ActividadesService):', err);
                     throw new InternalServerErrorException('Error al registrar la salida automática: ' + err.message);
                   }
                 }
