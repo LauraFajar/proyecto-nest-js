@@ -169,6 +169,8 @@ export class TratamientosService {
   }
 
   async update(id_tratamiento: number, updateTratamientoDto: UpdateTratamientoDto): Promise<Tratamiento> {
+
+    
     const { insumos, ...tratamientoData } = updateTratamientoDto;
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -180,6 +182,7 @@ export class TratamientosService {
       if (!tratamiento) {
         throw new NotFoundException(`Tratamiento con ID ${id_tratamiento} no encontrado`);
       }
+  
 
       // Actualizar propiedades del tratamiento
       Object.assign(tratamiento, tratamientoData);
@@ -189,6 +192,7 @@ export class TratamientosService {
         tratamiento.id_epa = epa;
       }
       await queryRunner.manager.save(tratamiento);
+  
 
       if (insumos) {
         const insumosActuales = await queryRunner.manager.find(TratamientoInsumo, {
@@ -256,15 +260,19 @@ export class TratamientosService {
       await queryRunner.commitTransaction();
       const updatedTratamiento = await this.tratamientosRepository.findOne({ where: { id_tratamiento }, relations: ['id_epa', 'tratamientoInsumos', 'tratamientoInsumos.id_insumos'] });
       if (!updatedTratamiento) {
-        // This should not happen as we just updated it
         throw new InternalServerErrorException('No se pudo encontrar el tratamiento después de la actualización.');
       }
       return updatedTratamiento;
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      console.error('DEBUG: Error en actualización de tratamiento:', error);
+      
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        console.error('DEBUG: Error de negocio:', error.message);
         throw error;
       }
+      
+      console.error('DEBUG: Error interno del servidor:', error.message);
       throw new InternalServerErrorException('Error al actualizar el tratamiento: ' + error.message);
     } finally {
       await queryRunner.release();
@@ -298,7 +306,6 @@ export class TratamientosService {
         }
       }
 
-      // Eliminar el tratamiento (y las relaciones en cascada si está configurado, aunque aquí lo hacemos explícito)
       await queryRunner.manager.remove(TratamientoInsumo, tratamiento.tratamientoInsumos);
       await queryRunner.manager.remove(tratamiento);
 

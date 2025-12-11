@@ -14,14 +14,14 @@ export class MovimientosController {
   constructor(private readonly movimientosService: MovimientosService) {}
 
   @Post()
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   @Permisos({ recurso: 'movimientos', accion: 'crear' })
   create(@Body() createMovimientoDto: CreateMovimientoDto) {
     return this.movimientosService.create(createMovimientoDto);
   }
 
   @Get()
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Instructor)
   @Permisos({ recurso: 'movimientos', accion: 'ver' })
   findAll() {
     return this.movimientosService.findAll();

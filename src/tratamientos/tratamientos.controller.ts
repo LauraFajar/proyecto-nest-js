@@ -45,6 +45,7 @@ export class TratamientosController {
     @Param('id', new ParseIntPipe()) id: number,
     @Body() updateTratamientoDto: UpdateTratamientoDto,
   ) {
+
     return this.tratamientosService.update(id, updateTratamientoDto);
   }
 
