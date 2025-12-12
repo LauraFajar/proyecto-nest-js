@@ -2,7 +2,7 @@
 
 Backend de la plataforma AGROTIC, una solución integral para la gestión y trazabilidad agrícola. Desarrollado con NestJS, proporciona una API robusta y escalable para todas las operaciones del sistema, desde la gestión de cultivos hasta el monitoreo de sensores IoT en tiempo real.
 
-## ✨ Características Principales
+## Características Principales
 
 -   **Arquitectura Modular**: Cada funcionalidad principal (usuarios, cultivos, finanzas) está encapsulada en su propio módulo.
 -   **Autenticación y Autorización**: Seguridad basada en tokens JWT con un sistema de guardas para proteger las rutas.
@@ -125,7 +125,7 @@ SOCKET_IO_NAMESPACE=/iot
     npm run start:dev
     ```
 
-## 🐳 Ejecución con Docker
+## Ejecución con Docker
 
 La forma más sencilla de levantar todo el entorno (API, base de datos y Redis) es usando Docker Compose.
 
