@@ -12,6 +12,8 @@ import { Sublote } from '../../sublotes/entities/sublote.entity';
 
 import { Workbook } from 'exceljs';
 import PDFDocument = require('pdfkit');
+import * as fs from 'fs';
+import * as path from 'path';
 
 export type MetricKey = 'temperatura' | 'humedad_aire' | 'humedad_suelo_adc' | 'humedad_suelo_porcentaje' | 'bomba_estado';
 
@@ -585,10 +587,23 @@ export class ReportsService {
           const pageWidth = pdf.page.width - 2 * margin;
           let yPosition = 50;
 
-          pdf.fontSize(24).text('AGROTIC', margin, yPosition, { align: 'center' });
-          pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin, yPosition + 25, { align: 'center' });
-          pdf.fontSize(14).text('Reporte Integral de Producción', margin, yPosition + 45, { align: 'center' });
-          pdf.fontSize(24).img('..assets/logo.svg')
+          try {
+            const logoPath = path.join(__dirname, '../../assets/logo.svg');
+            if (fs.existsSync(logoPath)) {
+              pdf.image(logoPath, margin, yPosition, { width: 80, height: 80 });
+              pdf.fontSize(24).text('AGROTIC', margin + 100, yPosition + 20);
+              pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin + 100, yPosition + 45);
+              pdf.fontSize(14).text('Reporte Integral de Producción', margin + 100, yPosition + 65);
+            } else {
+              pdf.fontSize(24).text('AGROTIC', margin, yPosition, { align: 'center' });
+              pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin, yPosition + 25, { align: 'center' });
+              pdf.fontSize(14).text('Reporte Integral de Producción', margin, yPosition + 45, { align: 'center' });
+            }
+          } catch (error) {
+            pdf.fontSize(24).text('AGROTIC', margin, yPosition, { align: 'center' });
+            pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin, yPosition + 25, { align: 'center' });
+            pdf.fontSize(14).text('Reporte Integral de Producción', margin, yPosition + 45, { align: 'center' });
+          }
           
           pdf.moveTo(margin, yPosition + 70).lineTo(pdf.page.width - margin, yPosition + 70).stroke();
           
