@@ -1,12 +1,17 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Workbook } from 'exceljs';
-import PDFDocument from 'pdfkit';
-import { Lectura } from '../entities/lectura.entity';
 import { Sensor } from '../entities/sensor.entity';
-import { Sublote } from '../../sublotes/entities/sublote.entity';
+import { Lectura } from '../entities/lectura.entity';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
+import { Actividad } from '../../actividades/entities/actividad.entity';
+import { Inventario } from '../../inventario/entities/inventario.entity';
+import { Ingreso } from '../../ingresos/entities/ingreso.entity';
+import { Salida } from '../../salidas/entities/salida.entity';
+import { Sublote } from '../../sublotes/entities/sublote.entity';
+
+import { Workbook } from 'exceljs';
+import PDFDocument = require('pdfkit');
 
 export type MetricKey = 'temperatura' | 'humedad_aire' | 'humedad_suelo_adc' | 'humedad_suelo_porcentaje' | 'bomba_estado';
 
@@ -41,6 +46,10 @@ export class ReportsService {
     @InjectRepository(Sensor) private readonly sensorRepo: Repository<Sensor>,
     @InjectRepository(Sublote) private readonly subloteRepo: Repository<Sublote>,
     @InjectRepository(Cultivo) private readonly cultivoRepo: Repository<Cultivo>,
+    @InjectRepository(Actividad) private readonly actividadRepo: Repository<Actividad>,
+    @InjectRepository(Inventario) private readonly inventarioRepo: Repository<Inventario>,
+    @InjectRepository(Ingreso) private readonly ingresoRepo: Repository<Ingreso>,
+    @InjectRepository(Salida) private readonly salidaRepo: Repository<Salida>,
   ) {}
 
   async obtenerLecturasPorTopic(topic: string, options?: { metric?: string; desde?: Date; hasta?: Date; order?: 'ASC' | 'DESC'; limit?: number }) {
@@ -268,74 +277,564 @@ export class ReportsService {
       });
     }
 
+    // Agregar pestañas de integración con otros módulos
+    await this.agregarPestanaCultivos(workbook, topic);
+    await this.agregarPestanaActividades(workbook, topic);
+    await this.agregarPestanaInventario(workbook, topic);
+    await this.agregarPestanaFinanzas(workbook, topic);
+
     return workbook.xlsx.writeBuffer();
   }
 
-  async buildPDFPorTopic(topic: string, metric?: string, desde?: Date, hasta?: Date) {
-    const metricNorm = normalizeMetric(metric);
-    const lecturas = await this.obtenerLecturasPorTopic(topic, { metric: metricNorm, desde, hasta });
-
-    const pdf = new (PDFDocument as any)();
-    const buffers: Buffer[] = [];
-    return await new Promise<Buffer>((resolve, reject) => {
-      try {
-        pdf.on('data', (d: Buffer) => buffers.push(d));
-        pdf.on('end', () => resolve(Buffer.concat(buffers)));
-
-        pdf.fontSize(20).text('Reporte por Topic', { align: 'center' });
-        pdf.moveDown();
-        pdf.fontSize(12).text(`Topic: ${topic}`);
-        pdf.fontSize(12).text(`Métrica: ${metricNorm ?? 'todas'}`);
-        pdf.moveDown();
-
-        const resumen = this.calcularResumen(lecturas as any[]);
-        pdf.fontSize(14).text('Resumen de valores:');
-        pdf.fontSize(12).text(`Cantidad: ${resumen.count}`);
-        pdf.fontSize(12).text(`Promedio: ${resumen.avg ?? '—'}`);
-        pdf.fontSize(12).text(`Mínimo: ${resumen.min ?? '—'}`);
-        pdf.fontSize(12).text(`Máximo: ${resumen.max ?? '—'}`);
-        pdf.moveDown();
-
-        pdf.fontSize(14).text('Lecturas:');
-        for (const l of lecturas.slice(0, 100)) {
-          let valor = Number(l.valor);
-          if (l.unidad_medida === 'humedad_suelo_adc') {
-            valor = convertirHumedadSuelo(valor);
-          }
-          pdf.fontSize(10).text(`${l.fecha.toISOString()} | ${l.unidad_medida ?? ''} | ${valor} ${l.observaciones ? '| ' + l.observaciones : ''}`);
+  private async agregarPestanaCultivos(workbook: Workbook, topic: string) {
+    try {
+      const sensores = await this.sensorRepo.find({ 
+        where: { mqtt_topic: topic },
+        relations: ['id_sublote', 'id_sublote.id_lote']
+      });
+      
+      if (sensores.length > 0) {
+        const subloteIds = sensores.map(s => s.id_sublote?.id_sublote).filter(Boolean);
+        
+        const cultivos = await this.cultivoRepo.find({
+          relations: ['lote']
+        });
+        
+        const cultivosFiltrados = cultivos;
+        
+        if (cultivosFiltrados.length > 0) {
+          const wsCultivos = workbook.addWorksheet('Trazabilidad Cultivos');
+          wsCultivos.addRow(['TRAZABILIDAD DE CULTIVOS']);
+          wsCultivos.addRow([]);
+          wsCultivos.addRow(['ID Cultivo', 'Nombre', 'Tipo', 'Fecha Siembra', 'Fecha Cosecha Estimada', 'Estado', 'Lote', 'Observaciones']);
+          
+          cultivosFiltrados.forEach(cultivo => {
+            const sublotesNombres = cultivo.lote?.descripcion || '—';
+            wsCultivos.addRow([
+              cultivo.id_cultivo,
+              cultivo.nombre_cultivo,
+              cultivo.tipo_cultivo,
+              cultivo.fecha_siembra ? new Date(cultivo.fecha_siembra).toISOString().split('T')[0] : '—',
+              cultivo.fecha_cosecha_estimada ? new Date(cultivo.fecha_cosecha_estimada).toISOString().split('T')[0] : '—',
+              cultivo.estado_cultivo,
+              cultivo.lote?.descripcion || '—',
+              cultivo.observaciones || '—'
+            ]);
+          });
+          
+          wsCultivos.getRow(1).font = { bold: true, size: 14 };
+          wsCultivos.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E8' } };
         }
-        pdf.addPage();
-
-        const serie = metricNorm ? lecturas.filter((l) => l.unidad_medida === metricNorm) : lecturas;
-        const pts = serie.map((l) => ({ x: l.fecha.getTime(), y: Number(l.valor) })).filter((p) => Number.isFinite(p.y));
-        if (pts.length >= 2) {
-          const margin = 40;
-          const w = 550, h = 350;
-          const x0 = margin, y0 = margin, x1 = x0 + w, y1 = y0 + h;
-          const xs = pts.map((p) => p.x);
-          const ys = pts.map((p) => p.y);
-          const minX = Math.min(...xs), maxX = Math.max(...xs);
-          const minY = Math.min(...ys), maxY = Math.max(...ys);
-          const scaleX = (val: number) => x0 + ((val - minX) / (maxX - minX || 1)) * w;
-          const scaleY = (val: number) => y1 - ((val - minY) / (maxY - minY || 1)) * h;
-
-          pdf.fontSize(14).text('Gráfica de valores', x0, y0 - 25);
-          pdf.rect(x0, y0, w, h).stroke();
-
-          pdf.moveTo(scaleX(pts[0].x), scaleY(pts[0].y));
-          for (let i = 1; i < pts.length; i++) {
-            pdf.lineTo(scaleX(pts[i].x), scaleY(pts[i].y));
-          }
-          pdf.stroke();
-        } else {
-          pdf.fontSize(12).text('No hay suficientes datos para graficar.');
-        }
-
-        pdf.end();
-      } catch (e) {
-        reject(e);
       }
+    } catch (error) {
+      this.logger.warn('No se pudo agregar información de cultivos:', error.message);
+    }
+  }
+
+  private async agregarPestanaActividades(workbook: Workbook, topic: string) {
+    try {
+      const sensores = await this.sensorRepo.find({ 
+        where: { mqtt_topic: topic },
+        relations: ['id_sublote', 'id_sublote.id_lote']
+      });
+      
+      if (sensores.length > 0) {
+        const subloteIds = sensores.map(s => s.id_sublote?.id_sublote).filter(Boolean);
+        
+        const cultivos = await this.cultivoRepo.find({
+          relations: ['lote']
+        });
+        
+        const cultivosFiltrados = cultivos;
+        
+        if (cultivosFiltrados.length > 0) {
+          const cultivosIds = cultivosFiltrados.map(c => c.id_cultivo);
+          
+          const actividades = await this.actividadRepo.find({
+            where: cultivosIds.map(id => ({ id_cultivo: id })),
+            relations: ['cultivo'],
+            order: { fecha: 'DESC' }
+          });
+          
+          if (actividades.length > 0) {
+            const wsActividades = workbook.addWorksheet('Historial Actividades');
+            wsActividades.addRow(['HISTORIAL DE ACTIVIDADES AGRÍCOLAS']);
+            wsActividades.addRow([]);
+            wsActividades.addRow(['Fecha', 'Tipo Actividad', 'Responsable', 'Detalles', 'Costo Mano Obra', 'Horas Trabajadas', 'Tarifa Hora', 'Costo Maquinaria', 'Estado', 'Cultivo']);
+            
+            let totalCostoManoObra = 0;
+            let totalCostoMaquinaria = 0;
+            let totalHoras = 0;
+            
+            actividades.forEach(actividad => {
+              const costoMO = parseFloat((actividad as any).costo_mano_obra || '0');
+              const costoMaq = parseFloat((actividad as any).costo_maquinaria || '0');
+              const horas = parseFloat((actividad as any).horas_trabajadas || '0');
+              
+              totalCostoManoObra += costoMO;
+              totalCostoMaquinaria += costoMaq;
+              totalHoras += horas;
+              
+              wsActividades.addRow([
+                actividad.fecha ? new Date(actividad.fecha).toISOString().split('T')[0] : '—',
+                (actividad as any).tipo_actividad,
+                (actividad as any).responsable,
+                (actividad as any).detalles,
+                costoMO.toFixed(2),
+                horas.toFixed(2),
+                parseFloat((actividad as any).tarifa_hora || '0').toFixed(2),
+                costoMaq.toFixed(2),
+                (actividad as any).estado,
+                (actividad as any).cultivo?.nombre_cultivo || '—'
+              ]);
+            });
+            
+            wsActividades.addRow([]);
+            wsActividades.addRow(['RESUMEN DE COSTOS']);
+            wsActividades.addRow(['Total Costo Mano de Obra:', totalCostoManoObra.toFixed(2)]);
+            wsActividades.addRow(['Total Costo Maquinaria:', totalCostoMaquinaria.toFixed(2)]);
+            wsActividades.addRow(['Total Horas Trabajadas:', totalHoras.toFixed(2)]);
+            wsActividades.addRow(['Costo Total Actividades:', (totalCostoManoObra + totalCostoMaquinaria).toFixed(2)]);
+            
+            wsActividades.getRow(1).font = { bold: true, size: 14 };
+            wsActividades.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3F2FD' } };
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.warn('No se pudo agregar información de actividades:', error.message);
+    }
+  }
+
+  private async agregarPestanaInventario(workbook: Workbook, topic: string) {
+    try {
+      // Obtener inventario general
+      const inventario = await this.inventarioRepo.find();
+      
+      if (inventario.length > 0) {
+        const wsInventario = workbook.addWorksheet('Inventario de Insumos');
+        wsInventario.addRow(['INVENTARIO DE INSUMOS']);
+        wsInventario.addRow([]);
+        wsInventario.addRow(['ID Insumo', 'Nombre Insumo', 'Cantidad Stock', 'Unidad Medida', 'Última Actualización', 'Categoría', 'Estado Stock']);
+        
+        let valorTotalInventario = 0;
+        
+        inventario.forEach(item => {
+          const valorUnitario = parseFloat((item.insumo as any)?.costo_compra || '0');
+          const valorTotal = (item as any).cantidad_stock * valorUnitario;
+          valorTotalInventario += valorTotal;
+          
+          // Determinar estado del stock
+          let estadoStock = 'Normal';
+          if ((item as any).cantidad_stock < 10) estadoStock = 'Bajo';
+          if ((item as any).cantidad_stock === 0) estadoStock = 'Agotado';
+          
+          wsInventario.addRow([
+            (item.insumo as any)?.id_insumo || '—',
+            (item.insumo as any)?.nombre_insumo || '—',
+            (item as any).cantidad_stock,
+            (item as any).unidad_medida,
+            (item as any).fecha || '—',
+            (item.insumo as any)?.id_categoria?.nombre || '—',
+            estadoStock
+          ]);
+        });
+        
+        wsInventario.addRow([]);
+        wsInventario.addRow(['RESUMEN DE INVENTARIO']);
+        wsInventario.addRow(['Total Items:', inventario.length]);
+        wsInventario.addRow(['Valor Total Inventario:', valorTotalInventario.toFixed(2)]);
+        
+        wsInventario.getRow(1).font = { bold: true, size: 14 };
+        wsInventario.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } };
+      }
+    } catch (error) {
+      this.logger.warn('No se pudo agregar información de inventario:', error.message);
+    }
+  }
+
+  private async agregarPestanaFinanzas(workbook: Workbook, topic: string) {
+    try {
+      // Obtener sensores asociados al topic y sus sublotes
+      const sensores = await this.sensorRepo.find({ 
+        where: { mqtt_topic: topic },
+        relations: ['id_sublote', 'id_sublote.id_lote']
+      });
+      
+      if (sensores.length > 0) {
+        const subloteIds = sensores.map(s => s.id_sublote?.id_sublote).filter(Boolean);
+        
+        const cultivos = await this.cultivoRepo.find({
+          relations: ['lote']
+        });
+        
+        const cultivosFiltrados = cultivos;
+        
+        if (cultivosFiltrados.length > 0) {
+          const cultivosIds = cultivosFiltrados.map(c => c.id_cultivo);
+          
+          const ingresos = await this.ingresoRepo.find({
+            where: cultivosIds.map(id => ({ id_cultivo: id })),
+            relations: ['cultivo']
+          });
+          
+          const salidas = await this.salidaRepo.find({
+            where: cultivosIds.map(id => ({ id_cultivo: id })),
+            relations: ['cultivo']
+          });
+          
+          const wsFinanzas = workbook.addWorksheet('Análisis Financiero');
+          wsFinanzas.addRow(['ANÁLISIS FINANCIERO Y RENTABILIDAD']);
+          wsFinanzas.addRow([]);
+          
+          wsFinanzas.addRow(['INGRESOS']);
+          wsFinanzas.addRow(['Fecha', 'Descripción', 'Monto', 'Cultivo']);
+          
+          let totalIngresos = 0;
+          ingresos.forEach(ingreso => {
+            totalIngresos += (ingreso as any).monto;
+            wsFinanzas.addRow([
+              (ingreso as any).fecha_ingreso,
+              (ingreso as any).descripcion,
+              (ingreso as any).monto.toFixed(2),
+              (ingreso as any).cultivo?.nombre_cultivo || '—'
+            ]);
+          });
+          
+          wsFinanzas.addRow([]);
+          wsFinanzas.addRow(['EGRESOS']);
+          wsFinanzas.addRow(['Fecha', 'Descripción', 'Cantidad', 'Valor Unitario', 'Total', 'Cultivo']);
+          
+          let totalEgresos = 0;
+          salidas.forEach(salida => {
+            const total = (salida as any).cantidad * ((salida as any).valor_unidad || 0);
+            totalEgresos += total;
+            wsFinanzas.addRow([
+              (salida as any).fecha_salida,
+              (salida as any).nombre,
+              (salida as any).cantidad,
+              parseFloat((salida as any).valor_unidad || '0').toFixed(2),
+              total.toFixed(2),
+              (salida as any).cultivo?.nombre_cultivo || '—'
+            ]);
+          });
+          
+          wsFinanzas.addRow([]);
+          wsFinanzas.addRow(['ANÁLISIS DE RENTABILIDAD']);
+          const beneficio = totalIngresos - totalEgresos;
+          const margenGanancia = totalIngresos > 0 ? (beneficio / totalIngresos) * 100 : 0;
+          
+          wsFinanzas.addRow(['Total Ingresos:', totalIngresos.toFixed(2)]);
+          wsFinanzas.addRow(['Total Egresos:', totalEgresos.toFixed(2)]);
+          wsFinanzas.addRow(['Beneficio Neto:', beneficio.toFixed(2)]);
+          wsFinanzas.addRow(['Margen de Ganancia:', margenGanancia.toFixed(2) + '%']);
+          
+          let rentabilidad = 'NO RENTABLE';
+          if (beneficio > 0) rentabilidad = 'RENTABLE';
+          if (beneficio > totalEgresos * 0.2) rentabilidad = 'MUY RENTABLE';
+          
+          wsFinanzas.addRow(['Estado del Cultivo:', rentabilidad]);
+          
+          wsFinanzas.getRow(1).font = { bold: true, size: 14 };
+          wsFinanzas.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+        }
+      }
+    } catch (error) {
+      this.logger.warn('No se pudo agregar información financiera:', error.message);
+    }
+  }
+
+  async buildPDFPorTopic(topic: string, metric?: string, desde?: Date, hasta?: Date) {
+    try {
+      const metricNorm = normalizeMetric(metric);
+      const lecturas = await this.obtenerLecturasPorTopic(topic, { metric: metricNorm, desde, hasta });
+
+      // Obtener datos para todas las secciones
+      const sensores = await this.sensorRepo.find({ 
+        where: { mqtt_topic: topic },
+        relations: ['id_sublote', 'id_sublote.id_lote']
+      });
+      
+      const cultivos = await this.cultivoRepo.find({
+        relations: ['lote']
+      });
+      
+      const actividades = await this.actividadRepo.find({
+        relations: ['cultivo'],
+        order: { fecha: 'DESC' }
+      });
+      
+      const inventario = await this.inventarioRepo.find();
+      
+      const ingresos = await this.ingresoRepo.find({
+        relations: ['cultivo']
+      });
+      
+      const salidas = await this.salidaRepo.find({
+        relations: ['cultivo']
+      });
+
+      const pdf = new PDFDocument();
+      const buffers: Buffer[] = [];
+      return await new Promise<Buffer>((resolve, reject) => {
+        try {
+          pdf.on('data', (d: Buffer) => buffers.push(d));
+          pdf.on('end', () => resolve(Buffer.concat(buffers)));
+
+          const margin = 50;
+          const pageWidth = pdf.page.width - 2 * margin;
+          let yPosition = 50;
+
+          pdf.fontSize(24).text('AGROTIC', margin, yPosition, { align: 'center' });
+          pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin, yPosition + 25, { align: 'center' });
+          pdf.fontSize(14).text('Reporte Integral de Producción', margin, yPosition + 45, { align: 'center' });
+          pdf.fontSize(24).img('..assets/logo.svg')
+          
+          pdf.moveTo(margin, yPosition + 70).lineTo(pdf.page.width - margin, yPosition + 70).stroke();
+          
+          yPosition += 90;
+          
+          pdf.fontSize(12).text(`Topic: ${topic}`, margin, yPosition);
+          pdf.text(`Métrica: ${metricNorm ?? 'todas'}`, margin, yPosition + 15);
+          pdf.text(`Período: ${desde?.toLocaleDateString() || '—'} - ${hasta?.toLocaleDateString() || '—'}`, margin, yPosition + 30);
+          pdf.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, margin, yPosition + 45);
+          
+          yPosition += 70;
+
+          this.addSectionHeader(pdf, 'RESUMEN DE LECTURAS DE SENSORES', margin, yPosition);
+          yPosition += 25;
+          
+          const resumen = this.calcularResumen(lecturas as any[]);
+          this.addDataTable(pdf, [
+            ['Métrica', 'Cantidad', 'Promedio', 'Mínimo', 'Máximo'],
+            [metricNorm || 'Todas', resumen.count.toString(), resumen.avg?.toFixed(2) || '—', resumen.min?.toFixed(2) || '—', resumen.max?.toFixed(2) || '—']
+          ], margin, yPosition, pageWidth);
+          
+          yPosition += 60;
+
+          if (cultivos.length > 0) {
+            if (yPosition > 600) {
+              pdf.addPage();
+              yPosition = 50;
+            }
+            
+            this.addSectionHeader(pdf, 'TRAZABILIDAD DE CULTIVOS', margin, yPosition);
+            yPosition += 25;
+            
+            const cultivosData = [
+              ['ID', 'Nombre', 'Tipo', 'Fecha Siembra', 'Estado', 'Lote'],
+              ...cultivos.map(c => [
+                c.id_cultivo.toString(),
+                c.nombre_cultivo,
+                c.tipo_cultivo,
+                c.fecha_siembra ? new Date(c.fecha_siembra).toLocaleDateString() : '—',
+                c.estado_cultivo,
+                c.lote?.descripcion || '—'
+              ])
+            ];
+            
+            this.addDataTable(pdf, cultivosData, margin, yPosition, pageWidth);
+            yPosition += 25 + cultivos.length * 20;
+          }
+
+          if (actividades.length > 0) {
+            if (yPosition > 500) {
+              pdf.addPage();
+              yPosition = 50;
+            }
+            
+            this.addSectionHeader(pdf, 'HISTORIAL DE ACTIVIDADES', margin, yPosition);
+            yPosition += 25;
+            
+            const actividadesData = [
+              ['Fecha', 'Tipo', 'Responsable', 'Costo MO', 'Costo Maq', 'Cultivo'],
+              ...actividades.slice(0, 10).map(a => [
+                a.fecha ? new Date(a.fecha).toLocaleDateString() : '—',
+                (a as any).tipo_actividad || '—',
+                (a as any).responsable || '—',
+                ` ${(a as any).costo_mano_obra || '0'}`,
+                ` ${(a as any).costo_maquinaria || '0'}`,
+                (a as any).cultivo?.nombre_cultivo || '—'
+              ])
+            ];
+            
+            this.addDataTable(pdf, actividadesData, margin, yPosition, pageWidth);
+            yPosition += 25 + Math.min(actividades.length, 11) * 20;
+            
+            // Resumen de costos
+            const totalCostoMO = actividades.reduce((sum, a) => sum + parseFloat((a as any).costo_mano_obra || '0'), 0);
+            const totalCostoMaq = actividades.reduce((sum, a) => sum + parseFloat((a as any).costo_maquinaria || '0'), 0);
+            
+            this.addDataTable(pdf, [
+              ['Resumen de Costos', ''],
+              ['Total Mano de Obra', `$${totalCostoMO.toFixed(2)}`],
+              ['Total Maquinaria', `$${totalCostoMaq.toFixed(2)}`],
+              ['Costo Total', `$${(totalCostoMO + totalCostoMaq).toFixed(2)}`]
+            ], margin, yPosition, pageWidth);
+            
+            yPosition += 100;
+          }
+
+          if (inventario.length > 0) {
+            if (yPosition > 500) {
+              pdf.addPage();
+              yPosition = 50;
+            }
+            
+            this.addSectionHeader(pdf, 'INVENTARIO DE INSUMOS', margin, yPosition);
+            yPosition += 25;
+            
+            const inventarioData = [
+              ['Insumo', 'Cantidad', 'Unidad', 'Categoría', 'Estado'],
+              ...inventario.slice(0, 10).map(item => [
+                (item.insumo as any)?.nombre_insumo || '—',
+                (item as any).cantidad_stock.toString(),
+                (item as any).unidad_medida || '—',
+                (item.insumo as any)?.id_categoria?.nombre || '—',
+                (item as any).cantidad_stock < 10 ? 'Bajo' : 'Normal'
+              ])
+            ];
+            
+            this.addDataTable(pdf, inventarioData, margin, yPosition, pageWidth);
+            yPosition += 25 + Math.min(inventario.length, 11) * 20;
+          }
+
+          if (ingresos.length > 0 || salidas.length > 0) {
+            if (yPosition > 400) {
+              pdf.addPage();
+              yPosition = 50;
+            }
+            
+            this.addSectionHeader(pdf, 'ANÁLISIS FINANCIERO', margin, yPosition);
+            yPosition += 25;
+            
+            if (ingresos.length > 0) {
+              pdf.fontSize(12).font('Helvetica-Bold').text('Ingresos:', margin, yPosition);
+              yPosition += 15;
+              
+              const ingresosData = [
+                ['Fecha', 'Descripción', 'Monto', 'Cultivo'],
+                ...ingresos.slice(0, 5).map(ing => [
+                  (ing as any).fecha_ingreso ? new Date((ing as any).fecha_ingreso).toLocaleDateString() : '—',
+                  (ing as any).descripcion || '—',
+                  `$${(ing as any).monto.toFixed(2)}`,
+                  (ing as any).cultivo?.nombre_cultivo || '—'
+                ])
+              ];
+              
+              this.addDataTable(pdf, ingresosData, margin, yPosition, pageWidth);
+              yPosition += 25 + Math.min(ingresos.length, 6) * 20;
+            }
+            
+            if (salidas.length > 0 && yPosition < 500) {
+              pdf.fontSize(12).font('Helvetica-Bold').text('Egresos:', margin, yPosition);
+              yPosition += 15;
+              
+              const salidasData = [
+                ['Fecha', 'Descripción', 'Cantidad', 'Total', 'Cultivo'],
+                ...salidas.slice(0, 5).map(sal => [
+                  (sal as any).fecha_salida ? new Date((sal as any).fecha_salida).toLocaleDateString() : '—',
+                  (sal as any).nombre || '—',
+                  (sal as any).cantidad.toString(),
+                  `$${((sal as any).cantidad * ((sal as any).valor_unidad || 0)).toFixed(2)}`,
+                  (sal as any).cultivo?.nombre_cultivo || '—'
+                ])
+              ];
+              
+              this.addDataTable(pdf, salidasData, margin, yPosition, pageWidth);
+              yPosition += 25 + Math.min(salidas.length, 6) * 20;
+            }
+            
+            if (yPosition < 450) {
+              const totalIngresos = ingresos.reduce((sum, ing) => sum + (ing as any).monto, 0);
+              const totalEgresos = salidas.reduce((sum, sal) => sum + (sal as any).cantidad * ((sal as any).valor_unidad || 0), 0);
+              const beneficio = totalIngresos - totalEgresos;
+              const margen = totalIngresos > 0 ? (beneficio / totalIngresos) * 100 : 0;
+              
+              this.addDataTable(pdf, [
+                ['Resumen Financiero', ''],
+                ['Total Ingresos', `$${totalIngresos.toFixed(2)}`],
+                ['Total Egresos', `$${totalEgresos.toFixed(2)}`],
+                ['Beneficio Neto', `$${beneficio.toFixed(2)}`],
+                ['Margen de Ganancia', `${margen.toFixed(2)}%`],
+                ['Estado', beneficio > 0 ? 'RENTABLE' : 'NO RENTABLE']
+              ], margin, yPosition, pageWidth);
+            }
+          }
+
+          pdf.end();
+        } catch (e) {
+          reject(e);
+        }
+      });
+    } catch (error) {
+      this.logger.error('Error generando PDF:', error);
+      throw error;
+    }
+  }
+
+  private addSectionHeader(pdf: any, title: string, x: number, y: number) {
+    // Fondo para el encabezado
+    pdf.fillColor('#2E7D32').rect(x, y - 5, 500, 30).fill();
+    
+    // Texto del encabezado
+    pdf.fillColor('white').fontSize(16).font('Helvetica-Bold').text(title, x + 10, y + 2);
+    
+    // Línea decorativa
+    pdf.strokeColor('#4CAF50').lineWidth(2);
+    pdf.moveTo(x, y + 25).lineTo(x + 500, y + 25).stroke();
+    
+    // Resetear color
+    pdf.fillColor('black').strokeColor('black').lineWidth(1);
+  }
+
+  private addDataTable(pdf: any, data: string[][], x: number, y: number, width: number) {
+    const colWidths = this.calculateColumnWidths(data, width);
+    let currentY = y;
+    const rowHeight = 22;
+    
+    data.forEach((row, rowIndex) => {
+      let currentX = x;
+      
+      if (rowIndex === 0) {
+        pdf.fillColor('#E8F5E8').rect(x, currentY - 2, width, rowHeight).fill();
+        pdf.fillColor('#2E7D32').fontSize(10).font('Helvetica-Bold');
+      } else {
+        if (rowIndex % 2 === 0) {
+          pdf.fillColor('#F5F5F5').rect(x, currentY - 2, width, rowHeight).fill();
+        }
+        pdf.fillColor('black').fontSize(9).font('Helvetica');
+      }
+      row.forEach((cell, colIndex) => {
+        const cellX = currentX;
+        const cellWidth = colWidths[colIndex];
+        
+        pdf.text(cell, cellX + 5, currentY + 2, { width: cellWidth - 10 });
+        
+        if (colIndex < row.length - 1) {
+          pdf.strokeColor('#CCCCCC').lineWidth(0.5);
+          pdf.moveTo(cellX + cellWidth, currentY - 2).lineTo(cellX + cellWidth, currentY + rowHeight - 2).stroke();
+        }
+        
+        currentX += cellWidth;
+      });
+      
+      pdf.strokeColor('#CCCCCC').lineWidth(0.5);
+      pdf.moveTo(x, currentY + rowHeight - 2).lineTo(x + width, currentY + rowHeight - 2).stroke();
+      
+      currentY += rowHeight;
     });
+    
+    pdf.strokeColor('#4CAF50').lineWidth(1);
+    pdf.rect(x, y - 2, width, data.length * rowHeight).stroke();
+    
+    pdf.fillColor('black').strokeColor('black');
+  }
+
+  private calculateColumnWidths(data: string[][], totalWidth: number): number[] {
+    const numCols = data[0].length;
+    const baseWidth = totalWidth / numCols;
+    return Array(numCols).fill(baseWidth);
   }
 
   async obtenerSensoresConUbicaciones() {
@@ -914,69 +1413,9 @@ export class ReportsService {
     pdf.stroke();
 
     pdf.fontSize(8).fillColor('#6b7280');
-    pdf.text(`${minValor.toFixed(1)}`, plotX - 15, plotY + plotHeight - 6);
-    pdf.text(`${maxValor.toFixed(1)}`, plotX - 15, plotY - 6);
-
-    pdf.fillColor('#000000');
-  }
-  private drawTimeSeriesGraph(pdf: any, lecturas: any[], x: number, y: number, width: number, height: number, title: string) {
-    if (lecturas.length < 2) return;
-
-    pdf.fontSize(14).text(title, x, y - 20);
-    
-    // Configurar coordenadas
-    const margin = 40;
-    const plotX = x + margin;
-    const plotY = y + margin;
-    const plotWidth = width - 2 * margin;
-    const plotHeight = height - 2 * margin;
-
-    const puntos = lecturas.map(l => {
-      let valor = Number(l.valor);
-      if (l.unidad_medida === 'humedad_suelo_adc') {
-        valor = convertirHumedadSuelo(valor);
-      }
-      return { 
-        fecha: new Date(l.fecha).getTime(), 
-        valor: valor 
-      };
-    }).filter(p => !isNaN(p.valor));
-
-    if (puntos.length < 2) return;
-
-    const fechas = puntos.map(p => p.fecha);
-    const valores = puntos.map(p => p.valor);
-    const minFecha = Math.min(...fechas);
-    const maxFecha = Math.max(...fechas);
-    const minValor = Math.min(...valores);
-    const maxValor = Math.max(...valores);
-
-    pdf.rect(plotX, plotY, plotWidth, plotHeight).stroke();
-
-    const scaleX = (fecha: number) => plotX + ((fecha - minFecha) / (maxFecha - minFecha || 1)) * plotWidth;
-    const scaleY = (valor: number) => plotY + plotHeight - ((valor - minValor) / (maxValor - minValor || 1)) * plotHeight;
-
-    pdf.strokeColor('#2563eb').lineWidth(2);
-    pdf.moveTo(scaleX(puntos[0].fecha), scaleY(puntos[0].valor));
-    
-    for (let i = 1; i < puntos.length; i++) {
-      pdf.lineTo(scaleX(puntos[i].fecha), scaleY(puntos[i].valor));
-    }
-    pdf.stroke();
-
-    pdf.fontSize(9).fillColor('#6b7280');
-    pdf.text(`${minValor.toFixed(1)}`, plotX - 20, plotY + plotHeight - 8);
-    pdf.text(`${maxValor.toFixed(1)}`, plotX - 20, plotY - 8);
-    
-    const fechaInicio = new Date(minFecha).toLocaleDateString('es-CO');
-    const fechaFin = new Date(maxFecha).toLocaleDateString('es-CO');
-    pdf.text(fechaInicio, plotX, plotY + plotHeight + 10);
-    pdf.text(fechaFin, plotX + plotWidth - 40, plotY + plotHeight + 10);
-
-    pdf.fillColor('#000000');
   }
 
-  async buildIoTCompleteExcel(desde?: Date, hasta?: Date) {
+  async buildExcelIoTCompletas(desde?: Date, hasta?: Date) {
     console.log('Iniciando generación de Excel IoT...');
     console.log('Rango de fechas:', { desde, hasta });
     

@@ -13,6 +13,10 @@ import { Lectura } from './entities/lectura.entity';
 import { Sublote } from '../sublotes/entities/sublote.entity';
 import { Alerta } from '../alertas/entities/alerta.entity';
 import { Cultivo } from '../cultivos/entities/cultivo.entity';
+import { Actividad } from '../actividades/entities/actividad.entity';
+import { Inventario } from '../inventario/entities/inventario.entity';
+import { Ingreso } from '../ingresos/entities/ingreso.entity';
+import { Salida } from '../salidas/entities/salida.entity';
 
 import { AlertasModule } from '../alertas/alertas.module';
 import { IotModule } from '../iot/iot.module';
@@ -20,7 +24,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Sensor, Lectura, Sublote, Alerta, Cultivo]),
+    TypeOrmModule.forFeature([Sensor, Lectura, Sublote, Alerta, Cultivo, Actividad, Inventario, Ingreso, Salida]),
     forwardRef(() => AlertasModule),
     IotModule,
   ],

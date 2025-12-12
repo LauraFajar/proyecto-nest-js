@@ -165,7 +165,7 @@ async generarIoTCompleteExcel(
   }
 
   try {
-    const buffer = await this.reportsService.buildIoTCompleteExcel(dDesde, dHasta);
+    const buffer = await this.reportsService.buildExcelIoTCompletas(dDesde, dHasta);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=reporte-iot-completo.xlsx`);
     return res.status(HttpStatus.OK).send(buffer);
