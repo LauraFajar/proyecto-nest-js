@@ -22,7 +22,11 @@ export class Sensor {
   @Column({ type: 'timestamp', nullable: true })
   ultima_lectura: Date;
 
-  @Column({ default: 'activo' })
+  @Column({ 
+    type: 'varchar',
+    default: 'activo',
+    length: 20
+  })
   estado: string;
 
   @Column({ type: 'text', nullable: true })

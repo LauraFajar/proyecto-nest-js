@@ -13,6 +13,7 @@ export class MqttService implements OnModuleInit {
   private genericMessageHandlerInstalled = false;
 
   constructor(
+    @Inject(forwardRef(() => SensoresGateway))
     private readonly sensoresGateway: SensoresGateway,
     @Inject(forwardRef(() => SensoresService))
     private readonly sensoresService: SensoresService,
@@ -39,7 +40,6 @@ export class MqttService implements OnModuleInit {
 
     this.client.on('connect', async () => {
       this.logger.log(`Conectado al broker MQTT en ${url}`);
-      // Suscríbete automáticamente a topics genéricos definidos en env
       const autoTopicsRaw = 'luixxa/dht11';
 
       const autoTopics = autoTopicsRaw
@@ -84,7 +84,6 @@ export class MqttService implements OnModuleInit {
     });
 
     this.client.on('error', (err) => {
-      // No spamear errores cuando el broker no está disponible
       this.logger.warn(`MQTT no disponible en ${url}. Se reintentará cada ${reconnectMs}ms.`);
       this.logger.debug(err?.message || String(err));
     });
@@ -106,8 +105,6 @@ export class MqttService implements OnModuleInit {
           return;
         }
   
-        // ====== EMITIR LECTURA COMPLETA PARA FRONTEND IOT ======
-        // Emitir datos completos del MQTT para que el frontend los reciba
         const completeReading = {
           deviceId: topic.split('/').pop() || 'dht11',
           topic: topic,
@@ -116,7 +113,6 @@ export class MqttService implements OnModuleInit {
           humedad_aire: data.humedad_aire,
           humedad_suelo_adc: data.humedad_suelo_adc,
           bomba_estado: data.bomba_estado,
-          // Include English field names for compatibility
           temperature: data.temperatura,
           humidity: data.humedad_aire,
           soilHumidity: data.humedad_suelo_adc,
@@ -128,6 +124,8 @@ export class MqttService implements OnModuleInit {
         
         if (data.temperatura !== undefined) {
           const valor = Number(data.temperatura);
+          await this.sensoresService.actualizarLecturaPorTopic(topic, valor, 'temperatura');
+          
           this.sensoresGateway.emitLecturaGeneric(topic, {
             valor,
             timestamp: new Date().toISOString(),
@@ -135,9 +133,11 @@ export class MqttService implements OnModuleInit {
             unidad: '°C'
           });
         }
-  
+
         if (data.humedad_aire !== undefined) {
           const valor = Number(data.humedad_aire);
+          await this.sensoresService.actualizarLecturaPorTopic(topic, valor, 'humedad_aire');
+          
           this.sensoresGateway.emitLecturaGeneric(topic, {
             valor,
             timestamp: new Date().toISOString(),
@@ -145,10 +145,12 @@ export class MqttService implements OnModuleInit {
             unidad: '%'
           });
         }
-  
+
         if (data.humedad_suelo_adc !== undefined) {
           const adcValue = Number(data.humedad_suelo_adc);
           const porcentajeHumedad = this.convertAdcToPercentGeneric(adcValue);
+          
+          await this.sensoresService.actualizarLecturaPorTopic(topic, porcentajeHumedad, 'humedad_suelo_porcentaje');
           
           this.sensoresGateway.emitLecturaGeneric(topic, {
             valor: porcentajeHumedad,
@@ -157,10 +159,13 @@ export class MqttService implements OnModuleInit {
             unidad: '%'
           });
         }
-  
+
         if (data.bomba_estado !== undefined) {
+          const valor = data.bomba_estado === 'ENCENDIDA' ? 1 : 0;
+          await this.sensoresService.actualizarLecturaPorTopic(topic, valor, 'bomba_estado');
+          
           this.sensoresGateway.emitLecturaGeneric(topic, {
-            valor: data.bomba_estado === 'ENCENDIDA' ? 1 : 0,
+            valor,
             timestamp: new Date().toISOString(),
             tipo: 'bomba_estado',
             unidad: data.bomba_estado === 'ENCENDIDA' ? 'ON' : 'OFF'
@@ -222,7 +227,6 @@ export class MqttService implements OnModuleInit {
   }
 
   private extractFromGenericPayload(payloadObj: any | null, rawPayload: string): { valor: number | null; unidad?: string } {
-    // Obsoleto: se mantiene por compatibilidad interna; preferir extractMetricsFromGenericPayload
     const direct = parseFloat(rawPayload);
     if (!Number.isNaN(direct) && !payloadObj) {
       return { valor: direct };
@@ -276,7 +280,6 @@ export class MqttService implements OnModuleInit {
         const payloadStr = message.toString();
         const nowIso = new Date().toISOString();
 
-        // Intentar parsear JSON con múltiples métricas
         let payloadObj: any | null = null;
         try {
           payloadObj = JSON.parse(payloadStr);
@@ -284,7 +287,6 @@ export class MqttService implements OnModuleInit {
           payloadObj = null;
         }
 
-        // Determinar valor según tipo de sensor
         const valor = this.extractValorFromPayload(sensor, payloadObj, payloadStr);
         if (valor !== null && valor !== undefined && !Number.isNaN(valor)) {
           await this.sensoresService.updateSensorReading(sensor.id_sensor, valor);
@@ -295,7 +297,6 @@ export class MqttService implements OnModuleInit {
           });
         }
 
-        // Emitir estado de bomba si viene en el payload
         if (payloadObj && typeof payloadObj === 'object' && 'bomba_estado' in payloadObj) {
           this.sensoresGateway.emitBombaEstado({
             estado: String(payloadObj['bomba_estado']),
@@ -304,7 +305,6 @@ export class MqttService implements OnModuleInit {
           });
         }
 
-        // Marcar conexión activa
         this.sensorConnections.set(sensor.id_sensor, true);
         this.sensoresGateway.emitEstado(sensor.id_sensor, true);
       } catch (err) {
@@ -328,23 +328,18 @@ export class MqttService implements OnModuleInit {
   private extractValorFromPayload(sensor: Sensor, payloadObj: any | null, rawPayload: string): number | null {
     const tipo = (sensor.tipo_sensor || '').toLowerCase();
 
-    // Si el payload es un número simple
     const direct = parseFloat(rawPayload);
     if (!Number.isNaN(direct) && !payloadObj) {
-      // Para humedad de suelo/tierra, interpretar correctamente ADC vs porcentaje
       if (tipo.includes('suelo') || tipo.includes('tierra')) {
-        // Si parece un porcentaje directo
         if (direct >= 0 && direct <= 100) {
           return direct;
         }
-        // Si es valor ADC grande, convertir a porcentaje con calibración/detección
         return this.convertAdcToPercent(sensor, direct);
       }
       return direct;
     }
 
     if (payloadObj && typeof payloadObj === 'object') {
-      // Manejar duplicados: JSON.parse mantiene la última aparición
       if (tipo.includes('temperatura')) {
         const keys = ['temperatura', 'temperature', 'temp'];
         for (const k of keys) {
@@ -360,12 +355,10 @@ export class MqttService implements OnModuleInit {
       }
 
       if (tipo.includes('suelo') || tipo.includes('tierra')) {
-        // Preferir porcentaje si viene
         const percentKeys = ['humedad_suelo', 'soil_moisture'];
         for (const k of percentKeys) {
           if (k in payloadObj && this.isNumberLike(payloadObj[k])) return parseFloat(payloadObj[k]);
         }
-        // Si viene ADC, convertir a % usando calibración
         const adcKeys = ['humedad_suelo_adc', 'soil_moisture_adc'];
         for (const k of adcKeys) {
           if (k in payloadObj && this.isNumberLike(payloadObj[k])) {
@@ -373,7 +366,6 @@ export class MqttService implements OnModuleInit {
             return this.convertAdcToPercent(sensor, adc);
           }
         }
-        // Si solo viene un número en algún campo genérico
         const genericKeys = ['valor', 'value'];
         for (const k of genericKeys) {
           if (k in payloadObj && this.isNumberLike(payloadObj[k])) {
@@ -401,7 +393,6 @@ export class MqttService implements OnModuleInit {
   }
 
   private convertAdcToPercent(sensor: Sensor, adc: number): number {
-    // Leer calibración desde configuracion JSON del sensor si existe
     let adcWet: number | undefined;
     let adcDry: number | undefined;
     try {
@@ -412,48 +403,35 @@ export class MqttService implements OnModuleInit {
       }
     } catch {}
 
-    // Autodetección de rango si no hay calibración
     if (adcWet === undefined || adcDry === undefined) {
       if (adc > 4095) {
-        // Supone ADC de 16 bits si el valor supera 12 bits
         adcDry = adcDry ?? 65535;
         adcWet = adcWet ?? 0;
       } else {
-        // Supone ADC de 12 bits
         adcDry = adcDry ?? 4095;
         adcWet = adcWet ?? 0;
       }
     }
 
-    // Asegurar rangos válidos
     if (adcWet === adcDry) adcDry = (adcWet as number) + 1;
 
-    // Mapear linealmente: adcDry -> 0%, adcWet -> 100%
     let percent = (((adcDry as number) - adc) / ((adcDry as number) - (adcWet as number))) * 100;
-    // Limitar [0, 100]
     percent = Math.max(0, Math.min(100, percent));
     return parseFloat(percent.toFixed(2));
   }
 
-  // Versión genérica para conversión sin objeto sensor
   private convertAdcToPercentGeneric(adc: number): number {
-    // Auto-detección de rango ADC
     let adcMax: number;
     if (adc > 4095) {
-      // ADC de 16 bits
       adcMax = 65535;
     } else if (adc > 1023) {
-      // ADC de 12 bits
       adcMax = 4095;
     } else {
-      // ADC de 10 bits
       adcMax = 1023;
     }
     
-    // Conversión estándar: humedad = ((valor_maximo - valor_actual) / valor_maximo) * 100
     let percent = ((adcMax - adc) / adcMax) * 100;
     
-    // Limitar [0, 100]
     percent = Math.max(0, Math.min(100, percent));
     return parseFloat(percent.toFixed(2));
   }
@@ -494,11 +472,9 @@ export class MqttService implements OnModuleInit {
       .map(([id]) => id);
   }
 
-  // Extrae múltiples métricas desde payload genérico
   private extractMetricsFromGenericPayload(payloadObj: any | null, rawPayload: string): Array<{ valor: number | null; unidad?: string; observaciones: string }> {
     const metrics: Array<{ valor: number | null; unidad?: string; observaciones: string }> = [];
 
-    // Si viene número directo sin JSON
     const direct = parseFloat(rawPayload);
     if (!Number.isNaN(direct) && !payloadObj) {
       metrics.push({ valor: direct, observaciones: 'generico' });
@@ -517,7 +493,6 @@ export class MqttService implements OnModuleInit {
       const ha = pickNumber('humedad_aire') ?? pickNumber('humidity') ?? pickNumber('humedadAmbiente');
       if (ha !== null) metrics.push({ valor: ha, unidad: '%', observaciones: 'humedad_aire' });
 
-      // Preferir porcentaje si existe
       const hsPercent = pickNumber('humedad_suelo') ?? pickNumber('soil_moisture');
       if (hsPercent !== null) metrics.push({ valor: hsPercent, unidad: '%', observaciones: 'humedad_suelo' });
       else {
@@ -528,7 +503,6 @@ export class MqttService implements OnModuleInit {
         }
       }
 
-      // Valor genérico
       const generic = pickNumber('valor') ?? pickNumber('value');
       if (generic !== null) metrics.push({ valor: generic, observaciones: 'generico' });
     }
@@ -536,7 +510,6 @@ export class MqttService implements OnModuleInit {
     return metrics.length ? metrics : [{ valor: null, observaciones: 'generico' }];
   }
 
-  // Extrae estado de bomba del payload genérico
   private extractPumpState(payloadObj: any | null): string | null {
     if (!payloadObj || typeof payloadObj !== 'object') return null;
     const candidates = ['bomba_estado', 'pump_state', 'pump', 'bomba', 'relay', 'estado_bomba', 'bombaEstado', 'pumpOn'];
@@ -548,7 +521,6 @@ export class MqttService implements OnModuleInit {
           const s = v.toLowerCase();
           if (['on', 'encendida', 'true', '1', 'activo', 'activa'].includes(s)) return 'on';
           if (['off', 'apagada', 'false', '0', 'inactivo', 'inactiva'].includes(s)) return 'off';
-          // Si viene "1"/"0"
           if (s === '1') return 'on';
           if (s === '0') return 'off';
         } else if (typeof v === 'number') {
@@ -560,4 +532,12 @@ export class MqttService implements OnModuleInit {
     }
     return null;
   }
+
+  public publishMessage(topic: string, message: string): boolean {
+  if (this.client && this.client.connected) {
+    this.client.publish(topic, message);
+    return true;
+  }
+  return false;
+}
 }

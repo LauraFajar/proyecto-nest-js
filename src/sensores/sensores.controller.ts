@@ -25,33 +25,21 @@ constructor(
   private readonly mqttService: MqttService,
 ) {}
 
-// ============================================
-// OBTENER TODOS LOS SENSORES
-// ============================================
 @Get()
 async findAll() {
 return this.sensoresService.findAll();
 }
 
-// ============================================
-// OBTENER UN SENSOR
-// ============================================
 @Get(':id')
 async findOne(@Param('id', ParseIntPipe) id: number) {
 return this.sensoresService.findOne(id);
 }
 
-// ============================================
-// ACTUALIZAR SENSOR
-// ============================================
 @Put(':id')
 async update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
 return this.sensoresService.update(id, data);
 }
 
-// ============================================
-// OBTENER LECTURAS DE UN SENSOR
-// ============================================
 @Get(':id/lecturas')
 async obtenerLecturas(@Param('id', ParseIntPipe) id: number) {
 const fn = (this.sensoresService as any).obtenerLecturasDeSensor;
@@ -61,9 +49,6 @@ if (typeof fn === 'function') {
 return [];
 }
 
-// ============================================
-// GENERAR PDF
-// ============================================
 @Get('export/pdf')
 async generarPDF(
   @Query('topic') topic: string,
@@ -96,9 +81,6 @@ async generarPDF(
   }
 }
 
-// ============================================
-// GENERAR EXCEL
-// ============================================
 @Get('export/excel')
 async generarExcel(
   @Query('topic') topic: string,
@@ -122,27 +104,24 @@ async generarExcel(
   }
 
   try {
+    console.log('🚀 Iniciando generación Excel para topic:', topic, 'metric:', metric);
     const buffer = await this.reportsService.buildExcelPorTopic(topic, metric, dDesde, dHasta);
+    console.log('✅ Excel generado exitosamente, tamaño:', buffer.byteLength, 'bytes');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename=reporte_${encodeURIComponent(topic)}.xlsx`);
     return res.status(HttpStatus.OK).send(buffer);
   } catch (e) {
+    console.error('❌ Error generando Excel:', e);
     return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el Excel', error: String(e) });
   }
 }
 
-// ============================================
-// INICIALIZAR MQTT
-// ============================================
 @Post('mqtt/init')
 async inicializarMQTT() {
 await this.sensoresService.inicializarConexionesMqtt();
 return { message: 'MQTT inicializado correctamente.' };
 }
 
-// ============================================
-// NUEVO: REPORTE IoT COMPLETO PDF
-// ============================================
 @Get('reporte-iot/pdf')
 async generarIoTCompletePDF(
   @Res() res: Response,
@@ -169,9 +148,6 @@ async generarIoTCompletePDF(
   }
 }
 
-// ============================================
-// NUEVO: REPORTE IoT COMPLETO EXCEL
-// ============================================
 @Get('reporte-iot/excel')
 async generarIoTCompleteExcel(
   @Res() res: Response,
@@ -197,11 +173,9 @@ async generarIoTCompleteExcel(
     return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el reporte IoT Excel', error: String(e) });
   }
 }
-  // ============================================
-  // OBTENER HISTORIAL POR TOPIC
-  // ============================================
-  @Get('historial')
-  async getHistorialByTopic(
+
+@Get('historial')
+async getHistorialByTopic(
     @Query('topic') topic: string,
     @Query('metric') metric?: string,
     @Query('periodo') periodo?: string,
@@ -270,9 +244,6 @@ async subscribeLegacy(@Body('topic') topic: string, @Res() res: Response) {
   }
 }
 
-// ============================================
-// NUEVO: INFORMACIÓN IoT PARA FRONTEND
-// ============================================
 @Get('iot/info')
 async obtenerInfoIoT() {
   try {
@@ -303,6 +274,107 @@ async unsubscribeLegacy(@Body('topic') topic: string, @Res() res: Response) {
     return res.status(HttpStatus.NOT_IMPLEMENTED).json({ message: 'La función unsubscribeTopic no está disponible.' });
   } catch (e) {
     return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo desuscribir del topic', error: String(e) });
+  }
+}
+
+@Get('export/general/excel')
+async generarExcelGeneralPorTopic(
+  @Query('topic') topic: string,
+  @Res() res: Response,
+  @Query('desde') desde?: string,
+  @Query('hasta') hasta?: string,
+) {
+  if (!topic) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "topic" es obligatorio.' });
+  }
+
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(desde);
+  const dHasta = parse(hasta);
+  if (desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+  if (hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+
+  try {
+    const buffer = await this.reportsService.buildExcelGeneralPorTopic(topic, dDesde, dHasta);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_general_${encodeURIComponent(topic)}.xlsx`);
+    return res.status(HttpStatus.OK).send(buffer);
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el Excel general', error: String(e) });
+  }
+}
+
+@Get('export/metric/excel')
+async generarExcelPorMetrica(
+  @Query('topic') topic: string,
+  @Query('metric') metric: string,
+  @Res() res: Response,
+  @Query('desde') desde?: string,
+  @Query('hasta') hasta?: string,
+) {
+  if (!topic) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "topic" es obligatorio.' });
+  }
+  if (!metric) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "metric" es obligatorio.' });
+  }
+
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(desde);
+  const dHasta = parse(hasta);
+  if (desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+  if (hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+
+  try {
+    const buffer = await this.reportsService.buildExcelPorTopic(topic, metric, dDesde, dHasta);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_${encodeURIComponent(metric)}_${encodeURIComponent(topic)}.xlsx`);
+    return res.status(HttpStatus.OK).send(buffer);
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el Excel por métrica', error: String(e) });
+  }
+}
+
+@Get('export/metric/pdf')
+async generarPDFPorMetrica(
+  @Query('topic') topic: string,
+  @Query('metric') metric: string,
+  @Res() res: Response,
+  @Query('desde') desde?: string,
+  @Query('hasta') hasta?: string,
+) {
+  if (!topic) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "topic" es obligatorio.' });
+  }
+  if (!metric) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'El parámetro "metric" es obligatorio.' });
+  }
+
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(desde);
+  const dHasta = parse(hasta);
+  if (desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+  if (hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    return res.status(HttpStatus.BAD_REQUEST).json({ message: 'Formato de fecha "hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).' });
+  }
+
+  try {
+    const buffer = await this.reportsService.buildPDFPorTopic(topic, metric, dDesde, dHasta);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=reporte_${encodeURIComponent(metric)}_${encodeURIComponent(topic)}.pdf`);
+    return res.status(HttpStatus.OK).send(buffer);
+  } catch (e) {
+    return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el PDF por métrica', error: String(e) });
   }
 }
 }
