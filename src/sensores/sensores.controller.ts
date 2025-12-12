@@ -9,6 +9,8 @@ Body,
 Res,
 HttpStatus,
 Query,
+BadRequestException,
+InternalServerErrorException,
 } from '@nestjs/common';
 import { SensoresService } from './sensores.service';
 import { Response } from 'express';
@@ -145,6 +147,43 @@ async generarIoTCompletePDF(
     return res.status(HttpStatus.OK).send(buffer);
   } catch (e) {
     return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: 'No se pudo generar el reporte IoT PDF', error: String(e) });
+  }
+}
+
+@Get('reporte-iot/data')
+async getReporteIoTData(
+  @Query('fecha_desde') fecha_desde?: string,
+  @Query('fecha_hasta') fecha_hasta?: string,
+) {
+  const parse = (s?: string) => (s ? new Date(s) : undefined);
+  const dDesde = parse(fecha_desde);
+  const dHasta = parse(fecha_hasta);
+
+  if (fecha_desde && (!dDesde || isNaN(dDesde.getTime()))) {
+    throw new BadRequestException('Formato de fecha "fecha_desde" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).');
+  }
+  if (fecha_hasta && (!dHasta || isNaN(dHasta.getTime()))) {
+    throw new BadRequestException('Formato de fecha "fecha_hasta" inválido. Use ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss).');
+  }
+
+  try {
+    const lecturas = await this.reportsService.obtenerLecturasIoTCompletas(dDesde, dHasta);
+    const sensores = await this.reportsService.obtenerSensoresConUbicaciones();
+    const bombaData = await this.reportsService.contarActivacionesBombaPorPeriodo(dDesde, dHasta);
+
+    return {
+      lecturas,
+      sensores,
+      bombaData,
+      timestamp: new Date().toISOString(),
+      params: {
+        desde: dDesde?.toISOString() || null,
+        hasta: dHasta?.toISOString() || null,
+      }
+    };
+  } catch (error) {
+    console.error('Failed to get IoT report data:', error);
+    throw new InternalServerErrorException('No se pudo obtener la data para el reporte IoT.');
   }
 }
 

@@ -151,10 +151,10 @@ La forma más sencilla de levantar todo el entorno (API, base de datos y Redis) 
     docker-compose logs -f api
     ```
 
-4.  **Detener los servicios:**
+4. **Ejecutar migraciones y seeding:**
     ```bash
-    docker-compose down
-    ```
+    docker-compose exec nest-api npm run typeorm:run-migrations
+    docker-compose exec nest-api npm run seed
 
 ## 📦 Módulos Principales de la API
 
