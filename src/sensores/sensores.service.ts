@@ -181,6 +181,25 @@ export class SensoresService {
     }
   }
 
+  async handleSensorControlCommand(device: string, sensorName: string, action: 'ON' | 'OFF'): Promise<void> {
+    const fullTopic = `luixxa/${device}`; 
+    const targetStatus = action === 'OFF' ? 'inactivo' : 'activo';
+
+    const sensor = await this.sensorRepository.findOne({
+      where: {
+        mqtt_topic: fullTopic,
+        tipo_sensor: sensorName,
+      },
+    });
+
+    if (!sensor) {
+      this.logger.warn(`Sensor para device '${device}' y tipo '${sensorName}' no encontrado para la acción '${action}'.`);
+      return;
+    }
+    await this.sensorRepository.update(sensor.id_sensor, { estado: targetStatus });
+    this.logger.log(`Sensor '${sensor.id_sensor}' (${sensor.mqtt_topic}, ${sensor.tipo_sensor}) actualizado a estado '${targetStatus}' por comando MQTT.`);
+  }
+
   async listTopics(): Promise<string[]> {
     const rows = await this.sensorRepository
       .createQueryBuilder('s')

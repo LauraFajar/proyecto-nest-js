@@ -48,6 +48,10 @@ export class SensoresGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.server.emit('reading', reading);
   }
 
+  emitControlCommandStatus(device: string, sensorName: string, action: 'ON' | 'OFF', status: 'success' | 'failure', message?: string) {
+    this.server.emit('controlCommandStatus', { device, sensor: sensorName, action, status, message, timestamp: new Date().toISOString() });
+  }
+
   @SubscribeMessage('mqttControl')
   async handleMqttControl(@MessageBody() controlData: any) {
     this.logger.log(`📤 Recibido comando MQTT Control:`, controlData);

@@ -40,7 +40,7 @@ export class MqttService implements OnModuleInit {
 
     this.client.on('connect', async () => {
       this.logger.log(`Conectado al broker MQTT en ${url}`);
-      const autoTopicsRaw = 'luixxa/dht11';
+      const autoTopicsRaw = 'luixxa/dht11,luixxa/control';
 
       const autoTopics = autoTopicsRaw
         .split(',')
@@ -103,6 +103,19 @@ export class MqttService implements OnModuleInit {
         } catch {
           this.logger.warn('⚠ El mensaje no es JSON válido. Se ignora.');
           return;
+        }
+
+        if (topic === 'luixxa/control') {
+          this.logger.log(`⚙ Comando de control recibido en ${topic}: ${JSON.stringify(data)}`);
+          const { device, sensor: sensorName, action } = data;
+          if (device && sensorName && (action === 'ON' || action === 'OFF')) {
+            await this.sensoresService.handleSensorControlCommand(device, sensorName, action);
+            this.sensoresGateway.emitControlCommandStatus(device, sensorName, action, 'success'); 
+          } else {
+            this.logger.warn(`Comando de control inválido o incompleto en ${topic}: ${JSON.stringify(data)}`);
+            this.sensoresGateway.emitControlCommandStatus(device, sensorName, action, 'failure', 'Invalid command payload');
+          }
+          return; 
         }
   
         const completeReading = {
