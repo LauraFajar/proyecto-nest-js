@@ -30,7 +30,7 @@ export class ActividadSeeder {
         fecha: new Date('2024-03-20'),
         responsable: 'Ana Gomez',
         detalles: 'Aplicación de NPK',
-        estado: 'completada',
+        estado: 'En Progreso',
         id_cultivo: 1,
         costo_mano_obra: '90000',
         costo_maquinaria: '0',
