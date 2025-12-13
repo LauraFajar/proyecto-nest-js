@@ -75,7 +75,7 @@
 }
 
 .welcome-title {
-  font-size: var(--font-size-3xl);
+  font-size: 28px;
   font-weight: 700;
   color: var(--primary-green);
   margin-bottom: var(--spacing-lg);

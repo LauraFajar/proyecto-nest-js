@@ -108,9 +108,9 @@ const DashboardPage = () => {
             <div className="welcome-section">
               <div className="welcome-card">
                 <div className="welcome-text">
-                  <h2 className="welcome-title">AgroTic</h2>
+                  <h2 className="welcome-title">AGROTIC</h2>
                   <p className="welcome-description">
-                    Bienvenido a AgroTic, la plataforma líder en tecnología para el sector agrícola.
+                    Bienvenido a AGROTIC, la plataforma líder en tecnología para el sector agrícola.
                     Conectamos a productores, proveedores y expertos para mejorar la eficiencia y
                     productividad en el campo.
                   </p>
