@@ -42,15 +42,24 @@ export class CreateFotosActividadesTable1762295018515
       true,
     );
 
-    await queryRunner.createForeignKey(
-      'fotos_actividades',
-      new TableForeignKey({
-        columnNames: ['id_actividad'],
-        referencedColumnNames: ['id_actividad'],
-        referencedTableName: 'actividades',
-        onDelete: 'CASCADE',
-      }),
-    );
+    const table = await queryRunner.getTable('fotos_actividades');
+    if (table) {
+      const foreignKey = table.foreignKeys.find(
+        (fk) => fk.columnNames.indexOf('id_actividad') !== -1,
+      );
+
+      if (!foreignKey) {
+        await queryRunner.createForeignKey(
+          'fotos_actividades',
+          new TableForeignKey({
+            columnNames: ['id_actividad'],
+            referencedColumnNames: ['id_actividad'],
+            referencedTableName: 'actividades',
+            onDelete: 'CASCADE',
+          }),
+        );
+      }
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

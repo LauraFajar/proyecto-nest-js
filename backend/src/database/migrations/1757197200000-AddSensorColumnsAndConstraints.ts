@@ -8,55 +8,60 @@ export class AddSensorColumnsAndConstraints1757197200000
   public async up(queryRunner: QueryRunner): Promise<void> {
     // 1. Agregar columnas a sensores
     await queryRunner.query(`
-            ALTER TABLE "sensores" 
-            ADD COLUMN IF NOT EXISTS "latitud" decimal(10,8),
-            ADD COLUMN IF NOT EXISTS "longitud" decimal(11,8),
-            ADD COLUMN IF NOT EXISTS "valor_actual" decimal(10,2),
-            ADD COLUMN IF NOT EXISTS "valor_minimo" decimal(10,2),
-            ADD COLUMN IF NOT EXISTS "valor_maximo" decimal(10,2),
-            ADD COLUMN IF NOT EXISTS "ultima_lectura" TIMESTAMP,
-            ADD COLUMN IF NOT EXISTS "configuracion" TEXT,
-            ADD COLUMN IF NOT EXISTS "historial_lecturas" JSONB
-        `);
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'sensores') THEN
+          ALTER TABLE "sensores" 
+          ADD COLUMN IF NOT EXISTS "valor_actual" decimal(10,2),
+          ADD COLUMN IF NOT EXISTS "valor_minimo" decimal(10,2),
+          ADD COLUMN IF NOT EXISTS "valor_maximo" decimal(10,2),
+          ADD COLUMN IF NOT EXISTS "ultima_lectura" TIMESTAMP,
+          ADD COLUMN IF NOT EXISTS "configuracion" TEXT,
+          ADD COLUMN IF NOT EXISTS "historial_lecturas" JSONB;
+        END IF;
+      END $$;
+    `);
 
     // 2. Actualizar restricciones NOT NULL en lotes
     await queryRunner.query(`
-            UPDATE "lotes" SET 
-                "nombre_lote" = COALESCE("nombre_lote", 'sin_nombre'),
-                "descripcion" = COALESCE("descripcion", 'sin_descripcion')
-        `);
-
-    await queryRunner.query(`
-            ALTER TABLE "lotes" 
-            ALTER COLUMN "nombre_lote" SET NOT NULL,
-            ALTER COLUMN "descripcion" SET NOT NULL
-        `);
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'lotes') THEN
+          UPDATE "lotes" SET 
+              "nombre_lote" = COALESCE("nombre_lote", 'sin_nombre'),
+              "descripcion" = COALESCE("descripcion", 'sin_descripcion');
+          ALTER TABLE "lotes" 
+          ALTER COLUMN "nombre_lote" SET NOT NULL,
+          ALTER COLUMN "descripcion" SET NOT NULL;
+        END IF;
+      END $$;
+    `);
 
     // 3. Actualizar restricciones NOT NULL en categorias
     await queryRunner.query(`
-            UPDATE "categorias" SET 
-                "nombre" = COALESCE("nombre", 'Sin Nombre'),
-                "descripcion" = COALESCE("descripcion", 'Sin Descripción')
-        `);
-
-    await queryRunner.query(`
-            ALTER TABLE "categorias" 
-            ALTER COLUMN "nombre" SET NOT NULL,
-            ALTER COLUMN "descripcion" SET NOT NULL
-        `);
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'categorias') THEN
+          UPDATE "categorias" SET 
+              "nombre" = COALESCE("nombre", 'Sin Nombre'),
+              "descripcion" = COALESCE("descripcion", 'Sin Descripción');
+          ALTER TABLE "categorias" 
+          ALTER COLUMN "nombre" SET NOT NULL,
+          ALTER COLUMN "descripcion" SET NOT NULL;
+        END IF;
+      END $$;
+    `);
 
     // 4. Actualizar restricciones NOT NULL en almacenes
     await queryRunner.query(`
-            UPDATE "almacenes" SET 
-                "nombre_almacen" = COALESCE("nombre_almacen", 'sin_nombre'),
-                "descripcion" = COALESCE("descripcion", 'sin_descripcion')
-        `);
-
-    await queryRunner.query(`
-            ALTER TABLE "almacenes" 
-            ALTER COLUMN "nombre_almacen" SET NOT NULL,
-            ALTER COLUMN "descripcion" SET NOT NULL
-        `);
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'almacenes') THEN
+          UPDATE "almacenes" SET 
+              "nombre_almacen" = COALESCE("nombre_almacen", 'sin_nombre'),
+              "descripcion" = COALESCE("descripcion", 'sin_descripcion');
+          ALTER TABLE "almacenes" 
+          ALTER COLUMN "nombre_almacen" SET NOT NULL,
+          ALTER COLUMN "descripcion" SET NOT NULL;
+        END IF;
+      END $$;
+    `);
 
     // 5. Actualizar tabla de migraciones
     await queryRunner.query(`
@@ -77,18 +82,44 @@ export class AddSensorColumnsAndConstraints1757197200000
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Revertir cambios
     await queryRunner.query(`
-            ALTER TABLE "sensores" 
-            DROP COLUMN IF EXISTS "latitud",
-            DROP COLUMN IF EXISTS "longitud",
-            DROP COLUMN IF EXISTS "valor_actual",
-            DROP COLUMN IF EXISTS "valor_minimo",
-            DROP COLUMN IF EXISTS "valor_maximo",
-            DROP COLUMN IF EXISTS "ultima_lectura",
-            DROP COLUMN IF EXISTS "configuracion",
-            DROP COLUMN IF EXISTS "historial_lecturas"
-        `);
+      DO $ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'sensores') THEN
+          ALTER TABLE "sensores" 
+          DROP COLUMN IF EXISTS "valor_actual",
+          DROP COLUMN IF EXISTS "valor_minimo",
+          DROP COLUMN IF EXISTS "valor_maximo",
+          DROP COLUMN IF NOT EXISTS "ultima_lectura",
+          DROP COLUMN IF NOT EXISTS "configuracion",
+          DROP COLUMN IF NOT EXISTS "historial_lecturas";
+        END IF;
+      END $;
+    `);
 
-    // No revertimos los cambios de NOT NULL ya que podrían afectar datos existentes
-    // Se recomienda hacer un respaldo antes de aplicar migraciones
+    await queryRunner.query(`
+      DO $ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'lotes') THEN
+          ALTER TABLE "lotes" ALTER COLUMN "nombre_lote" DROP NOT NULL;
+          ALTER TABLE "lotes" ALTER COLUMN "descripcion" DROP NOT NULL;
+        END IF;
+      END $;
+    `);
+
+    await queryRunner.query(`
+      DO $ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'categorias') THEN
+          ALTER TABLE "categorias" ALTER COLUMN "nombre" DROP NOT NULL;
+          ALTER TABLE "categorias" ALTER COLUMN "descripcion" DROP NOT NULL;
+        END IF;
+      END $;
+    `);
+
+    await queryRunner.query(`
+      DO $ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'almacenes') THEN
+          ALTER TABLE "almacenes" ALTER COLUMN "nombre_almacen" DROP NOT NULL;
+          ALTER TABLE "almacenes" ALTER COLUMN "descripcion" DROP NOT NULL;
+        END IF;
+      END $;
+    `);
   }
 }

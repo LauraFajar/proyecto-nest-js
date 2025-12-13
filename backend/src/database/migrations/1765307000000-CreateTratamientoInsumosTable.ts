@@ -53,25 +53,38 @@ export class CreateTratamientoInsumosTable1765307000000
       true,
     );
 
-    await queryRunner.createForeignKey(
-      'tratamiento_insumos',
-      new TableForeignKey({
-        columnNames: ['id_tratamiento'],
-        referencedTableName: 'tratamientos',
-        referencedColumnNames: ['id_tratamiento'],
-        onDelete: 'CASCADE',
-      }),
-    );
+    const table = await queryRunner.getTable('tratamiento_insumos');
+    if (table) {
+      const fkTratamiento = table.foreignKeys.find(
+        (fk) => fk.columnNames.indexOf('id_tratamiento') !== -1,
+      );
+      if (!fkTratamiento) {
+        await queryRunner.createForeignKey(
+          'tratamiento_insumos',
+          new TableForeignKey({
+            columnNames: ['id_tratamiento'],
+            referencedTableName: 'tratamientos',
+            referencedColumnNames: ['id_tratamiento'],
+            onDelete: 'CASCADE',
+          }),
+        );
+      }
 
-    await queryRunner.createForeignKey(
-      'tratamiento_insumos',
-      new TableForeignKey({
-        columnNames: ['id_insumo'],
-        referencedTableName: 'insumos',
-        referencedColumnNames: ['id_insumo'],
-        onDelete: 'CASCADE',
-      }),
-    );
+      const fkInsumo = table.foreignKeys.find(
+        (fk) => fk.columnNames.indexOf('id_insumo') !== -1,
+      );
+      if (!fkInsumo) {
+        await queryRunner.createForeignKey(
+          'tratamiento_insumos',
+          new TableForeignKey({
+            columnNames: ['id_insumo'],
+            referencedTableName: 'insumos',
+            referencedColumnNames: ['id_insumo'],
+            onDelete: 'CASCADE',
+          }),
+        );
+      }
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

@@ -14,6 +14,7 @@ import { Workbook } from 'exceljs';
 import PDFDocument = require('pdfkit');
 import * as fs from 'fs';
 import * as path from 'path';
+import { ChartDataset } from 'chart.js';
 
 export type MetricKey =
   | 'temperatura'
@@ -33,16 +34,6 @@ function normalizeMetric(metric?: string): MetricKey | undefined {
   if (m === 'humedad_suelo_porcentaje') return 'humedad_suelo_porcentaje';
   if (m === 'bomba_estado' || m === 'bomba') return 'bomba_estado';
   return undefined;
-}
-
-// Función para convertir valores ADC de humedad del suelo a porcentaje
-function convertirHumedadSuelo(valor: number): number {
-  const valorMaximo = valor > 2000 ? 4095 : 1023;
-
-  // Conversión a porcentaje
-  const humedadPorcentaje = ((valorMaximo - valor) / valorMaximo) * 100;
-
-  return Math.max(0, Math.min(100, humedadPorcentaje));
 }
 
 @Injectable()
@@ -65,6 +56,16 @@ export class ReportsService {
     private readonly ingresoRepo: Repository<Ingreso>,
     @InjectRepository(Salida) private readonly salidaRepo: Repository<Salida>,
   ) {}
+
+  // Función para convertir valores ADC de humedad del suelo a porcentaje
+  private convertirHumedadSuelo(valor: number): number {
+    const valorMaximo = valor > 2000 ? 4095 : 1023;
+
+    // Conversión a porcentaje
+    const humedadPorcentaje = ((valorMaximo - valor) / valorMaximo) * 100;
+
+    return Math.max(0, Math.min(100, humedadPorcentaje));
+  }
 
   async obtenerLecturasPorTopic(
     topic: string,
@@ -153,7 +154,7 @@ export class ReportsService {
         if (!Number.isFinite(valor)) return null;
 
         if (l.unidad_medida === 'humedad_suelo_adc') {
-          return convertirHumedadSuelo(valor);
+          return this.convertirHumedadSuelo(valor);
         }
 
         return valor;
@@ -255,7 +256,7 @@ export class ReportsService {
     lecturas.forEach((l) => {
       let valor = Number(l.valor);
       if (l.unidad_medida === 'humedad_suelo_adc') {
-        valor = convertirHumedadSuelo(valor);
+        valor = this.convertirHumedadSuelo(valor);
       }
       wsDatos.addRow({
         fecha: l.fecha,
@@ -1262,6 +1263,141 @@ export class ReportsService {
     return Array(numCols).fill(baseWidth);
   }
 
+  private async generateChartImageWithQuickChart(
+    lecturas: any[],
+    metric: string,
+    title: string,
+    width: number,
+    height: number,
+    anomalyThresholds?: { minCritico: number; maxCritico: number },
+  ): Promise<Buffer> {
+    const QuickChart = require('quickchart-js');
+    const myChart = new QuickChart();
+
+    const chartLabels = lecturas.map((l) =>
+      new Date(l.fecha).toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: 'numeric',
+        month: 'numeric',
+      }),
+    );
+    const chartData = lecturas.map((l) => {
+      let valor = Number(l.valor);
+      if (l.unidad_medida === 'humedad_suelo_adc') {
+        valor = this.convertirHumedadSuelo(valor);
+      }
+      return valor;
+    });
+
+    const datasets: ChartDataset[] = [
+      {
+        label: title,
+        data: chartData,
+        fill: false,
+        borderColor: 'rgba(75, 192, 192, 1)',
+        tension: 0.1,
+        pointRadius: 2,
+      },
+    ];
+
+    if (anomalyThresholds && anomalyThresholds.minCritico !== null && anomalyThresholds.maxCritico !== null) {
+      const anomalyPointsMin = chartData.map((val) =>
+        val < anomalyThresholds.minCritico ? val : null,
+      );
+      const anomalyPointsMax = chartData.map((val) =>
+        val > anomalyThresholds.maxCritico ? val : null,
+      );
+
+      if (anomalyPointsMin.some(p => p !== null)) {
+        datasets.push({
+          label: 'Anomalía (Bajo)',
+          data: anomalyPointsMin.filter(p => p !== null) as number[],
+          pointBackgroundColor: 'red',
+          pointBorderColor: 'red',
+          pointRadius: 5,
+          type: 'scatter',
+        });
+      }
+      if (anomalyPointsMax.some(p => p !== null)) {
+        datasets.push({
+          label: 'Anomalía (Alto)',
+          data: anomalyPointsMax.filter(p => p !== null) as number[],
+          pointBackgroundColor: 'orange',
+          pointBorderColor: 'orange',
+          pointRadius: 5,
+          type: 'scatter',
+        });
+      }
+    }
+
+
+    myChart.setConfig({
+      type: 'line',
+      data: {
+        labels: chartLabels,
+        datasets: datasets,
+      },
+      options: {
+        title: {
+          display: true,
+          text: title,
+          fontSize: 16,
+        },
+        scales: {
+          xAxes: [{
+            type: 'category',
+            labels: chartLabels,
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45,
+            },
+          }],
+          yAxes: [{
+            scaleLabel: {
+              display: true,
+              labelString: metric,
+            },
+          }],
+        },
+        annotation: {
+          annotations: [
+            anomalyThresholds && anomalyThresholds.minCritico !== null ? {
+              type: 'line',
+              mode: 'horizontal',
+              scaleID: 'y-axis-0',
+              value: anomalyThresholds.minCritico,
+              borderColor: 'rgba(255, 0, 0, 0.5)',
+              borderWidth: 2,
+              label: {
+                content: `Min Crítico: ${anomalyThresholds.minCritico.toFixed(1)}`,
+                enabled: true,
+                position: 'top',
+              },
+            } : null,
+            anomalyThresholds && anomalyThresholds.maxCritico !== null ? {
+              type: 'line',
+              mode: 'horizontal',
+              scaleID: 'y-axis-0',
+              value: anomalyThresholds.maxCritico,
+              borderColor: 'rgba(255, 0, 0, 0.5)',
+              borderWidth: 2,
+              label: {
+                content: `Max Crítico: ${anomalyThresholds.maxCritico.toFixed(1)}`,
+                enabled: true,
+                position: 'bottom',
+              },
+            } : null,
+          ].filter(Boolean),
+        },
+      },
+    });
+
+    myChart.setWidth(width).setHeight(height).setFormat('png');
+
+    return myChart.toBuffer();
+  }
+
   async obtenerSensoresConUbicaciones() {
     try {
       const sensores = await this.sensorRepo
@@ -1768,10 +1904,22 @@ export class ReportsService {
     hasta?: Date,
     bombaData?: any,
   ) {
-    pdf
-      .fontSize(28)
-      .text('AGROTIC – REPORTE DE SENSORES IoT', { align: 'center' });
-    pdf.moveDown(1);
+    const margin = 50;
+    let currentYPosition = 50;
+    const logoPath = path.join(__dirname, '../../assets/logo.svg');
+    if (fs.existsSync(logoPath)) {
+      pdf.image(logoPath, margin, currentYPosition, { width: 80, height: 80 });
+      pdf.fontSize(24).text('AGROTIC', margin + 100, currentYPosition + 20);
+      pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin + 100, currentYPosition + 45);
+      pdf.fontSize(14).text('Reporte Integral de Sensores IoT', margin + 100, currentYPosition + 65);
+      currentYPosition += 90; 
+    } else {
+      pdf
+        .fontSize(28)
+        .text('AGROTIC – REPORTE DE SENSORES IoT', { align: 'center' });
+      currentYPosition += 50; 
+    }
+    pdf.y = currentYPosition; 
 
     // Fecha y hora de generación
     const fechaGeneracion = new Date().toLocaleString('es-CO', {
@@ -1786,7 +1934,7 @@ export class ReportsService {
     pdf
       .fontSize(12)
       .text(`Generado el: ${fechaGeneracion}`, { align: 'center' });
-    pdf.moveDown(2);
+    pdf.moveDown(1);
 
     pdf.fontSize(18).text('DATOS MÁS IMPORTANTES', { underline: true });
     pdf.moveDown(1);
@@ -1849,11 +1997,12 @@ export class ReportsService {
     pdf.addPage();
   }
 
-  private addGraficasPequenasSensoresToPDF(pdf: any, lecturas: any[]) {
-    pdf.fontSize(18).text('GRÁFICAS POR SENSOR', { underline: true });
+  private async addGraficasPequenasSensoresToPDF(pdf: any, lecturas: any[]) {
+    pdf.addPage(); 
+    pdf.fontSize(18).text('GRÁFICAS POR SENSOR', { underline: true, align: 'center' });
     pdf.moveDown(1);
 
-    const metricas = [
+    const metricas: MetricKey[] = [
       'temperatura',
       'humedad_aire',
       'humedad_suelo_porcentaje',
@@ -1866,98 +2015,51 @@ export class ReportsService {
       bomba_estado: '💦 ESTADO BOMBA',
     };
 
-    const cols = 2;
-    const rows = 2;
-    const graphWidth = 250;
-    const graphHeight = 150;
+    const cols = 1;
+    const graphWidth = 500;
+    const graphHeight = 250;
     const startX = 50;
-    const startY = pdf.y + 20;
-    const spacingX = 20;
-    const spacingY = 20;
+    let currentY = pdf.y + 20;
+    const spacingY = 30; 
 
-    metricas.forEach((metrica, index) => {
+    for (const metrica of metricas) {
       const lecturasMetrica = lecturas.filter(
-        (l) => l.unidad_medida === metrica,
+        (l) => l.unidad_medida === metrica && Number.isFinite(Number(l.valor)),
       );
 
       if (lecturasMetrica.length > 1) {
-        const col = index % cols;
-        const row = Math.floor(index / cols);
+        const valoresMetrica = lecturasMetrica.map((l) =>
+            l.unidad_medida === 'humedad_suelo_adc' ? this.convertirHumedadSuelo(Number(l.valor)) : Number(l.valor)
+        );
+        const umbrales = this.calcularUmbrales(valoresMetrica);
 
-        const x = startX + col * (graphWidth + spacingX);
-        const y = startY + row * (graphHeight + spacingY + 30);
-
-        pdf.fontSize(12).text(titulos[metrica], x, y - 15);
-
-        this.drawSmallTimeSeriesGraph(
-          pdf,
+        const chartBuffer = await this.generateChartImageWithQuickChart(
           lecturasMetrica,
-          x,
-          y,
+          metrica,
+          titulos[metrica],
           graphWidth,
           graphHeight,
+          umbrales && umbrales.minimoCritico !== null && umbrales.maximoCritico !== null
+            ? {
+                minCritico: umbrales.minimoCritico,
+                maxCritico: umbrales.maximoCritico,
+              }
+            : undefined, 
         );
-      }
-    });
-  }
 
-  private drawSmallTimeSeriesGraph(
-    pdf: any,
-    lecturas: any[],
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ) {
-    if (lecturas.length < 2) return;
-
-    const margin = 20;
-    const plotX = x + margin;
-    const plotY = y + margin;
-    const plotWidth = width - 2 * margin;
-    const plotHeight = height - 2 * margin;
-
-    const puntos = lecturas
-      .map((l) => {
-        let valor = Number(l.valor);
-        if (l.unidad_medida === 'humedad_suelo_adc') {
-          valor = convertirHumedadSuelo(valor);
+        if (chartBuffer) {
+          if (currentY + graphHeight + spacingY > pdf.page.height - 50) {
+            pdf.addPage();
+            currentY = 50; 
+          }
+          pdf.image(chartBuffer, startX, currentY, { width: graphWidth, height: graphHeight });
+          currentY += graphHeight + spacingY;
         }
-        return {
-          fecha: new Date(l.fecha).getTime(),
-          valor: valor,
-        };
-      })
-      .filter((p) => !isNaN(p.valor));
-
-    if (puntos.length < 2) return;
-
-    const fechas = puntos.map((p) => p.fecha);
-    const valores = puntos.map((p) => p.valor);
-    const minFecha = Math.min(...fechas);
-    const maxFecha = Math.max(...fechas);
-    const minValor = Math.min(...valores);
-    const maxValor = Math.max(...valores);
-
-    pdf.rect(plotX, plotY, plotWidth, plotHeight).stroke();
-
-    const scaleX = (fecha: number) =>
-      plotX + ((fecha - minFecha) / (maxFecha - minFecha || 1)) * plotWidth;
-    const scaleY = (valor: number) =>
-      plotY +
-      plotHeight -
-      ((valor - minValor) / (maxValor - minValor || 1)) * plotHeight;
-
-    pdf.strokeColor('#2563eb').lineWidth(1.5);
-    pdf.moveTo(scaleX(puntos[0].fecha), scaleY(puntos[0].valor));
-
-    for (let i = 1; i < puntos.length; i++) {
-      pdf.lineTo(scaleX(puntos[i].fecha), scaleY(puntos[i].valor));
+      }
     }
-    pdf.stroke();
-
-    pdf.fontSize(8).fillColor('#6b7280');
   }
+
+
 
   async buildExcelIoTCompletas(desde?: Date, hasta?: Date) {
     console.log('Iniciando generación de Excel IoT...');
@@ -2082,7 +2184,7 @@ export class ReportsService {
       .forEach((lectura) => {
         let valor = Number(lectura.valor);
         if (lectura.unidad_medida === 'humedad_suelo_adc') {
-          valor = convertirHumedadSuelo(valor);
+          valor = this.convertirHumedadSuelo(valor);
         }
         wsHumedadSuelo.addRow({
           fecha: new Date(lectura.fecha).toISOString().split('T')[0],

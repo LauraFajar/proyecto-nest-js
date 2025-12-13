@@ -5,37 +5,51 @@ export class AddSubloteIdToSensores1757197340000 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-            ALTER TABLE "sensores"
-            ADD COLUMN IF NOT EXISTS "id_sublote" integer
-        `);
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'sensores') THEN
+          ALTER TABLE "sensores"
+          ADD COLUMN IF NOT EXISTS "id_sublote" integer;
+        END IF;
+      END $$;
+    `);
 
     await queryRunner.query(`
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.table_constraints
-                    WHERE table_name = 'sensores'
-                    AND constraint_name = 'FK_sensores_sublotes'
-                ) THEN
-                    ALTER TABLE "sensores"
-                    ADD CONSTRAINT "FK_sensores_sublotes"
-                    FOREIGN KEY ("id_sublote")
-                    REFERENCES "sublotes"("id_sublote");
-                END IF;
-            END;
-            $$;
-        `);
+      DO $$
+      BEGIN
+          IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'sensores') AND
+             EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'sublotes') AND
+             NOT EXISTS (
+                 SELECT 1 FROM information_schema.table_constraints
+                 WHERE table_name = 'sensores'
+                 AND constraint_name = 'FK_sensores_sublotes'
+             ) THEN
+              ALTER TABLE "sensores"
+              ADD CONSTRAINT "FK_sensores_sublotes"
+              FOREIGN KEY ("id_sublote")
+              REFERENCES "sublotes"("id_sublote");
+          END IF;
+      END;
+      $$;
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-            ALTER TABLE "sensores"
-            DROP CONSTRAINT IF EXISTS "FK_sensores_sublotes"
-        `);
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'sensores') THEN
+          ALTER TABLE "sensores"
+          DROP CONSTRAINT IF EXISTS "FK_sensores_sublotes";
+        END IF;
+      END $$;
+    `);
 
     await queryRunner.query(`
-            ALTER TABLE "sensores"
-            DROP COLUMN IF EXISTS "id_sublote"
-        `);
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'sensores') THEN
+          ALTER TABLE "sensores"
+          DROP COLUMN IF EXISTS "id_sublote";
+        END IF;
+      END $$;
+    `);
   }
 }

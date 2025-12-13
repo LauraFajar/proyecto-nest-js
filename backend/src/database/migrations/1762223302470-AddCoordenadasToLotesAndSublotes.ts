@@ -7,10 +7,10 @@ export class AddCoordenadasToLotesAndSublotes1762223302470
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "lotes" ADD "coordenadas" geography(Polygon,4326)`,
+      `ALTER TABLE "lotes" ADD COLUMN IF NOT EXISTS "coordenadas" geography(Polygon,4326)`,
     );
     await queryRunner.query(
-      `ALTER TABLE "sublotes" ADD "coordenadas" geography(Polygon,4326)`,
+      `ALTER TABLE "sublotes" ADD COLUMN IF NOT EXISTS "coordenadas" geography(Polygon,4326)`,
     );
   }
 
