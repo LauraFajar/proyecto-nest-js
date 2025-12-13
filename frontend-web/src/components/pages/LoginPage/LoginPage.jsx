@@ -38,7 +38,7 @@ const LoginPage = () => {
     <div className="login-page">
       <img 
         src="/logos/logo.svg" 
-        alt="AgroTIC" 
+        alt="AGROTIC" 
         className="login-logo"
       />
       

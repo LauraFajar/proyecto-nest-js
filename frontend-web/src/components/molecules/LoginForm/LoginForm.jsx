@@ -67,7 +67,7 @@ const LoginForm = () => {
     <form className="login-form" onSubmit={handleSubmit}>
       <div className="login-form__header">
         <h2 className="login-form__title">Iniciar Sesión</h2>
-        <p className="login-form__subtitle">Accede a tu cuenta AgroTIC</p>
+        <p className="login-form__subtitle">Accede a tu cuenta AGROTIC</p>
       </div>
 
       <div className="login-form__fields">

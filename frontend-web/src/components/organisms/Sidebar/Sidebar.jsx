@@ -133,7 +133,7 @@ const Sidebar = ({ activeItem = 'inicio', onItemClick, expandedItems = {}, user 
         <Link to="/" className="sidebar__logo">
           <img
             src="/logos/logo.svg"
-            alt="AgroTIC"
+            alt="AGROTIC"
             className="sidebar__logo-img"
           />
         </Link>
