@@ -3,7 +3,7 @@ import { CreateActividadeDto } from './create-actividade.dto';
 import { IsNumber, IsOptional } from 'class-validator';
 
 export class UpdateActividadeDto extends PartialType(CreateActividadeDto) {
-  @IsNumber() 
+  @IsNumber()
   @IsOptional()
   id_cultivo?: number;
 

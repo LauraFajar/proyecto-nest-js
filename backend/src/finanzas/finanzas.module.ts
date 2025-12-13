@@ -9,7 +9,10 @@ import { Cultivo } from '../cultivos/entities/cultivo.entity';
 import { PermisosModule } from '../permisos/permisos.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Ingreso, Salida, Actividad, Cultivo]), PermisosModule],
+  imports: [
+    TypeOrmModule.forFeature([Ingreso, Salida, Actividad, Cultivo]),
+    PermisosModule,
+  ],
   controllers: [FinanzasController],
   providers: [FinanzasService],
 })

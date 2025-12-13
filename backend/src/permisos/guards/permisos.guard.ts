@@ -7,11 +7,21 @@ type PermisoRequirement = string | { recurso: string; accion?: string };
 
 @Injectable()
 export class PermisosGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector, private readonly permisosService: PermisosService) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly permisosService: PermisosService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.get<PermisoRequirement[]>('permisos', context.getHandler());
-    const mode = this.reflector.get<'all' | 'any'>('permisos_mode', context.getHandler()) ?? 'all';
+    const required = this.reflector.get<PermisoRequirement[]>(
+      'permisos',
+      context.getHandler(),
+    );
+    const mode =
+      this.reflector.get<'all' | 'any'>(
+        'permisos_mode',
+        context.getHandler(),
+      ) ?? 'all';
     if (!required || required.length === 0) return true;
 
     const request = context.switchToHttp().getRequest();
@@ -23,7 +33,9 @@ export class PermisosGuard implements CanActivate {
       return true;
     }
 
-    const userPermClaves = await this.permisosService.getUserPermissions(user.id);
+    const userPermClaves = await this.permisosService.getUserPermissions(
+      user.id,
+    );
 
     const match = (req: PermisoRequirement): boolean => {
       if (typeof req === 'string') return userPermClaves.includes(req);

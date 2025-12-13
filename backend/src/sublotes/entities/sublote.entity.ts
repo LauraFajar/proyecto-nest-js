@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn, Polygon } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+  Polygon,
+} from 'typeorm';
 import { Lote } from '../../lotes/entities/lote.entity';
 import { Sensor } from '../../sensores/entities/sensor.entity';
 
@@ -17,7 +25,7 @@ export class Sublote {
   @Column({ type: 'varchar', length: 50, nullable: false })
   ubicacion: string;
 
-  @OneToMany(() => Sensor, sensor => sensor.id_sublote)
+  @OneToMany(() => Sensor, (sensor) => sensor.id_sublote)
   sensores: Sensor[];
 
   @Column({

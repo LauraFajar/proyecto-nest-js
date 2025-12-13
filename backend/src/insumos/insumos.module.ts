@@ -10,7 +10,11 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { InventarioModule } from '../inventario/inventario.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Insumo, Categoria, Almacen]), PermisosModule, InventarioModule],
+  imports: [
+    TypeOrmModule.forFeature([Insumo, Categoria, Almacen]),
+    PermisosModule,
+    InventarioModule,
+  ],
   controllers: [InsumosController],
   providers: [InsumosService, RolesGuard],
   exports: [TypeOrmModule],

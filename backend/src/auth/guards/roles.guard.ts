@@ -7,12 +7,25 @@ type PermisoRequirement = string | { recurso: string; accion?: string };
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector, private readonly permisosService: PermisosService) {}
+  constructor(
+    private reflector: Reflector,
+    private readonly permisosService: PermisosService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean | Promise<boolean> {
-    const requiredRoles = this.reflector.get<Role[]>('roles', context.getHandler());
-    const permRequired = this.reflector.get<PermisoRequirement[]>('permisos', context.getHandler());
-    const permMode = this.reflector.get<'all' | 'any'>('permisos_mode', context.getHandler()) ?? 'all';
+    const requiredRoles = this.reflector.get<Role[]>(
+      'roles',
+      context.getHandler(),
+    );
+    const permRequired = this.reflector.get<PermisoRequirement[]>(
+      'permisos',
+      context.getHandler(),
+    );
+    const permMode =
+      this.reflector.get<'all' | 'any'>(
+        'permisos_mode',
+        context.getHandler(),
+      ) ?? 'all';
 
     // Si no hay roles ni permisos requeridos, permitir acceso
     if (!requiredRoles && (!permRequired || permRequired.length === 0)) {
@@ -38,8 +51,13 @@ export class RolesGuard implements CanActivate {
     return false;
   }
 
-  private async checkPermissions(userId: number, required: PermisoRequirement[], mode: 'all' | 'any'): Promise<boolean> {
-    const userPermClaves = await this.permisosService.getUserPermissions(userId);
+  private async checkPermissions(
+    userId: number,
+    required: PermisoRequirement[],
+    mode: 'all' | 'any',
+  ): Promise<boolean> {
+    const userPermClaves =
+      await this.permisosService.getUserPermissions(userId);
 
     const match = (req: PermisoRequirement): boolean => {
       if (typeof req === 'string') return userPermClaves.includes(req);

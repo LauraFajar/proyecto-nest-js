@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { TratamientosService } from './tratamientos.service';
 import { CreateTratamientoDto } from './dto/create-tratamiento.dto';
 import { UpdateTratamientoDto } from './dto/update-tratamiento.dto';
@@ -23,11 +34,9 @@ export class TratamientosController {
   @Get()
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern)
   @Permisos({ recurso: 'tratamientos', accion: 'ver' })
-  findAll(
-    @Query('epaId') epaIdRaw?: string,
-    @Query('tipo') tipo?: string,
-  ) {
-    const epaId = epaIdRaw && /^\d+$/.test(epaIdRaw) ? parseInt(epaIdRaw, 10) : undefined;
+  findAll(@Query('epaId') epaIdRaw?: string, @Query('tipo') tipo?: string) {
+    const epaId =
+      epaIdRaw && /^\d+$/.test(epaIdRaw) ? parseInt(epaIdRaw, 10) : undefined;
     return this.tratamientosService.findAll(epaId, tipo);
   }
 
@@ -45,7 +54,6 @@ export class TratamientosController {
     @Param('id', new ParseIntPipe()) id: number,
     @Body() updateTratamientoDto: UpdateTratamientoDto,
   ) {
-
     return this.tratamientosService.update(id, updateTratamientoDto);
   }
 

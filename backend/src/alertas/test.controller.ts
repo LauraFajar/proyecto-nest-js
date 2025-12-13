@@ -3,9 +3,7 @@ import { AlertSchedulerService } from './services/alert-scheduler.service';
 
 @Controller('test')
 export class TestController {
-  constructor(
-    private readonly alertSchedulerService: AlertSchedulerService,
-  ) {}
+  constructor(private readonly alertSchedulerService: AlertSchedulerService) {}
 
   @Post('alerts')
   async testAlerts() {

@@ -1,4 +1,13 @@
-import { IsString, Length, IsNumber, IsNotEmpty, IsEnum, IsOptional, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  Length,
+  IsNumber,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class TratamientoInsumoDto {
@@ -32,7 +41,9 @@ export class CreateTratamientoDto {
   frecuencia: string;
 
   @IsOptional()
-  @IsEnum(['Biologico', 'Quimico'], { message: 'El tipo debe ser Biologico o Quimico' })
+  @IsEnum(['Biologico', 'Quimico'], {
+    message: 'El tipo debe ser Biologico o Quimico',
+  })
   tipo?: 'Biologico' | 'Quimico';
 
   @Type(() => Number)

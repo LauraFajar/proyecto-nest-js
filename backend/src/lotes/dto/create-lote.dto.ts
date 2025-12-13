@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsArray, IsNotEmpty, IsBoolean, Length } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsNotEmpty,
+  IsBoolean,
+  Length,
+} from 'class-validator';
 
 export class CreateLoteDto {
   @IsString()

@@ -29,12 +29,23 @@ export class RealizaSeeder {
     ];
 
     for (const item of data) {
-      const usuario = await this.usuarioRepository.findOne({ where: { id_usuarios: item.id_usuario } });
-      const actividad = await this.actividadRepository.findOne({ where: { id_actividad: item.id_actividad } });
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id_usuarios: item.id_usuario },
+      });
+      const actividad = await this.actividadRepository.findOne({
+        where: { id_actividad: item.id_actividad },
+      });
       if (usuario && actividad) {
-        const exists = await this.realizaRepository.findOne({ where: { usuario: { id_usuarios: usuario.id_usuarios }, actividad: { id_actividad: actividad.id_actividad } } });
+        const exists = await this.realizaRepository.findOne({
+          where: {
+            usuario: { id_usuarios: usuario.id_usuarios },
+            actividad: { id_actividad: actividad.id_actividad },
+          },
+        });
         if (!exists) {
-          await this.realizaRepository.save(this.realizaRepository.create({ usuario, actividad }));
+          await this.realizaRepository.save(
+            this.realizaRepository.create({ usuario, actividad }),
+          );
         }
       }
     }

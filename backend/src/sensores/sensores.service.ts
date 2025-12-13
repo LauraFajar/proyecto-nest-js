@@ -25,11 +25,13 @@ export class SensoresService {
   ): Promise<void> {
     try {
       const sensor = await this.sensorRepository.findOne({
-        where: { mqtt_topic: topic }
+        where: { mqtt_topic: topic },
       });
 
       if (!sensor) {
-        this.logger.warn(`Sensor con topic ${topic} no encontrado, creando registro temporal`);
+        this.logger.warn(
+          `Sensor con topic ${topic} no encontrado, creando registro temporal`,
+        );
         const nuevoSensor = this.sensorRepository.create({
           tipo_sensor: metric,
           mqtt_topic: topic,
@@ -38,10 +40,23 @@ export class SensoresService {
           ultima_lectura: new Date(),
           valor_minimo: valor,
           valor_maximo: valor,
-          historial_lecturas: [{ valor, timestamp: new Date(), unidad_medida: metric, observaciones: 'Lectura MQTT' }]
+          historial_lecturas: [
+            {
+              valor,
+              timestamp: new Date(),
+              unidad_medida: metric,
+              observaciones: 'Lectura MQTT',
+            },
+          ],
         });
         await this.sensorRepository.save(nuevoSensor);
-        await this.registrarLecturaPorTopic(nuevoSensor, topic, valor, new Date(), metric); // Pasar el nuevoSensor
+        await this.registrarLecturaPorTopic(
+          nuevoSensor,
+          topic,
+          valor,
+          new Date(),
+          metric,
+        ); // Pasar el nuevoSensor
         return;
       }
 
@@ -49,31 +64,53 @@ export class SensoresService {
         ? sensor.historial_lecturas
         : [];
 
-      historial.push({ valor, timestamp: new Date(), unidad_medida: metric, observaciones: 'Lectura MQTT' });
+      historial.push({
+        valor,
+        timestamp: new Date(),
+        unidad_medida: metric,
+        observaciones: 'Lectura MQTT',
+      });
       if (historial.length > 100) {
         historial.shift();
       }
 
       // Actualizar valores
-      await this.sensorRepository.update({ id_sensor: sensor.id_sensor }, {
-        valor_actual: valor as any,
-        ultima_lectura: new Date(),
-        valor_minimo: Math.min(sensor.valor_minimo || valor, valor),
-        valor_maximo: Math.max(sensor.valor_maximo || valor, valor),
-        historial_lecturas: historial as any,
-      });
+      await this.sensorRepository.update(
+        { id_sensor: sensor.id_sensor },
+        {
+          valor_actual: valor as any,
+          ultima_lectura: new Date(),
+          valor_minimo: Math.min(sensor.valor_minimo || valor, valor),
+          valor_maximo: Math.max(sensor.valor_maximo || valor, valor),
+          historial_lecturas: historial as any,
+        },
+      );
 
-      await this.registrarLecturaPorTopic(sensor, topic, valor, new Date(), metric); 
+      await this.registrarLecturaPorTopic(
+        sensor,
+        topic,
+        valor,
+        new Date(),
+        metric,
+      );
 
-      this.logger.log(`Lectura actualizada para sensor ${sensor.id_sensor} (${metric}): ${valor}`);
+      this.logger.log(
+        `Lectura actualizada para sensor ${sensor.id_sensor} (${metric}): ${valor}`,
+      );
     } catch (error) {
-      this.logger.error(`Error actualizando lectura para topic ${topic}:`, error);
+      this.logger.error(
+        `Error actualizando lectura para topic ${topic}:`,
+        error,
+      );
     }
   }
 
   async findAll(): Promise<Sensor[]> {
     try {
-      if (!this.sensorRepository || !this.sensorRepository.manager?.connection?.isConnected) {
+      if (
+        !this.sensorRepository ||
+        !this.sensorRepository.manager?.connection?.isConnected
+      ) {
         this.logger.warn('Database not connected, returning empty array');
         return [];
       }
@@ -81,14 +118,22 @@ export class SensoresService {
       try {
         this.sensorRepository.metadata;
       } catch (metadataError) {
-        this.logger.warn(`Entity metadata not loaded for Sensor: ${metadataError.message}. Returning empty array.`);
+        this.logger.warn(
+          `Entity metadata not loaded for Sensor: ${metadataError.message}. Returning empty array.`,
+        );
         return [];
       }
-      
+
       return await this.sensorRepository.find();
     } catch (error) {
-      if (error instanceof Error && error.message.includes('No metadata for "Sensor" was found')) {
-        this.logger.error(`Entity "Sensor" not found in TypeORM metadata. This may indicate a configuration issue.`, error);
+      if (
+        error instanceof Error &&
+        error.message.includes('No metadata for "Sensor" was found')
+      ) {
+        this.logger.error(
+          `Entity "Sensor" not found in TypeORM metadata. This may indicate a configuration issue.`,
+          error,
+        );
       } else {
         this.logger.error(`Error in findAll():`, error);
       }
@@ -100,7 +145,10 @@ export class SensoresService {
     return this.sensorRepository.findOne({ where: { id_sensor } });
   }
 
-  async update(id_sensor: number, data: Partial<Sensor>): Promise<Sensor | null> {
+  async update(
+    id_sensor: number,
+    data: Partial<Sensor>,
+  ): Promise<Sensor | null> {
     await this.sensorRepository.update({ id_sensor }, data);
     return this.findOne(id_sensor);
   }
@@ -113,14 +161,17 @@ export class SensoresService {
   }
 
   async registrarLecturaPorTopic(
-    sensor: Sensor, 
+    sensor: Sensor,
     topic: string,
     valor: number,
     fecha?: Date,
     metric?: string,
   ): Promise<Lectura | null> {
     try {
-      if (!this.lecturaRepository || !this.lecturaRepository.manager?.connection?.isConnected) {
+      if (
+        !this.lecturaRepository ||
+        !this.lecturaRepository.manager?.connection?.isConnected
+      ) {
         this.logger.warn('Database not connected, skipping lecture save');
         return null;
       }
@@ -128,12 +179,14 @@ export class SensoresService {
       try {
         this.lecturaRepository.metadata;
       } catch (metadataError) {
-        this.logger.warn(`Entity metadata not loaded for Lectura: ${metadataError.message}. Skipping save.`);
+        this.logger.warn(
+          `Entity metadata not loaded for Lectura: ${metadataError.message}. Skipping save.`,
+        );
         return null;
       }
-      
+
       const lectura = this.lecturaRepository.create({
-        sensor: sensor, 
+        sensor: sensor,
         mqtt_topic: topic,
         valor,
         fecha: fecha ?? new Date(),
@@ -141,8 +194,14 @@ export class SensoresService {
       });
       return await this.lecturaRepository.save(lectura);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('No metadata for "Lectura" was found')) {
-        this.logger.warn(`Entity "Lectura" not found in TypeORM metadata. This may indicate a configuration issue.`, error);
+      if (
+        error instanceof Error &&
+        error.message.includes('No metadata for "Lectura" was found')
+      ) {
+        this.logger.warn(
+          `Entity "Lectura" not found in TypeORM metadata. This may indicate a configuration issue.`,
+          error,
+        );
       } else {
         this.logger.error(`Error saving lecture for topic ${topic}:`, error);
       }
@@ -160,11 +219,14 @@ export class SensoresService {
 
     historial.push({ valor, timestamp: new Date() });
 
-    await this.sensorRepository.update({ id_sensor }, {
-      valor_actual: valor as any,
-      ultima_lectura: new Date(),
-      historial_lecturas: historial as any,
-    });
+    await this.sensorRepository.update(
+      { id_sensor },
+      {
+        valor_actual: valor as any,
+        ultima_lectura: new Date(),
+        historial_lecturas: historial as any,
+      },
+    );
   }
 
   async inicializarConexionesMqtt(): Promise<void> {
@@ -175,8 +237,7 @@ export class SensoresService {
           if (typeof (this.mqttService as any).subscribe === 'function') {
             (this.mqttService as any).subscribe(sensor);
           }
-        } catch (e) {
-        }
+        } catch (e) {}
       }
     }
   }

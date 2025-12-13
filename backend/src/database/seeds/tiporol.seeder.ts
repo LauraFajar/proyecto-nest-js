@@ -1,4 +1,3 @@
-
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Tiporol } from 'src/tiporol/entities/tiporol.entity';
@@ -20,7 +19,9 @@ export class TipoRolSeeder {
     ];
 
     for (const item of data) {
-      const exists = await this.tiporolRepository.findOne({ where: { descripcion: item.descripcion } });
+      const exists = await this.tiporolRepository.findOne({
+        where: { descripcion: item.descripcion },
+      });
       if (!exists) {
         await this.tiporolRepository.save(this.tiporolRepository.create(item));
       }

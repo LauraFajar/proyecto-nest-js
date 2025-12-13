@@ -46,12 +46,22 @@ export class ActividadSeeder {
     ];
 
     for (const item of data) {
-      const cultivo = await this.cultivoRepository.findOne({ where: { id_cultivo: item.id_cultivo } });
+      const cultivo = await this.cultivoRepository.findOne({
+        where: { id_cultivo: item.id_cultivo },
+      });
       if (cultivo) {
-        const exists = await this.actividadRepository.findOne({ where: { tipo_actividad: item.tipo_actividad, fecha: item.fecha, cultivo: { id_cultivo: cultivo.id_cultivo } } });
+        const exists = await this.actividadRepository.findOne({
+          where: {
+            tipo_actividad: item.tipo_actividad,
+            fecha: item.fecha,
+            cultivo: { id_cultivo: cultivo.id_cultivo },
+          },
+        });
         if (!exists) {
           const { id_cultivo, ...rest } = item;
-          await this.actividadRepository.save(this.actividadRepository.create({ ...rest, cultivo }));
+          await this.actividadRepository.save(
+            this.actividadRepository.create({ ...rest, cultivo }),
+          );
         }
       }
     }

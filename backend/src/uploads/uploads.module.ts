@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
     MulterModule.register({
       storage: diskStorage({
         destination: (req, file, callback) => {
-          const path = req.path.split('/')[1]; 
+          const path = req.path.split('/')[1];
           const dest = `./uploads/${path}`;
           callback(null, dest);
         },
@@ -23,7 +23,10 @@ import { v4 as uuidv4 } from 'uuid';
       }),
       fileFilter: (req, file, callback) => {
         if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
-          return callback(new Error('Solo se permiten archivos de imagen'), false);
+          return callback(
+            new Error('Solo se permiten archivos de imagen'),
+            false,
+          );
         }
         callback(null, true);
       },

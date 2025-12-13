@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn, ManyToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+  ManyToMany,
+} from 'typeorm';
 import { Categoria } from 'src/categorias/entities/categoria.entity';
 import { Almacen } from 'src/almacenes/entities/almacen.entity';
 import { Salida } from 'src/salidas/entities/salida.entity';
@@ -33,30 +41,64 @@ export class Insumo {
   @OneToMany(() => Salida, (salida) => salida.insumo)
   salidas: Salida[];
 
-  @ManyToMany(() => Cultivo, cultivo => cultivo.insumo)
+  @ManyToMany(() => Cultivo, (cultivo) => cultivo.insumo)
   cultivos: Cultivo[];
 
-  @OneToMany(() => TratamientoInsumo, tratamientoInsumo => tratamientoInsumo.id_insumos)
+  @OneToMany(
+    () => TratamientoInsumo,
+    (tratamientoInsumo) => tratamientoInsumo.id_insumos,
+  )
   tratamientoInsumos: TratamientoInsumo[];
 
   @Column({ type: 'boolean', name: 'es_herramienta', default: false })
   es_herramienta: boolean;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, name: 'costo_compra' })
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    name: 'costo_compra',
+  })
   costo_compra?: string;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true, name: 'vida_util_horas' })
+  @Column({
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    name: 'vida_util_horas',
+  })
   vida_util_horas?: string;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, name: 'depreciacion_por_hora' })
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    name: 'depreciacion_por_hora',
+  })
   depreciacion_por_hora?: string;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true, default: 0, name: 'depreciacion_acumulada' })
+  @Column({
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+    default: 0,
+    name: 'depreciacion_acumulada',
+  })
   depreciacion_acumulada?: string;
 
   @Column({ type: 'date', nullable: true, name: 'fecha_compra' })
   fecha_compra?: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: true, name: 'tipo_insumo', default: 'consumible' })
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    name: 'tipo_insumo',
+    default: 'consumible',
+  })
   tipo_insumo?: string;
 }

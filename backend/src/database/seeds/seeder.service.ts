@@ -74,13 +74,34 @@ export class SeederService {
     await this.insumoSeeder.seed();
 
     console.log('Sembrando sublotes...');
-    await this.subloteSeeder.seed();
+    try {
+      await this.subloteSeeder.seed();
+    } catch (e) {
+      console.warn(
+        'SubloteSeeder falló, continuando sin sublotes:',
+        e?.message || e,
+      );
+    }
 
     console.log('Sembrando cultivos (depende de Lote)...');
-    await this.cultivoSeeder.seed();
+    try {
+      await this.cultivoSeeder.seed();
+    } catch (e) {
+      console.warn(
+        'CultivoSeeder falló, continuando sin cultivos:',
+        e?.message || e,
+      );
+    }
 
     console.log('Sembrando tratamientos...');
-    await this.tratamientoSeeder.seed();
+    try {
+      await this.tratamientoSeeder.seed();
+    } catch (e) {
+      console.warn(
+        'TratamientoSeeder falló, continuando sin tratamientos:',
+        e?.message || e,
+      );
+    }
 
     // 3. Entidades con dependencias de nivel 2
     console.log('Sembrando usuarios (depende de Rol)...');
@@ -90,7 +111,14 @@ export class SeederService {
     await this.permisoSeeder.seed();
 
     console.log('Sembrando sensores (depende de Sublote)...');
-    await this.sensorSeeder.seed();
+    try {
+      await this.sensorSeeder.seed();
+    } catch (e) {
+      console.warn(
+        'SensorSeeder falló, continuando sin sensores:',
+        e?.message || e,
+      );
+    }
 
     console.log('Sembrando inventario (depende de Insumo)...');
     await this.inventarioSeeder.seed();
@@ -104,7 +132,9 @@ export class SeederService {
     console.log('Sembrando ingresos (depende de Insumo y Cultivo)...');
     await this.ingresoSeeder.seed();
 
-    console.log('Sembrando salidas (depende de Insumo, Categoria, Almacen y Cultivo)...');
+    console.log(
+      'Sembrando salidas (depende de Insumo, Categoria, Almacen y Cultivo)...',
+    );
     await this.salidaSeeder.seed();
 
     // 4. Entidades de relación (muchos a muchos)

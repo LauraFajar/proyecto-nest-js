@@ -22,23 +22,32 @@ export class InsumosService {
   ) {}
 
   async create(createInsumoDto: CreateInsumoDto) {
-    const { id_categoria, id_almacen, es_herramienta, ...rest } = createInsumoDto;
+    const { id_categoria, id_almacen, es_herramienta, ...rest } =
+      createInsumoDto;
 
     let categoriaEntity: Categoria | undefined;
     let almacenEntity: Almacen | undefined;
 
     if (id_categoria !== undefined) {
-      const categoria = await this.categoriasRepository.findOne({ where: { id_categoria } });
+      const categoria = await this.categoriasRepository.findOne({
+        where: { id_categoria },
+      });
       if (!categoria) {
-        throw new NotFoundException(`Categoria con ID ${id_categoria} no encontrada`);
+        throw new NotFoundException(
+          `Categoria con ID ${id_categoria} no encontrada`,
+        );
       }
       categoriaEntity = categoria;
     }
 
     if (id_almacen !== undefined) {
-      const almacen = await this.almacenesRepository.findOne({ where: { id_almacen } });
+      const almacen = await this.almacenesRepository.findOne({
+        where: { id_almacen },
+      });
       if (!almacen) {
-        throw new NotFoundException(`Almacen con ID ${id_almacen} no encontrado`);
+        throw new NotFoundException(
+          `Almacen con ID ${id_almacen} no encontrado`,
+        );
       }
       almacenEntity = almacen;
     }
@@ -81,23 +90,31 @@ export class InsumosService {
     const updateData: Partial<Insumo> = { ...rest } as Partial<Insumo>;
 
     if (id_categoria !== undefined) {
-      const categoria = await this.categoriasRepository.findOne({ where: { id_categoria } });
+      const categoria = await this.categoriasRepository.findOne({
+        where: { id_categoria },
+      });
       if (!categoria) {
-        throw new NotFoundException(`Categoria con ID ${id_categoria} no encontrada`);
+        throw new NotFoundException(
+          `Categoria con ID ${id_categoria} no encontrada`,
+        );
       }
       updateData.id_categoria = categoria;
     }
 
     if (id_almacen !== undefined) {
-      const almacen = await this.almacenesRepository.findOne({ where: { id_almacen } });
+      const almacen = await this.almacenesRepository.findOne({
+        where: { id_almacen },
+      });
       if (!almacen) {
-        throw new NotFoundException(`Almacen con ID ${id_almacen} no encontrado`);
+        throw new NotFoundException(
+          `Almacen con ID ${id_almacen} no encontrado`,
+        );
       }
       updateData.id_almacen = almacen;
     }
 
     await this.insumosRepository.update(id_insumo, updateData as any);
-    return this.findOne(id_insumo); 
+    return this.findOne(id_insumo);
   }
 
   async remove(id_insumo: number) {

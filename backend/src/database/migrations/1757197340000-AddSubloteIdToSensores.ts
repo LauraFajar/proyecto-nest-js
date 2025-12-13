@@ -1,15 +1,15 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddSubloteIdToSensores1757197340000 implements MigrationInterface {
-    name = 'AddSubloteIdToSensores1757197340000'
+  name = 'AddSubloteIdToSensores1757197340000';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             ALTER TABLE "sensores"
             ADD COLUMN IF NOT EXISTS "id_sublote" integer
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (
@@ -25,17 +25,17 @@ export class AddSubloteIdToSensores1757197340000 implements MigrationInterface {
             END;
             $$;
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             ALTER TABLE "sensores"
             DROP CONSTRAINT IF EXISTS "FK_sensores_sublotes"
         `);
 
-        await queryRunner.query(`
+    await queryRunner.query(`
             ALTER TABLE "sensores"
             DROP COLUMN IF EXISTS "id_sublote"
         `);
-    }
+  }
 }

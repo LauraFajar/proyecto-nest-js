@@ -27,9 +27,13 @@ export class CategoriaSeeder {
     ];
 
     for (const item of data) {
-      const exists = await this.categoriaRepository.findOne({ where: { nombre: item.nombre } });
+      const exists = await this.categoriaRepository.findOne({
+        where: { nombre: item.nombre },
+      });
       if (!exists) {
-        await this.categoriaRepository.save(this.categoriaRepository.create(item));
+        await this.categoriaRepository.save(
+          this.categoriaRepository.create(item),
+        );
       }
     }
   }

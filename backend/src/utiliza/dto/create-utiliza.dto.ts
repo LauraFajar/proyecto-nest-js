@@ -17,4 +17,3 @@ export class CreateUtilizaDto {
   @IsOptional()
   horas_uso?: string;
 }
-

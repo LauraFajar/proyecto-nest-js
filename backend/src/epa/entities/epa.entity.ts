@@ -18,13 +18,13 @@ export class Epa {
   @Column({
     type: 'enum',
     enum: ['enfermedad', 'plaga', 'arvense'],
-    default: 'enfermedad'
+    default: 'enfermedad',
   })
   tipo: string;
 
   @Column({ default: 'activo' })
   estado: string;
 
-  @OneToMany(() => Tratamiento, tratamiento => tratamiento.id_epa)
+  @OneToMany(() => Tratamiento, (tratamiento) => tratamiento.id_epa)
   tratamientos: Tratamiento[];
 }

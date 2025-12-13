@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Polygon } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  Polygon,
+} from 'typeorm';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 import { Sublote } from '../../sublotes/entities/sublote.entity';
 
@@ -16,10 +22,10 @@ export class Lote {
   @Column({ default: true, nullable: false })
   activo: boolean;
 
-  @OneToMany(() => Cultivo, cultivo => cultivo.lote)
+  @OneToMany(() => Cultivo, (cultivo) => cultivo.lote)
   cultivos: Cultivo[];
 
-  @OneToMany(() => Sublote, sublote => sublote.id_lote)
+  @OneToMany(() => Sublote, (sublote) => sublote.id_lote)
   sublotes: Sublote[];
 
   @Column({

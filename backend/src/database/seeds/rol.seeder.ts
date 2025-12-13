@@ -1,4 +1,3 @@
-
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Rol } from 'src/rol/entities/rol.entity';
@@ -24,11 +23,20 @@ export class RolSeeder {
     ];
 
     for (const item of data) {
-      const exists = await this.rolRepository.findOne({ where: { nombre_rol: item.nombre_rol } });
+      const exists = await this.rolRepository.findOne({
+        where: { nombre_rol: item.nombre_rol },
+      });
       if (!exists) {
-        const tipoRol = await this.tiporolRepository.findOne({ where: { descripcion: item.tipo_rol_desc } });
+        const tipoRol = await this.tiporolRepository.findOne({
+          where: { descripcion: item.tipo_rol_desc },
+        });
         if (tipoRol) {
-          await this.rolRepository.save(this.rolRepository.create({ nombre_rol: item.nombre_rol, id_tipo_rol: tipoRol }));
+          await this.rolRepository.save(
+            this.rolRepository.create({
+              nombre_rol: item.nombre_rol,
+              id_tipo_rol: tipoRol,
+            }),
+          );
         }
       }
     }

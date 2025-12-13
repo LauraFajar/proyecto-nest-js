@@ -34,9 +34,17 @@ export class CultivoSeeder {
     ];
 
     for (const item of data) {
-      const lote = await this.loteRepository.findOne({ where: { id_lote: item.id_lote } });
+      const lote = await this.loteRepository.findOne({
+        select: ['id_lote', 'nombre_lote', 'descripcion', 'activo'],
+        where: { id_lote: item.id_lote },
+      });
       if (lote) {
-        const exists = await this.cultivoRepository.findOne({ where: { nombre_cultivo: item.nombre_cultivo, lote: { id_lote: lote.id_lote } } });
+        const exists = await this.cultivoRepository.findOne({
+          where: {
+            nombre_cultivo: item.nombre_cultivo,
+            lote: { id_lote: lote.id_lote },
+          },
+        });
         if (!exists) {
           const { id_lote, ...rest } = item;
           const newCultivo = this.cultivoRepository.create({ ...rest, lote });

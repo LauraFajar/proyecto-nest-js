@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 import { FotoActividad } from './foto-actividad.entity';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
@@ -30,7 +37,7 @@ export class Actividad {
     precision: 12,
     scale: 2,
     nullable: true,
-    default: 0
+    default: 0,
   })
   costo_mano_obra: string;
 
@@ -39,7 +46,7 @@ export class Actividad {
     type: 'numeric',
     precision: 10,
     scale: 2,
-    nullable: true
+    nullable: true,
   })
   horas_trabajadas: string;
 
@@ -48,7 +55,7 @@ export class Actividad {
     type: 'numeric',
     precision: 10,
     scale: 2,
-    nullable: true
+    nullable: true,
   })
   tarifa_hora: string;
 
@@ -58,23 +65,25 @@ export class Actividad {
     precision: 12,
     scale: 2,
     nullable: true,
-    default: 0
+    default: 0,
   })
   costo_maquinaria: string;
 
-  @Column({ 
-    name: 'estado', 
-    type: 'varchar', 
-    length: 20, 
-    nullable: true, 
-    default: 'pendiente'
+  @Column({
+    name: 'estado',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    default: 'pendiente',
   })
   estado: string;
 
   @Column({ name: 'id_cultivo', nullable: true })
   id_cultivo: number;
 
-  @ManyToOne(() => Cultivo, cultivo => cultivo.actividades, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Cultivo, (cultivo) => cultivo.actividades, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'id_cultivo' })
   cultivo: Cultivo;
 
@@ -85,6 +94,6 @@ export class Actividad {
   @OneToMany(() => FotoActividad, (foto) => foto.actividad)
   fotos: FotoActividad[];
 
-  @OneToMany(() => Utiliza, utiliza => utiliza.id_actividades)
+  @OneToMany(() => Utiliza, (utiliza) => utiliza.id_actividades)
   utilizas: Utiliza[];
 }

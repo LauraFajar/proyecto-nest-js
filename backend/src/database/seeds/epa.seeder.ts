@@ -14,13 +14,15 @@ export class EpaSeeder {
     const data = [
       {
         nombre_epa: 'Picudo del plátano',
-        descripcion: 'daña el cultivo y puede transmitirse por las larvas que se alimentan de las raíces',
+        descripcion:
+          'daña el cultivo y puede transmitirse por las larvas que se alimentan de las raíces',
         tipo: 'plaga',
         estado: 'Activo',
       },
       {
         nombre_epa: 'Moniliasis',
-        descripcion: 'causada por el hongo Moniliophthora roreri al cultivo de cacao',
+        descripcion:
+          'causada por el hongo Moniliophthora roreri al cultivo de cacao',
         tipo: 'enfermedad',
         estado: 'Activo',
       },
@@ -33,7 +35,9 @@ export class EpaSeeder {
     ];
 
     for (const item of data) {
-      const exists = await this.epaRepository.findOne({ where: { nombre_epa: item.nombre_epa } });
+      const exists = await this.epaRepository.findOne({
+        where: { nombre_epa: item.nombre_epa },
+      });
       if (!exists) {
         await this.epaRepository.save(this.epaRepository.create(item));
       }

@@ -23,10 +23,12 @@ export class PermisoSeeder {
       activo: true,
     };
 
-    let permiso = await this.permisoRepository.findOne({ where: { clave: permisoData.clave } });
+    let permiso = await this.permisoRepository.findOne({
+      where: { clave: permisoData.clave },
+    });
     if (!permiso) {
       permiso = await this.permisoRepository.save(
-        this.permisoRepository.create(permisoData)
+        this.permisoRepository.create(permisoData),
       );
     }
 
@@ -36,7 +38,9 @@ export class PermisoSeeder {
     });
 
     if (admin) {
-      const yaAsignado = (admin.permisos || []).some(p => p.id_permiso === permiso.id_permiso);
+      const yaAsignado = (admin.permisos || []).some(
+        (p) => p.id_permiso === permiso.id_permiso,
+      );
       if (!yaAsignado) {
         admin.permisos = [...(admin.permisos || []), permiso];
         await this.usuarioRepository.save(admin);

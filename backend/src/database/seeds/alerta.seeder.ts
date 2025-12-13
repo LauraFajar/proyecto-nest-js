@@ -37,12 +37,25 @@ export class AlertaSeeder {
     ];
 
     for (const item of data) {
-      const sensor = await this.sensorRepository.findOne({ where: { id_sensor: item.id_sensor } });
-      const usuario = await this.usuarioRepository.findOne({ where: { id_usuarios: item.id_usuario } });
+      const sensor = await this.sensorRepository.findOne({
+        where: { id_sensor: item.id_sensor },
+      });
+      const usuario = await this.usuarioRepository.findOne({
+        where: { id_usuarios: item.id_usuario },
+      });
       if (sensor && usuario) {
-        const exists = await this.alertaRepository.findOne({ where: { tipo_alerta: item.tipo_alerta, fecha: item.fecha, sensor: { id_sensor: sensor.id_sensor }, usuario: { id_usuarios: usuario.id_usuarios } } });
+        const exists = await this.alertaRepository.findOne({
+          where: {
+            tipo_alerta: item.tipo_alerta,
+            fecha: item.fecha,
+            sensor: { id_sensor: sensor.id_sensor },
+            usuario: { id_usuarios: usuario.id_usuarios },
+          },
+        });
         if (!exists) {
-          await this.alertaRepository.save(this.alertaRepository.create({ ...item, sensor, usuario }));
+          await this.alertaRepository.save(
+            this.alertaRepository.create({ ...item, sensor, usuario }),
+          );
         }
       }
     }

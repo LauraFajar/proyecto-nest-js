@@ -27,7 +27,7 @@ export class AlmacenesService {
 
   async update(id_almacen: number, updateAlmaceneDto: UpdateAlmaceneDto) {
     await this.almacenesRepository.update(id_almacen, updateAlmaceneDto);
-    return this.findOne(id_almacen); 
+    return this.findOne(id_almacen);
   }
 
   async remove(id_almacen: number) {

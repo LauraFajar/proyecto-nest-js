@@ -1,4 +1,3 @@
-
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Usuario } from 'src/usuarios/entities/usuario.entity';
@@ -17,7 +16,7 @@ export class UsuarioSeeder {
 
   async seed() {
     const salt = await bcrypt.genSalt(10);
-    
+
     const data = [
       {
         nombres: 'Admin Temporal',
@@ -46,17 +45,23 @@ export class UsuarioSeeder {
     ];
 
     for (const item of data) {
-      const exists = await this.usuarioRepository.findOne({ where: { email: item.email } });
+      const exists = await this.usuarioRepository.findOne({
+        where: { email: item.email },
+      });
       if (!exists) {
-        const rol = await this.rolRepository.findOne({ where: { nombre_rol: item.rol_nombre } });
+        const rol = await this.rolRepository.findOne({
+          where: { nombre_rol: item.rol_nombre },
+        });
         if (rol) {
           const hashedPassword = await bcrypt.hash(item.password, salt);
           const { rol_nombre, ...userData } = item;
-          await this.usuarioRepository.save(this.usuarioRepository.create({
-            ...userData,
-            password: hashedPassword,
-            id_rol: rol,
-          }));
+          await this.usuarioRepository.save(
+            this.usuarioRepository.create({
+              ...userData,
+              password: hashedPassword,
+              id_rol: rol,
+            }),
+          );
         }
       }
     }

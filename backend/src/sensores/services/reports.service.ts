@@ -15,7 +15,12 @@ import PDFDocument = require('pdfkit');
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type MetricKey = 'temperatura' | 'humedad_aire' | 'humedad_suelo_adc' | 'humedad_suelo_porcentaje' | 'bomba_estado';
+export type MetricKey =
+  | 'temperatura'
+  | 'humedad_aire'
+  | 'humedad_suelo_adc'
+  | 'humedad_suelo_porcentaje'
+  | 'bomba_estado';
 
 function normalizeMetric(metric?: string): MetricKey | undefined {
   if (!metric) return undefined;
@@ -23,7 +28,8 @@ function normalizeMetric(metric?: string): MetricKey | undefined {
   if (m === 'humedad') return 'humedad_aire';
   if (m === 'temperatura') return 'temperatura';
   if (m === 'humedad_aire') return 'humedad_aire';
-  if (m === 'humedad_suelo_adc' || m === 'humedad_suelo') return 'humedad_suelo_porcentaje'; 
+  if (m === 'humedad_suelo_adc' || m === 'humedad_suelo')
+    return 'humedad_suelo_porcentaje';
   if (m === 'humedad_suelo_porcentaje') return 'humedad_suelo_porcentaje';
   if (m === 'bomba_estado' || m === 'bomba') return 'bomba_estado';
   return undefined;
@@ -32,10 +38,10 @@ function normalizeMetric(metric?: string): MetricKey | undefined {
 // Función para convertir valores ADC de humedad del suelo a porcentaje
 function convertirHumedadSuelo(valor: number): number {
   const valorMaximo = valor > 2000 ? 4095 : 1023;
-  
+
   // Conversión a porcentaje
   const humedadPorcentaje = ((valorMaximo - valor) / valorMaximo) * 100;
-  
+
   return Math.max(0, Math.min(100, humedadPorcentaje));
 }
 
@@ -44,23 +50,42 @@ export class ReportsService {
   private readonly logger = new Logger('ReportsService');
 
   constructor(
-    @InjectRepository(Lectura) private readonly lecturaRepo: Repository<Lectura>,
+    @InjectRepository(Lectura)
+    private readonly lecturaRepo: Repository<Lectura>,
     @InjectRepository(Sensor) private readonly sensorRepo: Repository<Sensor>,
-    @InjectRepository(Sublote) private readonly subloteRepo: Repository<Sublote>,
-    @InjectRepository(Cultivo) private readonly cultivoRepo: Repository<Cultivo>,
-    @InjectRepository(Actividad) private readonly actividadRepo: Repository<Actividad>,
-    @InjectRepository(Inventario) private readonly inventarioRepo: Repository<Inventario>,
-    @InjectRepository(Ingreso) private readonly ingresoRepo: Repository<Ingreso>,
+    @InjectRepository(Sublote)
+    private readonly subloteRepo: Repository<Sublote>,
+    @InjectRepository(Cultivo)
+    private readonly cultivoRepo: Repository<Cultivo>,
+    @InjectRepository(Actividad)
+    private readonly actividadRepo: Repository<Actividad>,
+    @InjectRepository(Inventario)
+    private readonly inventarioRepo: Repository<Inventario>,
+    @InjectRepository(Ingreso)
+    private readonly ingresoRepo: Repository<Ingreso>,
     @InjectRepository(Salida) private readonly salidaRepo: Repository<Salida>,
   ) {}
 
-  async obtenerLecturasPorTopic(topic: string, options?: { metric?: string; desde?: Date; hasta?: Date; order?: 'ASC' | 'DESC'; limit?: number }) {
-    if (!topic) throw new BadRequestException('El parámetro "topic" es obligatorio.');
-    
+  async obtenerLecturasPorTopic(
+    topic: string,
+    options?: {
+      metric?: string;
+      desde?: Date;
+      hasta?: Date;
+      order?: 'ASC' | 'DESC';
+      limit?: number;
+    },
+  ) {
+    if (!topic)
+      throw new BadRequestException('El parámetro "topic" es obligatorio.');
+
     try {
-      const qbLecturas = this.lecturaRepo.createQueryBuilder('l')
+      const qbLecturas = this.lecturaRepo
+        .createQueryBuilder('l')
         .where('l.mqtt_topic = :topic', { topic: topic })
-        .andWhere('l.unidad_medida = :metric OR :metric IS NULL', { metric: options?.metric });
+        .andWhere('l.unidad_medida = :metric OR :metric IS NULL', {
+          metric: options?.metric,
+        });
 
       if (options?.desde) {
         qbLecturas.andWhere('l.fecha >= :desde', { desde: options.desde });
@@ -70,13 +95,15 @@ export class ReportsService {
       }
 
       const countLecturas = await qbLecturas.getCount();
-      
+
       if (countLecturas === 0) {
-        this.logger.warn(`⚠️ No se encontraron lecturas reales para el topic: ${topic}.`);
+        this.logger.warn(
+          `⚠️ No se encontraron lecturas reales para el topic: ${topic}.`,
+        );
         return [];
       }
       qbLecturas.orderBy('l.fecha', options?.order === 'DESC' ? 'DESC' : 'ASC');
-      
+
       if (options?.limit && options.limit > 0) {
         qbLecturas.take(options.limit);
       }
@@ -87,12 +114,17 @@ export class ReportsService {
       let lecturasFiltradas = lecturas;
 
       if (metric) {
-        lecturasFiltradas = lecturas.filter((lectura: any) => 
-          lectura.unidad_medida === metric ||
-          (metric === 'temperatura' && lectura.unidad_medida?.includes('temperatura')) ||
-          (metric === 'humedad_aire' && lectura.unidad_medida?.includes('humedad_aire')) ||
-          (metric === 'humedad_suelo_porcentaje' && lectura.unidad_medida?.includes('suelo')) ||
-          (metric === 'bomba_estado' && lectura.unidad_medida?.includes('bomba'))
+        lecturasFiltradas = lecturas.filter(
+          (lectura: any) =>
+            lectura.unidad_medida === metric ||
+            (metric === 'temperatura' &&
+              lectura.unidad_medida?.includes('temperatura')) ||
+            (metric === 'humedad_aire' &&
+              lectura.unidad_medida?.includes('humedad_aire')) ||
+            (metric === 'humedad_suelo_porcentaje' &&
+              lectura.unidad_medida?.includes('suelo')) ||
+            (metric === 'bomba_estado' &&
+              lectura.unidad_medida?.includes('bomba')),
         );
       }
 
@@ -102,33 +134,32 @@ export class ReportsService {
         valor: lectura.valor,
         unidad_medida: lectura.unidad_medida || metric || 'desconocido',
         observaciones: lectura.observaciones || 'Lectura real desde MQTT',
-        mqtt_topic: topic
+        mqtt_topic: topic,
       }));
-
     } catch (error) {
       this.logger.error('Error obteniendo lecturas por topic:', error);
       return [];
     }
   }
 
-
-
   calcularResumen(lecturas: Lectura[]) {
     if (!lecturas.length) {
       return { count: 0, avg: null, min: null, max: null };
     }
-    
-    const values = lecturas.map((l) => {
-      const valor = Number(l.valor);
-      if (!Number.isFinite(valor)) return null;
-      
-      if (l.unidad_medida === 'humedad_suelo_adc') {
-        return convertirHumedadSuelo(valor);
-      }
-      
-      return valor;
-    }).filter((v) => v !== null);
-    
+
+    const values = lecturas
+      .map((l) => {
+        const valor = Number(l.valor);
+        if (!Number.isFinite(valor)) return null;
+
+        if (l.unidad_medida === 'humedad_suelo_adc') {
+          return convertirHumedadSuelo(valor);
+        }
+
+        return valor;
+      })
+      .filter((v) => v !== null);
+
     if (!values.length) return { count: 0, avg: null, min: null, max: null };
     const count = values.length;
     const avg = values.reduce((a, b) => a + b, 0) / count;
@@ -138,7 +169,9 @@ export class ReportsService {
   }
 
   contarActivacionesBomba(lecturas: Lectura[]) {
-    const bombaLecturas = lecturas.filter((l) => l.unidad_medida === 'bomba_estado').sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+    const bombaLecturas = lecturas
+      .filter((l) => l.unidad_medida === 'bomba_estado')
+      .sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
     let activaciones = 0;
     for (let i = 1; i < bombaLecturas.length; i++) {
       const prev = Number(bombaLecturas[i - 1].valor);
@@ -149,16 +182,35 @@ export class ReportsService {
   }
 
   resumenSemanal(lecturas: Lectura[]) {
-    const byWeek: Record<string, { fechaInicio: Date; count: number; sum: number; min: number; max: number }> = {};
-    const numericLecturas = lecturas.filter((l) => Number.isFinite(Number(l.valor)));
+    const byWeek: Record<
+      string,
+      {
+        fechaInicio: Date;
+        count: number;
+        sum: number;
+        min: number;
+        max: number;
+      }
+    > = {};
+    const numericLecturas = lecturas.filter((l) =>
+      Number.isFinite(Number(l.valor)),
+    );
     for (const l of numericLecturas) {
       const d = new Date(l.fecha);
-      const day = (d.getDay() + 6) % 7; 
-      const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+      const day = (d.getDay() + 6) % 7;
+      const start = new Date(
+        Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+      );
       start.setUTCDate(start.getUTCDate() - day);
       const key = start.toISOString().slice(0, 10);
       if (!byWeek[key]) {
-        byWeek[key] = { fechaInicio: start, count: 0, sum: 0, min: Number.POSITIVE_INFINITY, max: Number.NEGATIVE_INFINITY };
+        byWeek[key] = {
+          fechaInicio: start,
+          count: 0,
+          sum: 0,
+          min: Number.POSITIVE_INFINITY,
+          max: Number.NEGATIVE_INFINITY,
+        };
       }
       const v = Number(l.valor);
       byWeek[key].count += 1;
@@ -172,14 +224,25 @@ export class ReportsService {
         semana_inicio: byWeek[k].fechaInicio,
         cantidad: byWeek[k].count,
         promedio: byWeek[k].count ? byWeek[k].sum / byWeek[k].count : null,
-        minimo: byWeek[k].min === Number.POSITIVE_INFINITY ? null : byWeek[k].min,
-        maximo: byWeek[k].max === Number.NEGATIVE_INFINITY ? null : byWeek[k].max,
+        minimo:
+          byWeek[k].min === Number.POSITIVE_INFINITY ? null : byWeek[k].min,
+        maximo:
+          byWeek[k].max === Number.NEGATIVE_INFINITY ? null : byWeek[k].max,
       }));
   }
 
-  async buildExcelPorTopic(topic: string, metric?: string, desde?: Date, hasta?: Date) {
+  async buildExcelPorTopic(
+    topic: string,
+    metric?: string,
+    desde?: Date,
+    hasta?: Date,
+  ) {
     const metricNorm = normalizeMetric(metric);
-    const lecturas = await this.obtenerLecturasPorTopic(topic, { metric: metricNorm, desde, hasta });
+    const lecturas = await this.obtenerLecturasPorTopic(topic, {
+      metric: metricNorm,
+      desde,
+      hasta,
+    });
 
     const workbook = new Workbook();
     const wsDatos = workbook.addWorksheet('Datos');
@@ -196,7 +259,10 @@ export class ReportsService {
       }
       wsDatos.addRow({
         fecha: l.fecha,
-        metric: l.unidad_medida === 'humedad_suelo_adc' ? 'humedad_suelo_porcentaje' : (l.unidad_medida ?? ''),
+        metric:
+          l.unidad_medida === 'humedad_suelo_adc'
+            ? 'humedad_suelo_porcentaje'
+            : (l.unidad_medida ?? ''),
         valor: valor,
         observaciones: l.observaciones ?? '',
       });
@@ -213,68 +279,105 @@ export class ReportsService {
 
     const semanal = this.resumenSemanal(lecturas as any[]);
     wsResumen.addRow([]);
-    wsResumen.addRow(['Semana inicio', 'Cantidad', 'Promedio', 'Mínimo', 'Máximo']);
+    wsResumen.addRow([
+      'Semana inicio',
+      'Cantidad',
+      'Promedio',
+      'Mínimo',
+      'Máximo',
+    ]);
     for (const w of semanal) {
-      wsResumen.addRow([w.semana_inicio, w.cantidad, w.promedio ?? '—', w.minimo ?? '—', w.maximo ?? '—']);
+      wsResumen.addRow([
+        w.semana_inicio,
+        w.cantidad,
+        w.promedio ?? '—',
+        w.minimo ?? '—',
+        w.maximo ?? '—',
+      ]);
     }
 
     const wsAnalisis = workbook.addWorksheet('Análisis Estadístico');
-    
+
     wsAnalisis.addRow(['ANÁLISIS ESTADÍSTICO AVANZADO']);
     wsAnalisis.addRow(['Métrica:', metricNorm || 'Todas']);
     wsAnalisis.addRow([]);
-    
+
     // Análisis de tendencia
-    const valores = lecturas.map(l => Number(l.valor));
+    const valores = lecturas.map((l) => Number(l.valor));
     const tendencia = this.calcularTendencia(valores);
     wsAnalisis.addRow(['Tendencia:', tendencia]);
-    
+
     // Estadísticas básicas
     const resumenEstadistico = this.calcularResumen(lecturas as any[]);
     wsAnalisis.addRow(['Promedio:', resumenEstadistico.avg?.toFixed(2) || '—']);
-    wsAnalisis.addRow(['Desviación Estándar:', this.calcularDesviacionEstandar(valores)?.toFixed(2) || '—']);
-    wsAnalisis.addRow(['Coeficiente de Variación:', this.calcularCoeficienteVariacion(valores)?.toFixed(2) + '%' || '—']);
+    wsAnalisis.addRow([
+      'Desviación Estándar:',
+      this.calcularDesviacionEstandar(valores)?.toFixed(2) || '—',
+    ]);
+    wsAnalisis.addRow([
+      'Coeficiente de Variación:',
+      this.calcularCoeficienteVariacion(valores)?.toFixed(2) + '%' || '—',
+    ]);
     wsAnalisis.addRow([]);
-    
+
     wsAnalisis.addRow(['PROMEDIO MÓVIL DE 7 DÍAS']);
     wsAnalisis.addRow(['Fecha', 'Valor Real', 'Promedio Móvil 7D']);
     const promedioMovil = this.calcularPromedioMovil(lecturas as any[], 7);
-    promedioMovil.forEach(pm => {
-      wsAnalisis.addRow([pm.fecha, pm.valor, pm.promedioMovil?.toFixed(2) || '—']);
+    promedioMovil.forEach((pm) => {
+      wsAnalisis.addRow([
+        pm.fecha,
+        pm.valor,
+        pm.promedioMovil?.toFixed(2) || '—',
+      ]);
     });
     wsAnalisis.addRow([]);
-    
+
     wsAnalisis.addRow(['UMBRALES DE ALERTA']);
     const umbrales = this.calcularUmbrales(valores);
-    wsAnalisis.addRow(['Valor Crítico Mínimo:', umbrales.minimoCritico?.toFixed(2) || '—']);
-    wsAnalisis.addRow(['Valor Crítico Máximo:', umbrales.maximoCritico?.toFixed(2) || '—']);
-    wsAnalisis.addRow(['Alertas Activas:', umbrales.alertasActivas || 'Ninguna']);
-    
+    wsAnalisis.addRow([
+      'Valor Crítico Mínimo:',
+      umbrales.minimoCritico?.toFixed(2) || '—',
+    ]);
+    wsAnalisis.addRow([
+      'Valor Crítico Máximo:',
+      umbrales.maximoCritico?.toFixed(2) || '—',
+    ]);
+    wsAnalisis.addRow([
+      'Alertas Activas:',
+      umbrales.alertasActivas || 'Ninguna',
+    ]);
+
     wsAnalisis.getRow(1).font = { bold: true, size: 14 };
-    wsAnalisis.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+    wsAnalisis.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' },
+    };
     wsAnalisis.columns = [
       { header: 'Concepto', key: 'concepto', width: 25 },
       { header: 'Valor', key: 'valor', width: 20 },
-      { header: 'Adicional', key: 'adicional', width: 20 }
+      { header: 'Adicional', key: 'adicional', width: 20 },
     ];
 
-    const bombaLecturas = lecturas.filter(l => l.unidad_medida === 'bomba_estado');
+    const bombaLecturas = lecturas.filter(
+      (l) => l.unidad_medida === 'bomba_estado',
+    );
     if (bombaLecturas.length > 0) {
       const wsEventos = workbook.addWorksheet('Eventos');
       const activaciones = this.contarActivacionesBomba(lecturas as any[]);
       wsEventos.addRow(['Activaciones de bomba (0→1)', activaciones]);
-      
+
       wsEventos.addRow([]);
       wsEventos.addRow(['DETALLE DE EVENTOS DE BOMBA']);
       wsEventos.addRow(['Fecha', 'Hora', 'Evento', 'Duración (min)']);
-      
+
       const eventosBomba = this.obtenerEventosBomba(lecturas as any[]);
-      eventosBomba.forEach(evento => {
+      eventosBomba.forEach((evento) => {
         wsEventos.addRow([
           evento.fecha,
           evento.hora,
           evento.evento,
-          evento.duracion || '—'
+          evento.duracion || '—',
         ]);
       });
     }
@@ -290,95 +393,142 @@ export class ReportsService {
 
   private async agregarPestanaCultivos(workbook: Workbook, topic: string) {
     try {
-      const sensores = await this.sensorRepo.find({ 
+      const sensores = await this.sensorRepo.find({
         where: { mqtt_topic: topic },
-        relations: ['id_sublote', 'id_sublote.id_lote']
+        relations: ['id_sublote', 'id_sublote.id_lote'],
       });
-      
+
       if (sensores.length > 0) {
-        const subloteIds = sensores.map(s => s.id_sublote?.id_sublote).filter(Boolean);
-        
+        const subloteIds = sensores
+          .map((s) => s.id_sublote?.id_sublote)
+          .filter(Boolean);
+
         const cultivos = await this.cultivoRepo.find({
-          relations: ['lote']
+          relations: ['lote'],
         });
-        
+
         const cultivosFiltrados = cultivos;
-        
+
         if (cultivosFiltrados.length > 0) {
           const wsCultivos = workbook.addWorksheet('Trazabilidad Cultivos');
           wsCultivos.addRow(['TRAZABILIDAD DE CULTIVOS']);
           wsCultivos.addRow([]);
-          wsCultivos.addRow(['ID Cultivo', 'Nombre', 'Tipo', 'Fecha Siembra', 'Fecha Cosecha Estimada', 'Estado', 'Lote', 'Observaciones']);
-          
-          cultivosFiltrados.forEach(cultivo => {
+          wsCultivos.addRow([
+            'ID Cultivo',
+            'Nombre',
+            'Tipo',
+            'Fecha Siembra',
+            'Fecha Cosecha Estimada',
+            'Estado',
+            'Lote',
+            'Observaciones',
+          ]);
+
+          cultivosFiltrados.forEach((cultivo) => {
             const sublotesNombres = cultivo.lote?.descripcion || '—';
             wsCultivos.addRow([
               cultivo.id_cultivo,
               cultivo.nombre_cultivo,
               cultivo.tipo_cultivo,
-              cultivo.fecha_siembra ? new Date(cultivo.fecha_siembra).toISOString().split('T')[0] : '—',
-              cultivo.fecha_cosecha_estimada ? new Date(cultivo.fecha_cosecha_estimada).toISOString().split('T')[0] : '—',
+              cultivo.fecha_siembra
+                ? new Date(cultivo.fecha_siembra).toISOString().split('T')[0]
+                : '—',
+              cultivo.fecha_cosecha_estimada
+                ? new Date(cultivo.fecha_cosecha_estimada)
+                    .toISOString()
+                    .split('T')[0]
+                : '—',
               cultivo.estado_cultivo,
               cultivo.lote?.descripcion || '—',
-              cultivo.observaciones || '—'
+              cultivo.observaciones || '—',
             ]);
           });
-          
+
           wsCultivos.getRow(1).font = { bold: true, size: 14 };
-          wsCultivos.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E8' } };
+          wsCultivos.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE8F5E8' },
+          };
         }
       }
     } catch (error) {
-      this.logger.warn('No se pudo agregar información de cultivos:', error.message);
+      this.logger.warn(
+        'No se pudo agregar información de cultivos:',
+        error.message,
+      );
     }
   }
 
   private async agregarPestanaActividades(workbook: Workbook, topic: string) {
     try {
-      const sensores = await this.sensorRepo.find({ 
+      const sensores = await this.sensorRepo.find({
         where: { mqtt_topic: topic },
-        relations: ['id_sublote', 'id_sublote.id_lote']
+        relations: ['id_sublote', 'id_sublote.id_lote'],
       });
-      
+
       if (sensores.length > 0) {
-        const subloteIds = sensores.map(s => s.id_sublote?.id_sublote).filter(Boolean);
-        
+        const subloteIds = sensores
+          .map((s) => s.id_sublote?.id_sublote)
+          .filter(Boolean);
+
         const cultivos = await this.cultivoRepo.find({
-          relations: ['lote']
+          relations: ['lote'],
         });
-        
+
         const cultivosFiltrados = cultivos;
-        
+
         if (cultivosFiltrados.length > 0) {
-          const cultivosIds = cultivosFiltrados.map(c => c.id_cultivo);
-          
+          const cultivosIds = cultivosFiltrados.map((c) => c.id_cultivo);
+
           const actividades = await this.actividadRepo.find({
-            where: cultivosIds.map(id => ({ id_cultivo: id })),
+            where: cultivosIds.map((id) => ({ id_cultivo: id })),
             relations: ['cultivo'],
-            order: { fecha: 'DESC' }
+            order: { fecha: 'DESC' },
           });
-          
+
           if (actividades.length > 0) {
-            const wsActividades = workbook.addWorksheet('Historial Actividades');
+            const wsActividades = workbook.addWorksheet(
+              'Historial Actividades',
+            );
             wsActividades.addRow(['HISTORIAL DE ACTIVIDADES AGRÍCOLAS']);
             wsActividades.addRow([]);
-            wsActividades.addRow(['Fecha', 'Tipo Actividad', 'Responsable', 'Detalles', 'Costo Mano Obra', 'Horas Trabajadas', 'Tarifa Hora', 'Costo Maquinaria', 'Estado', 'Cultivo']);
-            
+            wsActividades.addRow([
+              'Fecha',
+              'Tipo Actividad',
+              'Responsable',
+              'Detalles',
+              'Costo Mano Obra',
+              'Horas Trabajadas',
+              'Tarifa Hora',
+              'Costo Maquinaria',
+              'Estado',
+              'Cultivo',
+            ]);
+
             let totalCostoManoObra = 0;
             let totalCostoMaquinaria = 0;
             let totalHoras = 0;
-            
-            actividades.forEach(actividad => {
-              const costoMO = parseFloat((actividad as any).costo_mano_obra || '0');
-              const costoMaq = parseFloat((actividad as any).costo_maquinaria || '0');
-              const horas = parseFloat((actividad as any).horas_trabajadas || '0');
-              
+
+            actividades.forEach((actividad) => {
+              const costoMO = parseFloat(
+                (actividad as any).costo_mano_obra || '0',
+              );
+              const costoMaq = parseFloat(
+                (actividad as any).costo_maquinaria || '0',
+              );
+              const horas = parseFloat(
+                (actividad as any).horas_trabajadas || '0',
+              );
+
               totalCostoManoObra += costoMO;
               totalCostoMaquinaria += costoMaq;
               totalHoras += horas;
-              
+
               wsActividades.addRow([
-                actividad.fecha ? new Date(actividad.fecha).toISOString().split('T')[0] : '—',
+                actividad.fecha
+                  ? new Date(actividad.fecha).toISOString().split('T')[0]
+                  : '—',
                 (actividad as any).tipo_actividad,
                 (actividad as any).responsable,
                 (actividad as any).detalles,
@@ -387,24 +537,43 @@ export class ReportsService {
                 parseFloat((actividad as any).tarifa_hora || '0').toFixed(2),
                 costoMaq.toFixed(2),
                 (actividad as any).estado,
-                (actividad as any).cultivo?.nombre_cultivo || '—'
+                (actividad as any).cultivo?.nombre_cultivo || '—',
               ]);
             });
-            
+
             wsActividades.addRow([]);
             wsActividades.addRow(['RESUMEN DE COSTOS']);
-            wsActividades.addRow(['Total Costo Mano de Obra:', totalCostoManoObra.toFixed(2)]);
-            wsActividades.addRow(['Total Costo Maquinaria:', totalCostoMaquinaria.toFixed(2)]);
-            wsActividades.addRow(['Total Horas Trabajadas:', totalHoras.toFixed(2)]);
-            wsActividades.addRow(['Costo Total Actividades:', (totalCostoManoObra + totalCostoMaquinaria).toFixed(2)]);
-            
+            wsActividades.addRow([
+              'Total Costo Mano de Obra:',
+              totalCostoManoObra.toFixed(2),
+            ]);
+            wsActividades.addRow([
+              'Total Costo Maquinaria:',
+              totalCostoMaquinaria.toFixed(2),
+            ]);
+            wsActividades.addRow([
+              'Total Horas Trabajadas:',
+              totalHoras.toFixed(2),
+            ]);
+            wsActividades.addRow([
+              'Costo Total Actividades:',
+              (totalCostoManoObra + totalCostoMaquinaria).toFixed(2),
+            ]);
+
             wsActividades.getRow(1).font = { bold: true, size: 14 };
-            wsActividades.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3F2FD' } };
+            wsActividades.getRow(1).fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFE3F2FD' },
+            };
           }
         }
       }
     } catch (error) {
-      this.logger.warn('No se pudo agregar información de actividades:', error.message);
+      this.logger.warn(
+        'No se pudo agregar información de actividades:',
+        error.message,
+      );
     }
   }
 
@@ -412,25 +581,35 @@ export class ReportsService {
     try {
       // Obtener inventario general
       const inventario = await this.inventarioRepo.find();
-      
+
       if (inventario.length > 0) {
         const wsInventario = workbook.addWorksheet('Inventario de Insumos');
         wsInventario.addRow(['INVENTARIO DE INSUMOS']);
         wsInventario.addRow([]);
-        wsInventario.addRow(['ID Insumo', 'Nombre Insumo', 'Cantidad Stock', 'Unidad Medida', 'Última Actualización', 'Categoría', 'Estado Stock']);
-        
+        wsInventario.addRow([
+          'ID Insumo',
+          'Nombre Insumo',
+          'Cantidad Stock',
+          'Unidad Medida',
+          'Última Actualización',
+          'Categoría',
+          'Estado Stock',
+        ]);
+
         let valorTotalInventario = 0;
-        
-        inventario.forEach(item => {
-          const valorUnitario = parseFloat((item.insumo as any)?.costo_compra || '0');
+
+        inventario.forEach((item) => {
+          const valorUnitario = parseFloat(
+            (item.insumo as any)?.costo_compra || '0',
+          );
           const valorTotal = (item as any).cantidad_stock * valorUnitario;
           valorTotalInventario += valorTotal;
-          
+
           // Determinar estado del stock
           let estadoStock = 'Normal';
           if ((item as any).cantidad_stock < 10) estadoStock = 'Bajo';
           if ((item as any).cantidad_stock === 0) estadoStock = 'Agotado';
-          
+
           wsInventario.addRow([
             (item.insumo as any)?.id_insumo || '—',
             (item.insumo as any)?.nombre_insumo || '—',
@@ -438,78 +617,98 @@ export class ReportsService {
             (item as any).unidad_medida,
             (item as any).fecha || '—',
             (item.insumo as any)?.id_categoria?.nombre || '—',
-            estadoStock
+            estadoStock,
           ]);
         });
-        
+
         wsInventario.addRow([]);
         wsInventario.addRow(['RESUMEN DE INVENTARIO']);
         wsInventario.addRow(['Total Items:', inventario.length]);
-        wsInventario.addRow(['Valor Total Inventario:', valorTotalInventario.toFixed(2)]);
-        
+        wsInventario.addRow([
+          'Valor Total Inventario:',
+          valorTotalInventario.toFixed(2),
+        ]);
+
         wsInventario.getRow(1).font = { bold: true, size: 14 };
-        wsInventario.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } };
+        wsInventario.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFF3E0' },
+        };
       }
     } catch (error) {
-      this.logger.warn('No se pudo agregar información de inventario:', error.message);
+      this.logger.warn(
+        'No se pudo agregar información de inventario:',
+        error.message,
+      );
     }
   }
 
   private async agregarPestanaFinanzas(workbook: Workbook, topic: string) {
     try {
       // Obtener sensores asociados al topic y sus sublotes
-      const sensores = await this.sensorRepo.find({ 
+      const sensores = await this.sensorRepo.find({
         where: { mqtt_topic: topic },
-        relations: ['id_sublote', 'id_sublote.id_lote']
+        relations: ['id_sublote', 'id_sublote.id_lote'],
       });
-      
+
       if (sensores.length > 0) {
-        const subloteIds = sensores.map(s => s.id_sublote?.id_sublote).filter(Boolean);
-        
+        const subloteIds = sensores
+          .map((s) => s.id_sublote?.id_sublote)
+          .filter(Boolean);
+
         const cultivos = await this.cultivoRepo.find({
-          relations: ['lote']
+          relations: ['lote'],
         });
-        
+
         const cultivosFiltrados = cultivos;
-        
+
         if (cultivosFiltrados.length > 0) {
-          const cultivosIds = cultivosFiltrados.map(c => c.id_cultivo);
-          
+          const cultivosIds = cultivosFiltrados.map((c) => c.id_cultivo);
+
           const ingresos = await this.ingresoRepo.find({
-            where: cultivosIds.map(id => ({ id_cultivo: id })),
-            relations: ['cultivo']
+            where: cultivosIds.map((id) => ({ id_cultivo: id })),
+            relations: ['cultivo'],
           });
-          
+
           const salidas = await this.salidaRepo.find({
-            where: cultivosIds.map(id => ({ id_cultivo: id })),
-            relations: ['cultivo']
+            where: cultivosIds.map((id) => ({ id_cultivo: id })),
+            relations: ['cultivo'],
           });
-          
+
           const wsFinanzas = workbook.addWorksheet('Análisis Financiero');
           wsFinanzas.addRow(['ANÁLISIS FINANCIERO Y RENTABILIDAD']);
           wsFinanzas.addRow([]);
-          
+
           wsFinanzas.addRow(['INGRESOS']);
           wsFinanzas.addRow(['Fecha', 'Descripción', 'Monto', 'Cultivo']);
-          
+
           let totalIngresos = 0;
-          ingresos.forEach(ingreso => {
+          ingresos.forEach((ingreso) => {
             totalIngresos += (ingreso as any).monto;
             wsFinanzas.addRow([
               (ingreso as any).fecha_ingreso,
               (ingreso as any).descripcion,
               (ingreso as any).monto.toFixed(2),
-              (ingreso as any).cultivo?.nombre_cultivo || '—'
+              (ingreso as any).cultivo?.nombre_cultivo || '—',
             ]);
           });
-          
+
           wsFinanzas.addRow([]);
           wsFinanzas.addRow(['EGRESOS']);
-          wsFinanzas.addRow(['Fecha', 'Descripción', 'Cantidad', 'Valor Unitario', 'Total', 'Cultivo']);
-          
+          wsFinanzas.addRow([
+            'Fecha',
+            'Descripción',
+            'Cantidad',
+            'Valor Unitario',
+            'Total',
+            'Cultivo',
+          ]);
+
           let totalEgresos = 0;
-          salidas.forEach(salida => {
-            const total = (salida as any).cantidad * ((salida as any).valor_unidad || 0);
+          salidas.forEach((salida) => {
+            const total =
+              (salida as any).cantidad * ((salida as any).valor_unidad || 0);
             totalEgresos += total;
             wsFinanzas.addRow([
               (salida as any).fecha_salida,
@@ -517,63 +716,83 @@ export class ReportsService {
               (salida as any).cantidad,
               parseFloat((salida as any).valor_unidad || '0').toFixed(2),
               total.toFixed(2),
-              (salida as any).cultivo?.nombre_cultivo || '—'
+              (salida as any).cultivo?.nombre_cultivo || '—',
             ]);
           });
-          
+
           wsFinanzas.addRow([]);
           wsFinanzas.addRow(['ANÁLISIS DE RENTABILIDAD']);
           const beneficio = totalIngresos - totalEgresos;
-          const margenGanancia = totalIngresos > 0 ? (beneficio / totalIngresos) * 100 : 0;
-          
+          const margenGanancia =
+            totalIngresos > 0 ? (beneficio / totalIngresos) * 100 : 0;
+
           wsFinanzas.addRow(['Total Ingresos:', totalIngresos.toFixed(2)]);
           wsFinanzas.addRow(['Total Egresos:', totalEgresos.toFixed(2)]);
           wsFinanzas.addRow(['Beneficio Neto:', beneficio.toFixed(2)]);
-          wsFinanzas.addRow(['Margen de Ganancia:', margenGanancia.toFixed(2) + '%']);
-          
+          wsFinanzas.addRow([
+            'Margen de Ganancia:',
+            margenGanancia.toFixed(2) + '%',
+          ]);
+
           let rentabilidad = 'NO RENTABLE';
           if (beneficio > 0) rentabilidad = 'RENTABLE';
           if (beneficio > totalEgresos * 0.2) rentabilidad = 'MUY RENTABLE';
-          
+
           wsFinanzas.addRow(['Estado del Cultivo:', rentabilidad]);
-          
+
           wsFinanzas.getRow(1).font = { bold: true, size: 14 };
-          wsFinanzas.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EAF6' } };
+          wsFinanzas.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE8EAF6' },
+          };
         }
       }
     } catch (error) {
-      this.logger.warn('No se pudo agregar información financiera:', error.message);
+      this.logger.warn(
+        'No se pudo agregar información financiera:',
+        error.message,
+      );
     }
   }
 
-  async buildPDFPorTopic(topic: string, metric?: string, desde?: Date, hasta?: Date) {
+  async buildPDFPorTopic(
+    topic: string,
+    metric?: string,
+    desde?: Date,
+    hasta?: Date,
+  ) {
     try {
       const metricNorm = normalizeMetric(metric);
-      const lecturas = await this.obtenerLecturasPorTopic(topic, { metric: metricNorm, desde, hasta });
+      const lecturas = await this.obtenerLecturasPorTopic(topic, {
+        metric: metricNorm,
+        desde,
+        hasta,
+      });
 
       // Obtener datos para todas las secciones
-      const sensores = await this.sensorRepo.find({ 
+      const sensores = await this.sensorRepo.find({
         where: { mqtt_topic: topic },
-        relations: ['id_sublote', 'id_sublote.id_lote']
+        relations: ['id_sublote', 'id_sublote.id_lote'],
       });
-      
+
       const cultivos = await this.cultivoRepo.find({
-        relations: ['lote']
+        relations: ['lote'],
       });
-      
+
       const actividades = await this.actividadRepo.find({
         relations: ['cultivo'],
-        order: { fecha: 'DESC' }
+        order: { fecha: 'DESC' },
       });
-      
+
       const inventario = await this.inventarioRepo.find();
-      
+
       const ingresos = await this.ingresoRepo.find({
-        relations: ['cultivo']
+        relations: ['cultivo'],
       });
-      
+
       const salidas = await this.salidaRepo.find({
-        relations: ['cultivo']
+        relations: ['cultivo'],
       });
 
       const pdf = new PDFDocument();
@@ -592,39 +811,102 @@ export class ReportsService {
             if (fs.existsSync(logoPath)) {
               pdf.image(logoPath, margin, yPosition, { width: 80, height: 80 });
               pdf.fontSize(24).text('AGROTIC', margin + 100, yPosition + 20);
-              pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin + 100, yPosition + 45);
-              pdf.fontSize(14).text('Reporte Integral de Producción', margin + 100, yPosition + 65);
+              pdf
+                .fontSize(16)
+                .text(
+                  'Sistema de Gestión Agrícola',
+                  margin + 100,
+                  yPosition + 45,
+                );
+              pdf
+                .fontSize(14)
+                .text(
+                  'Reporte Integral de Producción',
+                  margin + 100,
+                  yPosition + 65,
+                );
             } else {
-              pdf.fontSize(24).text('AGROTIC', margin, yPosition, { align: 'center' });
-              pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin, yPosition + 25, { align: 'center' });
-              pdf.fontSize(14).text('Reporte Integral de Producción', margin, yPosition + 45, { align: 'center' });
+              pdf
+                .fontSize(24)
+                .text('AGROTIC', margin, yPosition, { align: 'center' });
+              pdf
+                .fontSize(16)
+                .text('Sistema de Gestión Agrícola', margin, yPosition + 25, {
+                  align: 'center',
+                });
+              pdf
+                .fontSize(14)
+                .text(
+                  'Reporte Integral de Producción',
+                  margin,
+                  yPosition + 45,
+                  { align: 'center' },
+                );
             }
           } catch (error) {
-            pdf.fontSize(24).text('AGROTIC', margin, yPosition, { align: 'center' });
-            pdf.fontSize(16).text('Sistema de Gestión Agrícola', margin, yPosition + 25, { align: 'center' });
-            pdf.fontSize(14).text('Reporte Integral de Producción', margin, yPosition + 45, { align: 'center' });
+            pdf
+              .fontSize(24)
+              .text('AGROTIC', margin, yPosition, { align: 'center' });
+            pdf
+              .fontSize(16)
+              .text('Sistema de Gestión Agrícola', margin, yPosition + 25, {
+                align: 'center',
+              });
+            pdf
+              .fontSize(14)
+              .text('Reporte Integral de Producción', margin, yPosition + 45, {
+                align: 'center',
+              });
           }
-          
-          pdf.moveTo(margin, yPosition + 70).lineTo(pdf.page.width - margin, yPosition + 70).stroke();
-          
+
+          pdf
+            .moveTo(margin, yPosition + 70)
+            .lineTo(pdf.page.width - margin, yPosition + 70)
+            .stroke();
+
           yPosition += 90;
-          
+
           pdf.fontSize(12).text(`Topic: ${topic}`, margin, yPosition);
           pdf.text(`Métrica: ${metricNorm ?? 'todas'}`, margin, yPosition + 15);
-          pdf.text(`Período: ${desde?.toLocaleDateString() || '—'} - ${hasta?.toLocaleDateString() || '—'}`, margin, yPosition + 30);
-          pdf.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, margin, yPosition + 45);
-          
+          pdf.text(
+            `Período: ${desde?.toLocaleDateString() || '—'} - ${hasta?.toLocaleDateString() || '—'}`,
+            margin,
+            yPosition + 30,
+          );
+          pdf.text(
+            `Fecha de generación: ${new Date().toLocaleDateString()}`,
+            margin,
+            yPosition + 45,
+          );
+
           yPosition += 70;
 
-          this.addSectionHeader(pdf, 'RESUMEN DE LECTURAS DE SENSORES', margin, yPosition);
+          this.addSectionHeader(
+            pdf,
+            'RESUMEN DE LECTURAS DE SENSORES',
+            margin,
+            yPosition,
+          );
           yPosition += 25;
-          
+
           const resumen = this.calcularResumen(lecturas as any[]);
-          this.addDataTable(pdf, [
-            ['Métrica', 'Cantidad', 'Promedio', 'Mínimo', 'Máximo'],
-            [metricNorm || 'Todas', resumen.count.toString(), resumen.avg?.toFixed(2) || '—', resumen.min?.toFixed(2) || '—', resumen.max?.toFixed(2) || '—']
-          ], margin, yPosition, pageWidth);
-          
+          this.addDataTable(
+            pdf,
+            [
+              ['Métrica', 'Cantidad', 'Promedio', 'Mínimo', 'Máximo'],
+              [
+                metricNorm || 'Todas',
+                resumen.count.toString(),
+                resumen.avg?.toFixed(2) || '—',
+                resumen.min?.toFixed(2) || '—',
+                resumen.max?.toFixed(2) || '—',
+              ],
+            ],
+            margin,
+            yPosition,
+            pageWidth,
+          );
+
           yPosition += 60;
 
           if (cultivos.length > 0) {
@@ -632,22 +914,29 @@ export class ReportsService {
               pdf.addPage();
               yPosition = 50;
             }
-            
-            this.addSectionHeader(pdf, 'TRAZABILIDAD DE CULTIVOS', margin, yPosition);
+
+            this.addSectionHeader(
+              pdf,
+              'TRAZABILIDAD DE CULTIVOS',
+              margin,
+              yPosition,
+            );
             yPosition += 25;
-            
+
             const cultivosData = [
               ['ID', 'Nombre', 'Tipo', 'Fecha Siembra', 'Estado', 'Lote'],
-              ...cultivos.map(c => [
+              ...cultivos.map((c) => [
                 c.id_cultivo.toString(),
                 c.nombre_cultivo,
                 c.tipo_cultivo,
-                c.fecha_siembra ? new Date(c.fecha_siembra).toLocaleDateString() : '—',
+                c.fecha_siembra
+                  ? new Date(c.fecha_siembra).toLocaleDateString()
+                  : '—',
                 c.estado_cultivo,
-                c.lote?.descripcion || '—'
-              ])
+                c.lote?.descripcion || '—',
+              ]),
             ];
-            
+
             this.addDataTable(pdf, cultivosData, margin, yPosition, pageWidth);
             yPosition += 25 + cultivos.length * 20;
           }
@@ -657,36 +946,71 @@ export class ReportsService {
               pdf.addPage();
               yPosition = 50;
             }
-            
-            this.addSectionHeader(pdf, 'HISTORIAL DE ACTIVIDADES', margin, yPosition);
+
+            this.addSectionHeader(
+              pdf,
+              'HISTORIAL DE ACTIVIDADES',
+              margin,
+              yPosition,
+            );
             yPosition += 25;
-            
+
             const actividadesData = [
-              ['Fecha', 'Tipo', 'Responsable', 'Costo MO', 'Costo Maq', 'Cultivo'],
-              ...actividades.slice(0, 10).map(a => [
-                a.fecha ? new Date(a.fecha).toLocaleDateString() : '—',
-                (a as any).tipo_actividad || '—',
-                (a as any).responsable || '—',
-                ` ${(a as any).costo_mano_obra || '0'}`,
-                ` ${(a as any).costo_maquinaria || '0'}`,
-                (a as any).cultivo?.nombre_cultivo || '—'
-              ])
+              [
+                'Fecha',
+                'Tipo',
+                'Responsable',
+                'Costo MO',
+                'Costo Maq',
+                'Cultivo',
+              ],
+              ...actividades
+                .slice(0, 10)
+                .map((a) => [
+                  a.fecha ? new Date(a.fecha).toLocaleDateString() : '—',
+                  (a as any).tipo_actividad || '—',
+                  (a as any).responsable || '—',
+                  ` ${(a as any).costo_mano_obra || '0'}`,
+                  ` ${(a as any).costo_maquinaria || '0'}`,
+                  (a as any).cultivo?.nombre_cultivo || '—',
+                ]),
             ];
-            
-            this.addDataTable(pdf, actividadesData, margin, yPosition, pageWidth);
+
+            this.addDataTable(
+              pdf,
+              actividadesData,
+              margin,
+              yPosition,
+              pageWidth,
+            );
             yPosition += 25 + Math.min(actividades.length, 11) * 20;
-            
+
             // Resumen de costos
-            const totalCostoMO = actividades.reduce((sum, a) => sum + parseFloat((a as any).costo_mano_obra || '0'), 0);
-            const totalCostoMaq = actividades.reduce((sum, a) => sum + parseFloat((a as any).costo_maquinaria || '0'), 0);
-            
-            this.addDataTable(pdf, [
-              ['Resumen de Costos', ''],
-              ['Total Mano de Obra', `$${totalCostoMO.toFixed(2)}`],
-              ['Total Maquinaria', `$${totalCostoMaq.toFixed(2)}`],
-              ['Costo Total', `$${(totalCostoMO + totalCostoMaq).toFixed(2)}`]
-            ], margin, yPosition, pageWidth);
-            
+            const totalCostoMO = actividades.reduce(
+              (sum, a) => sum + parseFloat((a as any).costo_mano_obra || '0'),
+              0,
+            );
+            const totalCostoMaq = actividades.reduce(
+              (sum, a) => sum + parseFloat((a as any).costo_maquinaria || '0'),
+              0,
+            );
+
+            this.addDataTable(
+              pdf,
+              [
+                ['Resumen de Costos', ''],
+                ['Total Mano de Obra', `$${totalCostoMO.toFixed(2)}`],
+                ['Total Maquinaria', `$${totalCostoMaq.toFixed(2)}`],
+                [
+                  'Costo Total',
+                  `$${(totalCostoMO + totalCostoMaq).toFixed(2)}`,
+                ],
+              ],
+              margin,
+              yPosition,
+              pageWidth,
+            );
+
             yPosition += 100;
           }
 
@@ -695,22 +1019,35 @@ export class ReportsService {
               pdf.addPage();
               yPosition = 50;
             }
-            
-            this.addSectionHeader(pdf, 'INVENTARIO DE INSUMOS', margin, yPosition);
+
+            this.addSectionHeader(
+              pdf,
+              'INVENTARIO DE INSUMOS',
+              margin,
+              yPosition,
+            );
             yPosition += 25;
-            
+
             const inventarioData = [
               ['Insumo', 'Cantidad', 'Unidad', 'Categoría', 'Estado'],
-              ...inventario.slice(0, 10).map(item => [
-                (item.insumo as any)?.nombre_insumo || '—',
-                (item as any).cantidad_stock.toString(),
-                (item as any).unidad_medida || '—',
-                (item.insumo as any)?.id_categoria?.nombre || '—',
-                (item as any).cantidad_stock < 10 ? 'Bajo' : 'Normal'
-              ])
+              ...inventario
+                .slice(0, 10)
+                .map((item) => [
+                  (item.insumo as any)?.nombre_insumo || '—',
+                  (item as any).cantidad_stock.toString(),
+                  (item as any).unidad_medida || '—',
+                  (item.insumo as any)?.id_categoria?.nombre || '—',
+                  (item as any).cantidad_stock < 10 ? 'Bajo' : 'Normal',
+                ]),
             ];
-            
-            this.addDataTable(pdf, inventarioData, margin, yPosition, pageWidth);
+
+            this.addDataTable(
+              pdf,
+              inventarioData,
+              margin,
+              yPosition,
+              pageWidth,
+            );
             yPosition += 25 + Math.min(inventario.length, 11) * 20;
           }
 
@@ -719,61 +1056,103 @@ export class ReportsService {
               pdf.addPage();
               yPosition = 50;
             }
-            
-            this.addSectionHeader(pdf, 'ANÁLISIS FINANCIERO', margin, yPosition);
+
+            this.addSectionHeader(
+              pdf,
+              'ANÁLISIS FINANCIERO',
+              margin,
+              yPosition,
+            );
             yPosition += 25;
-            
+
             if (ingresos.length > 0) {
-              pdf.fontSize(12).font('Helvetica-Bold').text('Ingresos:', margin, yPosition);
+              pdf
+                .fontSize(12)
+                .font('Helvetica-Bold')
+                .text('Ingresos:', margin, yPosition);
               yPosition += 15;
-              
+
               const ingresosData = [
                 ['Fecha', 'Descripción', 'Monto', 'Cultivo'],
-                ...ingresos.slice(0, 5).map(ing => [
-                  (ing as any).fecha_ingreso ? new Date((ing as any).fecha_ingreso).toLocaleDateString() : '—',
-                  (ing as any).descripcion || '—',
-                  `$${(ing as any).monto.toFixed(2)}`,
-                  (ing as any).cultivo?.nombre_cultivo || '—'
-                ])
+                ...ingresos
+                  .slice(0, 5)
+                  .map((ing) => [
+                    (ing as any).fecha_ingreso
+                      ? new Date(
+                          (ing as any).fecha_ingreso,
+                        ).toLocaleDateString()
+                      : '—',
+                    (ing as any).descripcion || '—',
+                    `$${(ing as any).monto.toFixed(2)}`,
+                    (ing as any).cultivo?.nombre_cultivo || '—',
+                  ]),
               ];
-              
-              this.addDataTable(pdf, ingresosData, margin, yPosition, pageWidth);
+
+              this.addDataTable(
+                pdf,
+                ingresosData,
+                margin,
+                yPosition,
+                pageWidth,
+              );
               yPosition += 25 + Math.min(ingresos.length, 6) * 20;
             }
-            
+
             if (salidas.length > 0 && yPosition < 500) {
-              pdf.fontSize(12).font('Helvetica-Bold').text('Egresos:', margin, yPosition);
+              pdf
+                .fontSize(12)
+                .font('Helvetica-Bold')
+                .text('Egresos:', margin, yPosition);
               yPosition += 15;
-              
+
               const salidasData = [
                 ['Fecha', 'Descripción', 'Cantidad', 'Total', 'Cultivo'],
-                ...salidas.slice(0, 5).map(sal => [
-                  (sal as any).fecha_salida ? new Date((sal as any).fecha_salida).toLocaleDateString() : '—',
-                  (sal as any).nombre || '—',
-                  (sal as any).cantidad.toString(),
-                  `$${((sal as any).cantidad * ((sal as any).valor_unidad || 0)).toFixed(2)}`,
-                  (sal as any).cultivo?.nombre_cultivo || '—'
-                ])
+                ...salidas
+                  .slice(0, 5)
+                  .map((sal) => [
+                    (sal as any).fecha_salida
+                      ? new Date((sal as any).fecha_salida).toLocaleDateString()
+                      : '—',
+                    (sal as any).nombre || '—',
+                    (sal as any).cantidad.toString(),
+                    `$${((sal as any).cantidad * ((sal as any).valor_unidad || 0)).toFixed(2)}`,
+                    (sal as any).cultivo?.nombre_cultivo || '—',
+                  ]),
               ];
-              
+
               this.addDataTable(pdf, salidasData, margin, yPosition, pageWidth);
               yPosition += 25 + Math.min(salidas.length, 6) * 20;
             }
-            
+
             if (yPosition < 450) {
-              const totalIngresos = ingresos.reduce((sum, ing) => sum + (ing as any).monto, 0);
-              const totalEgresos = salidas.reduce((sum, sal) => sum + (sal as any).cantidad * ((sal as any).valor_unidad || 0), 0);
+              const totalIngresos = ingresos.reduce(
+                (sum, ing) => sum + (ing as any).monto,
+                0,
+              );
+              const totalEgresos = salidas.reduce(
+                (sum, sal) =>
+                  sum +
+                  (sal as any).cantidad * ((sal as any).valor_unidad || 0),
+                0,
+              );
               const beneficio = totalIngresos - totalEgresos;
-              const margen = totalIngresos > 0 ? (beneficio / totalIngresos) * 100 : 0;
-              
-              this.addDataTable(pdf, [
-                ['Resumen Financiero', ''],
-                ['Total Ingresos', `$${totalIngresos.toFixed(2)}`],
-                ['Total Egresos', `$${totalEgresos.toFixed(2)}`],
-                ['Beneficio Neto', `$${beneficio.toFixed(2)}`],
-                ['Margen de Ganancia', `${margen.toFixed(2)}%`],
-                ['Estado', beneficio > 0 ? 'RENTABLE' : 'NO RENTABLE']
-              ], margin, yPosition, pageWidth);
+              const margen =
+                totalIngresos > 0 ? (beneficio / totalIngresos) * 100 : 0;
+
+              this.addDataTable(
+                pdf,
+                [
+                  ['Resumen Financiero', ''],
+                  ['Total Ingresos', `$${totalIngresos.toFixed(2)}`],
+                  ['Total Egresos', `$${totalEgresos.toFixed(2)}`],
+                  ['Beneficio Neto', `$${beneficio.toFixed(2)}`],
+                  ['Margen de Ganancia', `${margen.toFixed(2)}%`],
+                  ['Estado', beneficio > 0 ? 'RENTABLE' : 'NO RENTABLE'],
+                ],
+                margin,
+                yPosition,
+                pageWidth,
+              );
             }
           }
 
@@ -790,63 +1169,94 @@ export class ReportsService {
 
   private addSectionHeader(pdf: any, title: string, x: number, y: number) {
     // Fondo para el encabezado
-    pdf.fillColor('#2E7D32').rect(x, y - 5, 500, 30).fill();
-    
+    pdf
+      .fillColor('#2E7D32')
+      .rect(x, y - 5, 500, 30)
+      .fill();
+
     // Texto del encabezado
-    pdf.fillColor('white').fontSize(16).font('Helvetica-Bold').text(title, x + 10, y + 2);
-    
+    pdf
+      .fillColor('white')
+      .fontSize(16)
+      .font('Helvetica-Bold')
+      .text(title, x + 10, y + 2);
+
     // Línea decorativa
     pdf.strokeColor('#4CAF50').lineWidth(2);
-    pdf.moveTo(x, y + 25).lineTo(x + 500, y + 25).stroke();
-    
+    pdf
+      .moveTo(x, y + 25)
+      .lineTo(x + 500, y + 25)
+      .stroke();
+
     // Resetear color
     pdf.fillColor('black').strokeColor('black').lineWidth(1);
   }
 
-  private addDataTable(pdf: any, data: string[][], x: number, y: number, width: number) {
+  private addDataTable(
+    pdf: any,
+    data: string[][],
+    x: number,
+    y: number,
+    width: number,
+  ) {
     const colWidths = this.calculateColumnWidths(data, width);
     let currentY = y;
     const rowHeight = 22;
-    
+
     data.forEach((row, rowIndex) => {
       let currentX = x;
-      
+
       if (rowIndex === 0) {
-        pdf.fillColor('#E8F5E8').rect(x, currentY - 2, width, rowHeight).fill();
+        pdf
+          .fillColor('#E8F5E8')
+          .rect(x, currentY - 2, width, rowHeight)
+          .fill();
         pdf.fillColor('#2E7D32').fontSize(10).font('Helvetica-Bold');
       } else {
         if (rowIndex % 2 === 0) {
-          pdf.fillColor('#F5F5F5').rect(x, currentY - 2, width, rowHeight).fill();
+          pdf
+            .fillColor('#F5F5F5')
+            .rect(x, currentY - 2, width, rowHeight)
+            .fill();
         }
         pdf.fillColor('black').fontSize(9).font('Helvetica');
       }
       row.forEach((cell, colIndex) => {
         const cellX = currentX;
         const cellWidth = colWidths[colIndex];
-        
+
         pdf.text(cell, cellX + 5, currentY + 2, { width: cellWidth - 10 });
-        
+
         if (colIndex < row.length - 1) {
           pdf.strokeColor('#CCCCCC').lineWidth(0.5);
-          pdf.moveTo(cellX + cellWidth, currentY - 2).lineTo(cellX + cellWidth, currentY + rowHeight - 2).stroke();
+          pdf
+            .moveTo(cellX + cellWidth, currentY - 2)
+            .lineTo(cellX + cellWidth, currentY + rowHeight - 2)
+            .stroke();
         }
-        
+
         currentX += cellWidth;
       });
-      
+
       pdf.strokeColor('#CCCCCC').lineWidth(0.5);
-      pdf.moveTo(x, currentY + rowHeight - 2).lineTo(x + width, currentY + rowHeight - 2).stroke();
-      
+      pdf
+        .moveTo(x, currentY + rowHeight - 2)
+        .lineTo(x + width, currentY + rowHeight - 2)
+        .stroke();
+
       currentY += rowHeight;
     });
-    
+
     pdf.strokeColor('#4CAF50').lineWidth(1);
     pdf.rect(x, y - 2, width, data.length * rowHeight).stroke();
-    
+
     pdf.fillColor('black').strokeColor('black');
   }
 
-  private calculateColumnWidths(data: string[][], totalWidth: number): number[] {
+  private calculateColumnWidths(
+    data: string[][],
+    totalWidth: number,
+  ): number[] {
     const numCols = data[0].length;
     const baseWidth = totalWidth / numCols;
     return Array(numCols).fill(baseWidth);
@@ -854,7 +1264,8 @@ export class ReportsService {
 
   async obtenerSensoresConUbicaciones() {
     try {
-      const sensores = await this.sensorRepo.createQueryBuilder('sensor')
+      const sensores = await this.sensorRepo
+        .createQueryBuilder('sensor')
         .leftJoinAndSelect('sensor.id_sublote', 'sublote')
         .leftJoinAndSelect('sublote.id_lote', 'lote')
         .leftJoinAndSelect('sensor.cultivo', 'cultivo')
@@ -867,24 +1278,28 @@ export class ReportsService {
         return [];
       }
 
-      return sensores.map(sensor => ({
+      return sensores.map((sensor) => ({
         id_sensor: sensor.id_sensor,
         tipo_sensor: sensor.tipo_sensor,
         estado: sensor.estado,
         mqtt_topic: sensor.mqtt_topic,
         ultima_lectura: sensor.ultima_lectura,
         valor_actual: sensor.valor_actual,
-        cultivo: sensor.cultivo ? {
-          id_cultivo: sensor.cultivo.id_cultivo,
-          nombre_cultivo: sensor.cultivo.nombre_cultivo,
-          tipo_cultivo: sensor.cultivo.tipo_cultivo
-        } : null,
-        sublote: sensor.id_sublote ? {
-          id_sublote: sensor.id_sublote.id_sublote,
-          descripcion: sensor.id_sublote.descripcion,
-          ubicacion: sensor.id_sublote.ubicacion,
-          coordenadas: sensor.id_sublote.coordenadas
-        } : null 
+        cultivo: sensor.cultivo
+          ? {
+              id_cultivo: sensor.cultivo.id_cultivo,
+              nombre_cultivo: sensor.cultivo.nombre_cultivo,
+              tipo_cultivo: sensor.cultivo.tipo_cultivo,
+            }
+          : null,
+        sublote: sensor.id_sublote
+          ? {
+              id_sublote: sensor.id_sublote.id_sublote,
+              descripcion: sensor.id_sublote.descripcion,
+              ubicacion: sensor.id_sublote.ubicacion,
+              coordenadas: sensor.id_sublote.coordenadas,
+            }
+          : null,
       }));
     } catch (error) {
       this.logger.error('❌ Error obteniendo sensores:', error);
@@ -904,14 +1319,14 @@ export class ReportsService {
         cultivo: {
           id_cultivo: 1,
           nombre_cultivo: 'Tomate',
-          tipo_cultivo: 'Hortalizas'
+          tipo_cultivo: 'Hortalizas',
         },
         sublote: {
           id_sublote: 1,
           descripcion: 'Sublote A1',
           ubicacion: 'Zona Norte',
-          coordenadas: '5.0705,-75.5138'
-        }
+          coordenadas: '5.0705,-75.5138',
+        },
       },
       {
         id_sensor: 2,
@@ -923,14 +1338,14 @@ export class ReportsService {
         cultivo: {
           id_cultivo: 1,
           nombre_cultivo: 'Tomate',
-          tipo_cultivo: 'Hortalizas'
+          tipo_cultivo: 'Hortalizas',
         },
         sublote: {
           id_sublote: 1,
           descripcion: 'Sublote A1',
           ubicacion: 'Zona Norte',
-          coordenadas: '5.0705,-75.5138'
-        }
+          coordenadas: '5.0705,-75.5138',
+        },
       },
       {
         id_sensor: 3,
@@ -942,21 +1357,22 @@ export class ReportsService {
         cultivo: {
           id_cultivo: 2,
           nombre_cultivo: 'Lechuga',
-          tipo_cultivo: 'Hortalizas'
+          tipo_cultivo: 'Hortalizas',
         },
         sublote: {
           id_sublote: 2,
           descripcion: 'Sublote B1',
           ubicacion: 'Zona Sur',
-          coordenadas: '5.0695,-75.5140'
-        }
-      }
+          coordenadas: '5.0695,-75.5140',
+        },
+      },
     ];
   }
 
   async obtenerLecturasIoTCompletas(desde?: Date, hasta?: Date) {
     try {
-      const qb = this.lecturaRepo.createQueryBuilder('l')
+      const qb = this.lecturaRepo
+        .createQueryBuilder('l')
         .leftJoin('l.sensor', 'sensor')
         .leftJoin('sensor.id_sublote', 'sublotes')
         .leftJoin('sublotes.id_lote', 'lotes')
@@ -977,40 +1393,46 @@ export class ReportsService {
           'sublotes.id_sublote',
           'sublotes.descripcion',
           'sublotes.ubicacion',
-          'sublotes.coordenadas'
+          'sublotes.coordenadas',
         ]);
 
       if (desde) qb.andWhere('l.fecha >= :desde', { desde });
       if (hasta) qb.andWhere('l.fecha <= :hasta', { hasta });
-      
+
       qb.orderBy('l.fecha', 'DESC');
 
       const lecturas = await qb.getMany();
       this.logger.log('🔍 Lecturas encontradas en BD:', lecturas.length);
-      
+
       if (!lecturas || lecturas.length === 0) {
         this.logger.warn('⚠️ No se encontraron lecturas históricas reales.');
         return [];
       }
-      
-      return lecturas.map(lectura => ({
+
+      return lecturas.map((lectura) => ({
         ...lectura,
-        sensor_info: lectura.sensor ? {
-          id_sensor: lectura.sensor.id_sensor,
-          tipo_sensor: lectura.sensor.tipo_sensor,
-          estado: lectura.sensor.estado
-        } : null,
-        cultivo_info: lectura.sensor?.cultivo ? {
-          id_cultivo: lectura.sensor.cultivo.id_cultivo,
-          nombre_cultivo: lectura.sensor.cultivo.nombre_cultivo,
-          tipo_cultivo: lectura.sensor.cultivo.tipo_cultivo
-        } : null,
-        ubicacion_info: lectura.sensor?.id_sublote ? {
-          id_sublote: lectura.sensor.id_sublote.id_sublote,
-          descripcion: lectura.sensor.id_sublote.descripcion,
-          ubicacion: lectura.sensor.id_sublote.ubicacion,
-          coordenadas: lectura.sensor.id_sublote.coordenadas
-        } : null
+        sensor_info: lectura.sensor
+          ? {
+              id_sensor: lectura.sensor.id_sensor,
+              tipo_sensor: lectura.sensor.tipo_sensor,
+              estado: lectura.sensor.estado,
+            }
+          : null,
+        cultivo_info: lectura.sensor?.cultivo
+          ? {
+              id_cultivo: lectura.sensor.cultivo.id_cultivo,
+              nombre_cultivo: lectura.sensor.cultivo.nombre_cultivo,
+              tipo_cultivo: lectura.sensor.cultivo.tipo_cultivo,
+            }
+          : null,
+        ubicacion_info: lectura.sensor?.id_sublote
+          ? {
+              id_sublote: lectura.sensor.id_sublote.id_sublote,
+              descripcion: lectura.sensor.id_sublote.descripcion,
+              ubicacion: lectura.sensor.id_sublote.ubicacion,
+              coordenadas: lectura.sensor.id_sublote.coordenadas,
+            }
+          : null,
       }));
     } catch (error) {
       this.logger.error('❌ Error obteniendo lecturas IoT:', error);
@@ -1020,24 +1442,29 @@ export class ReportsService {
 
   private generateDemoLecturasData(desde?: Date, hasta?: Date) {
     console.log('Generando datos demo de lecturas...');
-    const lecturas: any[] = []; 
-    const fechaInicio = desde || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); 
+    const lecturas: any[] = [];
+    const fechaInicio = desde || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const fechaFin = hasta || new Date();
-    
-    console.log('Rango de datos demo:', { fechaInicio: fechaInicio.toISOString(), fechaFin: fechaFin.toISOString() });
-    
+
+    console.log('Rango de datos demo:', {
+      fechaInicio: fechaInicio.toISOString(),
+      fechaFin: fechaFin.toISOString(),
+    });
+
     const ahora = fechaFin.getTime();
     const inicio = fechaInicio.getTime();
     const duracion = ahora - inicio;
-    const intervalo = 30 * 60 * 1000; 
-    
-    console.log(`Generando ${Math.floor(duracion / intervalo)} puntos de datos...`);
-    
+    const intervalo = 30 * 60 * 1000;
+
+    console.log(
+      `Generando ${Math.floor(duracion / intervalo)} puntos de datos...`,
+    );
+
     for (let tiempo = inicio; tiempo <= ahora; tiempo += intervalo) {
       const fecha = new Date(tiempo);
-      
+
       const hora = fecha.getHours();
-      const factorTemperatura = Math.sin((hora - 6) * Math.PI / 12) * 7; 
+      const factorTemperatura = Math.sin(((hora - 6) * Math.PI) / 12) * 7;
       const temperatura = 25 + factorTemperatura + (Math.random() - 0.5) * 4;
       lecturas.push({
         id_lectura: lecturas.length + 1,
@@ -1049,22 +1476,23 @@ export class ReportsService {
         sensor_info: {
           id_sensor: 1,
           tipo_sensor: 'temperatura',
-          estado: 'activo'
+          estado: 'activo',
         },
         cultivo_info: {
           id_cultivo: 1,
           nombre_cultivo: 'Tomate',
-          tipo_cultivo: 'Hortalizas'
+          tipo_cultivo: 'Hortalizas',
         },
         ubicacion_info: {
           id_sublote: 1,
           descripcion: 'Sublote A1',
           ubicacion: 'Zona Norte',
-          coordenadas: '5.0705,-75.5138'
-        }
+          coordenadas: '5.0705,-75.5138',
+        },
       });
-      
-      const humedadAire = 70 - factorTemperatura * 2 + (Math.random() - 0.5) * 10;
+
+      const humedadAire =
+        70 - factorTemperatura * 2 + (Math.random() - 0.5) * 10;
       lecturas.push({
         id_lectura: lecturas.length + 1,
         fecha,
@@ -1075,28 +1503,30 @@ export class ReportsService {
         sensor_info: {
           id_sensor: 2,
           tipo_sensor: 'humedad aire',
-          estado: 'activo'
+          estado: 'activo',
         },
         cultivo_info: {
           id_cultivo: 1,
           nombre_cultivo: 'Tomate',
-          tipo_cultivo: 'Hortalizas'
+          tipo_cultivo: 'Hortalizas',
         },
         ubicacion_info: {
           id_sublote: 1,
           descripcion: 'Sublote A1',
           ubicacion: 'Zona Norte',
-          coordenadas: '5.0705,-75.5138'
-        }
+          coordenadas: '5.0705,-75.5138',
+        },
       });
-      
-      let humedadSuelo = 50 + Math.sin(tiempo / (24 * 60 * 60 * 1000)) * 20; 
-      const diasDesdeInicio = Math.floor((tiempo - inicio) / (24 * 60 * 60 * 1000));
+
+      let humedadSuelo = 50 + Math.sin(tiempo / (24 * 60 * 60 * 1000)) * 20;
+      const diasDesdeInicio = Math.floor(
+        (tiempo - inicio) / (24 * 60 * 60 * 1000),
+      );
       if (diasDesdeInicio % 2 === 0 && hora >= 6 && hora <= 8) {
-        humedadSuelo = Math.min(80, humedadSuelo + 15); 
+        humedadSuelo = Math.min(80, humedadSuelo + 15);
       }
       humedadSuelo += (Math.random() - 0.5) * 10;
-      
+
       lecturas.push({
         id_lectura: lecturas.length + 1,
         fecha,
@@ -1107,23 +1537,24 @@ export class ReportsService {
         sensor_info: {
           id_sensor: 3,
           tipo_sensor: 'humedad suelo',
-          estado: 'activo'
+          estado: 'activo',
         },
         cultivo_info: {
           id_cultivo: 2,
           nombre_cultivo: 'Lechuga',
-          tipo_cultivo: 'Hortalizas'
+          tipo_cultivo: 'Hortalizas',
         },
         ubicacion_info: {
           id_sublote: 2,
           descripcion: 'Sublote B1',
           ubicacion: 'Zona Sur',
-          coordenadas: '5.0695,-75.5140'
-        }
+          coordenadas: '5.0695,-75.5140',
+        },
       });
-      
+
       const debeRegar = humedadSuelo < 45;
-      const bombaActiva = debeRegar && (hora >= 6 && hora <= 18) && Math.random() > 0.7;
+      const bombaActiva =
+        debeRegar && hora >= 6 && hora <= 18 && Math.random() > 0.7;
       if (bombaActiva || (diasDesdeInicio % 3 === 0 && hora === 7)) {
         lecturas.push({
           id_lectura: lecturas.length + 1,
@@ -1135,30 +1566,31 @@ export class ReportsService {
           sensor_info: {
             id_sensor: 4,
             tipo_sensor: 'bomba agua',
-            estado: 'activo'
+            estado: 'activo',
           },
           cultivo_info: {
             id_cultivo: 1,
             nombre_cultivo: 'Tomate',
-            tipo_cultivo: 'Hortalizas'
+            tipo_cultivo: 'Hortalizas',
           },
           ubicacion_info: {
             id_sublote: 1,
             descripcion: 'Sublote A1',
             ubicacion: 'Zona Norte',
-            coordenadas: '5.0705,-75.5138'
-          }
+            coordenadas: '5.0705,-75.5138',
+          },
         });
       }
     }
-    
+
     console.log(`✅ Generadas ${lecturas.length} lecturas demo`);
     return lecturas;
   }
 
   async contarActivacionesBombaPorPeriodo(desde?: Date, hasta?: Date) {
     try {
-      const qb = this.lecturaRepo.createQueryBuilder('l')
+      const qb = this.lecturaRepo
+        .createQueryBuilder('l')
         .where('l.unidad_medida = :unidad', { unidad: 'bomba_estado' });
 
       if (desde) qb.andWhere('l.fecha >= :desde', { desde });
@@ -1167,22 +1599,27 @@ export class ReportsService {
       qb.orderBy('l.fecha', 'ASC');
 
       const lecturasBomba = await qb.getMany();
-      
+
       if (!lecturasBomba || lecturasBomba.length === 0) {
-        console.warn('⚠️ No se encontraron lecturas de bomba en la base de datos - generando demo');
+        console.warn(
+          '⚠️ No se encontraron lecturas de bomba en la base de datos - generando demo',
+        );
         return this.generateDemoBombaData(desde, hasta);
       }
-      
+
       let activacionesDiarias = 0;
       let activacionesSemanales = 0;
-      
+
       for (let i = 1; i < lecturasBomba.length; i++) {
         const prev = Number(lecturasBomba[i - 1].valor);
         const curr = Number(lecturasBomba[i].valor);
         if (prev === 0 && curr === 1) {
           activacionesSemanales++;
-          
-          const diffDays = (lecturasBomba[i].fecha.getTime() - lecturasBomba[i-1].fecha.getTime()) / (1000 * 60 * 60 * 24);
+
+          const diffDays =
+            (lecturasBomba[i].fecha.getTime() -
+              lecturasBomba[i - 1].fecha.getTime()) /
+            (1000 * 60 * 60 * 24);
           if (diffDays <= 1) {
             activacionesDiarias++;
           }
@@ -1192,7 +1629,7 @@ export class ReportsService {
       return {
         activaciones_diarias: activacionesDiarias,
         activaciones_semanales: activacionesSemanales,
-        total_lecturas_bomba: lecturasBomba.length
+        total_lecturas_bomba: lecturasBomba.length,
       };
     } catch (error) {
       console.error('Error contando activaciones de bomba:', error);
@@ -1201,73 +1638,91 @@ export class ReportsService {
   }
 
   private generateDemoBombaData(desde?: Date, hasta?: Date) {
-    const fechaInicio = desde || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); 
+    const fechaInicio = desde || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const fechaFin = hasta || new Date();
-    
-    
+
     let activacionesDiarias = 0;
     let activacionesSemanales = 0;
     let totalLecturas = 0;
-    
-    const dias = Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (24 * 60 * 60 * 1000));
-    
+
+    const dias = Math.ceil(
+      (fechaFin.getTime() - fechaInicio.getTime()) / (24 * 60 * 60 * 1000),
+    );
+
     for (let dia = 0; dia < dias; dia++) {
-      const fechaDia = new Date(fechaInicio.getTime() + dia * 24 * 60 * 60 * 1000);
-      
+      const fechaDia = new Date(
+        fechaInicio.getTime() + dia * 24 * 60 * 60 * 1000,
+      );
+
       if (dia % 2 === 0 || dia % 3 === 0) {
-        const horaMañana = 6 + Math.random() * 2; 
+        const horaMañana = 6 + Math.random() * 2;
         activacionesSemanales++;
-        
+
         if (Math.random() > 0.6) {
-          const horaTarde = 17 + Math.random() * 2; 
+          const horaTarde = 17 + Math.random() * 2;
           activacionesSemanales++;
         }
-        
+
         totalLecturas += 2; // Lecturas de encendido/apagado
-        
+
         // Contar como activación diaria si es hoy
         if (fechaDia.toDateString() === new Date().toDateString()) {
           activacionesDiarias = Math.random() > 0.5 ? 1 : 2;
         }
       }
-      
+
       totalLecturas += 48; // Lecturas cada 30 minutos del día completo
     }
-    
+
     return {
-      activaciones_diarias: activacionesDiarias || (Math.random() > 0.5 ? 1 : 0),
-      activaciones_semanales: activacionesSemanales || Math.floor(Math.random() * 5) + 2,
-      total_lecturas_bomba: totalLecturas || Math.floor(Math.random() * 100) + 50
+      activaciones_diarias:
+        activacionesDiarias || (Math.random() > 0.5 ? 1 : 0),
+      activaciones_semanales:
+        activacionesSemanales || Math.floor(Math.random() * 5) + 2,
+      total_lecturas_bomba:
+        totalLecturas || Math.floor(Math.random() * 100) + 50,
     };
   }
 
   async buildIoTCompletePDF(desde?: Date, hasta?: Date) {
     console.log('Iniciando generación de PDF IoT con UTF-8...');
     console.log('Rango de fechas:', { desde, hasta });
-    
-    let sensores = await this.obtenerSensoresConUbicaciones();
-    let lecturas = await this.obtenerLecturasIoTCompletas(desde, hasta);
-    
-    console.log('✅ Datos obtenidos:', { sensores: sensores.length, lecturas: lecturas.length });
-    
+
+    const sensores = await this.obtenerSensoresConUbicaciones();
+    const lecturas = await this.obtenerLecturasIoTCompletas(desde, hasta);
+
+    console.log('✅ Datos obtenidos:', {
+      sensores: sensores.length,
+      lecturas: lecturas.length,
+    });
+
     if (lecturas.length === 0) {
-      this.logger.warn('⚠️ No hay lecturas históricas para el período seleccionado.');
+      this.logger.warn(
+        '⚠️ No hay lecturas históricas para el período seleccionado.',
+      );
     }
     if (sensores.length === 0) {
-      this.logger.warn('⚠️ No se encontraron sensores para incluir en el reporte.');
+      this.logger.warn(
+        '⚠️ No se encontraron sensores para incluir en el reporte.',
+      );
     }
-    
-    console.log('Métricas encontradas:', [...new Set(lecturas.map(l => l.unidad_medida))]);
-    
-    const bombaData = await this.contarActivacionesBombaPorPeriodo(desde, hasta);
+
+    console.log('Métricas encontradas:', [
+      ...new Set(lecturas.map((l) => l.unidad_medida)),
+    ]);
+
+    const bombaData = await this.contarActivacionesBombaPorPeriodo(
+      desde,
+      hasta,
+    );
     console.log('Datos de bomba:', bombaData);
 
-    const pdf = new PDFDocument({ 
+    const pdf = new PDFDocument({
       margin: 50,
       size: 'A4',
-      bufferPages: true
+      bufferPages: true,
     });
-    
+
     pdf.font('Helvetica');
     const buffers: Buffer[] = [];
 
@@ -1275,15 +1730,28 @@ export class ReportsService {
       try {
         pdf.on('data', (d: Buffer) => buffers.push(d));
         pdf.on('end', () => {
-          console.log('PDF generado exitosamente. Tamaño:', Buffer.concat(buffers).length, 'bytes');
+          console.log(
+            'PDF generado exitosamente. Tamaño:',
+            Buffer.concat(buffers).length,
+            'bytes',
+          );
           resolve(Buffer.concat(buffers));
         });
 
-        this.addPortadaYDatosImportantesToPDF(pdf, sensores, lecturas, desde, hasta, bombaData);
+        this.addPortadaYDatosImportantesToPDF(
+          pdf,
+          sensores,
+          lecturas,
+          desde,
+          hasta,
+          bombaData,
+        );
 
         this.addGraficasPequenasSensoresToPDF(pdf, lecturas);
 
-        console.log('PDF generado con 2 páginas máximo, datos importantes y gráficas pequeñas');
+        console.log(
+          'PDF generado con 2 páginas máximo, datos importantes y gráficas pequeñas',
+        );
         pdf.end();
       } catch (e) {
         console.error('Error generando PDF:', e);
@@ -1292,73 +1760,112 @@ export class ReportsService {
     });
   }
 
-
-  private addPortadaYDatosImportantesToPDF(pdf: any, sensores: any[], lecturas: any[], desde?: Date, hasta?: Date, bombaData?: any) {
-    pdf.fontSize(28).text('AGROTIC – REPORTE DE SENSORES IoT', { align: 'center' });
+  private addPortadaYDatosImportantesToPDF(
+    pdf: any,
+    sensores: any[],
+    lecturas: any[],
+    desde?: Date,
+    hasta?: Date,
+    bombaData?: any,
+  ) {
+    pdf
+      .fontSize(28)
+      .text('AGROTIC – REPORTE DE SENSORES IoT', { align: 'center' });
     pdf.moveDown(1);
-    
+
     // Fecha y hora de generación
-    const fechaGeneracion = new Date().toLocaleString('es-CO', { 
+    const fechaGeneracion = new Date().toLocaleString('es-CO', {
       timeZone: 'America/Bogota',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
-    
-    pdf.fontSize(12).text(`Generado el: ${fechaGeneracion}`, { align: 'center' });
+
+    pdf
+      .fontSize(12)
+      .text(`Generado el: ${fechaGeneracion}`, { align: 'center' });
     pdf.moveDown(2);
-    
+
     pdf.fontSize(18).text('DATOS MÁS IMPORTANTES', { underline: true });
     pdf.moveDown(1);
-    
+
     // Temperatura
-    const lecturasTemperatura = lecturas.filter(l => l.unidad_medida === 'temperatura');
+    const lecturasTemperatura = lecturas.filter(
+      (l) => l.unidad_medida === 'temperatura',
+    );
     const resumenTemp = this.calcularResumen(lecturasTemperatura);
-    pdf.fontSize(14).text(`TEMPERATURA: Promedio ${resumenTemp.avg?.toFixed(1) || 'N/A'}°C (Min: ${resumenTemp.min || 'N/A'}°C, Max: ${resumenTemp.max || 'N/A'}°C)`);
-    
+    pdf
+      .fontSize(14)
+      .text(
+        `TEMPERATURA: Promedio ${resumenTemp.avg?.toFixed(1) || 'N/A'}°C (Min: ${resumenTemp.min || 'N/A'}°C, Max: ${resumenTemp.max || 'N/A'}°C)`,
+      );
+
     // Humedad ambiente
-    const lecturasHumedadAire = lecturas.filter(l => l.unidad_medida === 'humedad_aire');
+    const lecturasHumedadAire = lecturas.filter(
+      (l) => l.unidad_medida === 'humedad_aire',
+    );
     const resumenHumAire = this.calcularResumen(lecturasHumedadAire);
-    pdf.fontSize(14).text(`HUMEDAD AMBIENTE: Promedio ${resumenHumAire.avg?.toFixed(1) || 'N/A'}%`);
-    
+    pdf
+      .fontSize(14)
+      .text(
+        `HUMEDAD AMBIENTE: Promedio ${resumenHumAire.avg?.toFixed(1) || 'N/A'}%`,
+      );
+
     // Humedad del suelo
-    const lecturasHumedadSuelo = lecturas.filter(l => l.unidad_medida === 'humedad_suelo_porcentaje');
+    const lecturasHumedadSuelo = lecturas.filter(
+      (l) => l.unidad_medida === 'humedad_suelo_porcentaje',
+    );
     const resumenHumSuelo = this.calcularResumen(lecturasHumedadSuelo);
-    pdf.fontSize(14).text(`HUMEDAD SUELO: Promedio ${resumenHumSuelo.avg?.toFixed(1) || 'N/A'}%`);
-    
+    pdf
+      .fontSize(14)
+      .text(
+        `HUMEDAD SUELO: Promedio ${resumenHumSuelo.avg?.toFixed(1) || 'N/A'}%`,
+      );
+
     // Bomba
-    pdf.fontSize(14).text(`BOMBA DE RIEGO: ${bombaData?.activaciones_semanales || 0} activaciones`);
-    
+    pdf
+      .fontSize(14)
+      .text(
+        `BOMBA DE RIEGO: ${bombaData?.activaciones_semanales || 0} activaciones`,
+      );
+
     // Total registros
-    pdf.fontSize(14).text(`📊 TOTAL REGISTROS: ${lecturas.length} lecturas históricas`);
-    
+    pdf
+      .fontSize(14)
+      .text(`📊 TOTAL REGISTROS: ${lecturas.length} lecturas históricas`);
+
     // Sensores incluidos
-    const sensoresUnicos = [...new Set(sensores.map(s => s.tipo_sensor))];
+    const sensoresUnicos = [...new Set(sensores.map((s) => s.tipo_sensor))];
     if (sensoresUnicos.length > 0) {
       pdf.fontSize(12).text(`SENSORES: ${sensoresUnicos.join(', ')}`);
     }
-    
+
     // Rango de fechas
     const rangoFechas = `RANGO: ${desde ? desde.toLocaleDateString('es-CO') : 'Inicio'} - ${hasta ? hasta.toLocaleDateString('es-CO') : 'Actual'}`;
     pdf.fontSize(12).text(rangoFechas);
-    
+
     pdf.addPage();
   }
 
   private addGraficasPequenasSensoresToPDF(pdf: any, lecturas: any[]) {
     pdf.fontSize(18).text('GRÁFICAS POR SENSOR', { underline: true });
     pdf.moveDown(1);
-    
-    const metricas = ['temperatura', 'humedad_aire', 'humedad_suelo_porcentaje', 'bomba_estado'];
+
+    const metricas = [
+      'temperatura',
+      'humedad_aire',
+      'humedad_suelo_porcentaje',
+      'bomba_estado',
+    ];
     const titulos = {
-      'temperatura': '🌡️ TEMPERATURA',
-      'humedad_aire': '💧 HUMEDAD AMBIENTE', 
-      'humedad_suelo_porcentaje': '🌱 HUMEDAD SUELO',
-      'bomba_estado': '💦 ESTADO BOMBA'
+      temperatura: '🌡️ TEMPERATURA',
+      humedad_aire: '💧 HUMEDAD AMBIENTE',
+      humedad_suelo_porcentaje: '🌱 HUMEDAD SUELO',
+      bomba_estado: '💦 ESTADO BOMBA',
     };
-    
+
     const cols = 2;
     const rows = 2;
     const graphWidth = 250;
@@ -1367,25 +1874,41 @@ export class ReportsService {
     const startY = pdf.y + 20;
     const spacingX = 20;
     const spacingY = 20;
-    
+
     metricas.forEach((metrica, index) => {
-      const lecturasMetrica = lecturas.filter(l => l.unidad_medida === metrica);
-      
+      const lecturasMetrica = lecturas.filter(
+        (l) => l.unidad_medida === metrica,
+      );
+
       if (lecturasMetrica.length > 1) {
         const col = index % cols;
         const row = Math.floor(index / cols);
-        
+
         const x = startX + col * (graphWidth + spacingX);
-        const y = startY + row * (graphHeight + spacingY + 30); 
-        
+        const y = startY + row * (graphHeight + spacingY + 30);
+
         pdf.fontSize(12).text(titulos[metrica], x, y - 15);
-        
-        this.drawSmallTimeSeriesGraph(pdf, lecturasMetrica, x, y, graphWidth, graphHeight);
+
+        this.drawSmallTimeSeriesGraph(
+          pdf,
+          lecturasMetrica,
+          x,
+          y,
+          graphWidth,
+          graphHeight,
+        );
       }
     });
   }
 
-  private drawSmallTimeSeriesGraph(pdf: any, lecturas: any[], x: number, y: number, width: number, height: number) {
+  private drawSmallTimeSeriesGraph(
+    pdf: any,
+    lecturas: any[],
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) {
     if (lecturas.length < 2) return;
 
     const margin = 20;
@@ -1394,21 +1917,23 @@ export class ReportsService {
     const plotWidth = width - 2 * margin;
     const plotHeight = height - 2 * margin;
 
-    const puntos = lecturas.map(l => {
-      let valor = Number(l.valor);
-      if (l.unidad_medida === 'humedad_suelo_adc') {
-        valor = convertirHumedadSuelo(valor);
-      }
-      return { 
-        fecha: new Date(l.fecha).getTime(), 
-        valor: valor 
-      };
-    }).filter(p => !isNaN(p.valor));
+    const puntos = lecturas
+      .map((l) => {
+        let valor = Number(l.valor);
+        if (l.unidad_medida === 'humedad_suelo_adc') {
+          valor = convertirHumedadSuelo(valor);
+        }
+        return {
+          fecha: new Date(l.fecha).getTime(),
+          valor: valor,
+        };
+      })
+      .filter((p) => !isNaN(p.valor));
 
     if (puntos.length < 2) return;
 
-    const fechas = puntos.map(p => p.fecha);
-    const valores = puntos.map(p => p.valor);
+    const fechas = puntos.map((p) => p.fecha);
+    const valores = puntos.map((p) => p.valor);
     const minFecha = Math.min(...fechas);
     const maxFecha = Math.max(...fechas);
     const minValor = Math.min(...valores);
@@ -1416,12 +1941,16 @@ export class ReportsService {
 
     pdf.rect(plotX, plotY, plotWidth, plotHeight).stroke();
 
-    const scaleX = (fecha: number) => plotX + ((fecha - minFecha) / (maxFecha - minFecha || 1)) * plotWidth;
-    const scaleY = (valor: number) => plotY + plotHeight - ((valor - minValor) / (maxValor - minValor || 1)) * plotHeight;
+    const scaleX = (fecha: number) =>
+      plotX + ((fecha - minFecha) / (maxFecha - minFecha || 1)) * plotWidth;
+    const scaleY = (valor: number) =>
+      plotY +
+      plotHeight -
+      ((valor - minValor) / (maxValor - minValor || 1)) * plotHeight;
 
     pdf.strokeColor('#2563eb').lineWidth(1.5);
     pdf.moveTo(scaleX(puntos[0].fecha), scaleY(puntos[0].valor));
-    
+
     for (let i = 1; i < puntos.length; i++) {
       pdf.lineTo(scaleX(puntos[i].fecha), scaleY(puntos[i].valor));
     }
@@ -1433,57 +1962,91 @@ export class ReportsService {
   async buildExcelIoTCompletas(desde?: Date, hasta?: Date) {
     console.log('Iniciando generación de Excel IoT...');
     console.log('Rango de fechas:', { desde, hasta });
-    
-    let lecturas = await this.obtenerLecturasIoTCompletas(desde, hasta);
-    
+
+    const lecturas = await this.obtenerLecturasIoTCompletas(desde, hasta);
+
     console.log('✅ Datos obtenidos para Excel:', lecturas.length, 'lecturas');
-    
+
     // Si no hay datos, el reporte será generado con hojas vacías o indicando "N/A"
     if (lecturas.length === 0) {
-      this.logger.warn('⚠️ No hay lecturas reales para el período seleccionado. El Excel se generará sin datos.');
+      this.logger.warn(
+        '⚠️ No hay lecturas reales para el período seleccionado. El Excel se generará sin datos.',
+      );
     }
-    
-    console.log('🔍 Métricas encontradas:', [...new Set(lecturas.map(l => l.unidad_medida))]);
-    
-    const bombaData = await this.contarActivacionesBombaPorPeriodo(desde, hasta);
+
+    console.log('🔍 Métricas encontradas:', [
+      ...new Set(lecturas.map((l) => l.unidad_medida)),
+    ]);
+
+    const bombaData = await this.contarActivacionesBombaPorPeriodo(
+      desde,
+      hasta,
+    );
 
     const workbook = new Workbook();
 
     const wsResumen = workbook.addWorksheet('Resumen General');
-    
-    const lecturasTemperatura = lecturas.filter(l => l.unidad_medida === 'temperatura');
+
+    const lecturasTemperatura = lecturas.filter(
+      (l) => l.unidad_medida === 'temperatura',
+    );
     const resumenTemp = this.calcularResumen(lecturasTemperatura);
-    
-    const lecturasHumAire = lecturas.filter(l => l.unidad_medida === 'humedad_aire');
+
+    const lecturasHumAire = lecturas.filter(
+      (l) => l.unidad_medida === 'humedad_aire',
+    );
     const resumenHumAire = this.calcularResumen(lecturasHumAire);
-    
-    const lecturasHumSuelo = lecturas.filter(l => l.unidad_medida === 'humedad_suelo_porcentaje');
+
+    const lecturasHumSuelo = lecturas.filter(
+      (l) => l.unidad_medida === 'humedad_suelo_porcentaje',
+    );
     const resumenHumSuelo = this.calcularResumen(lecturasHumSuelo);
-    
+
     wsResumen.addRow(['MÉTRICA', 'PROMEDIO', 'MÍNIMO', 'MÁXIMO']);
-    wsResumen.addRow(['Temperatura (°C)', resumenTemp.avg?.toFixed(2) || 'N/A', resumenTemp.min || 'N/A', resumenTemp.max || 'N/A']);
-    wsResumen.addRow(['Humedad Ambiente (%)', resumenHumAire.avg?.toFixed(2) || 'N/A', resumenHumAire.min || 'N/A', resumenHumAire.max || 'N/A']);
-    wsResumen.addRow(['Humedad del Suelo (%)', resumenHumSuelo.avg?.toFixed(2) || 'N/A', resumenHumSuelo.min || 'N/A', resumenHumSuelo.max || 'N/A']);
-    
+    wsResumen.addRow([
+      'Temperatura (°C)',
+      resumenTemp.avg?.toFixed(2) || 'N/A',
+      resumenTemp.min || 'N/A',
+      resumenTemp.max || 'N/A',
+    ]);
+    wsResumen.addRow([
+      'Humedad Ambiente (%)',
+      resumenHumAire.avg?.toFixed(2) || 'N/A',
+      resumenHumAire.min || 'N/A',
+      resumenHumAire.max || 'N/A',
+    ]);
+    wsResumen.addRow([
+      'Humedad del Suelo (%)',
+      resumenHumSuelo.avg?.toFixed(2) || 'N/A',
+      resumenHumSuelo.min || 'N/A',
+      resumenHumSuelo.max || 'N/A',
+    ]);
+
     wsResumen.addRow([]);
     wsResumen.addRow(['TOTALES', 'VALOR']);
     wsResumen.addRow(['Total de registros', lecturas.length]);
-    wsResumen.addRow(['Activaciones de bomba', bombaData.activaciones_semanales]);
+    wsResumen.addRow([
+      'Activaciones de bomba',
+      bombaData.activaciones_semanales,
+    ]);
 
     const wsTemperatura = workbook.addWorksheet('Temperatura');
     wsTemperatura.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },
       { header: 'Hora', key: 'hora', width: 12 },
-      { header: 'Valor', key: 'valor', width: 10 }
+      { header: 'Valor', key: 'valor', width: 10 },
     ];
-    
+
     lecturasTemperatura
       .sort((a, b) => a.fecha.getTime() - b.fecha.getTime())
-      .forEach(lectura => {
+      .forEach((lectura) => {
         wsTemperatura.addRow({
           fecha: new Date(lectura.fecha).toISOString().split('T')[0],
-          hora: new Date(lectura.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-          valor: Number(lectura.valor).toFixed(2)
+          hora: new Date(lectura.fecha).toLocaleTimeString('es-CO', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          valor: Number(lectura.valor).toFixed(2),
         });
       });
 
@@ -1491,16 +2054,19 @@ export class ReportsService {
     wsHumedadAire.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },
       { header: 'Hora', key: 'hora', width: 12 },
-      { header: 'Valor', key: 'valor', width: 10 }
+      { header: 'Valor', key: 'valor', width: 10 },
     ];
-    
+
     lecturasHumAire
       .sort((a, b) => a.fecha.getTime() - b.fecha.getTime())
-      .forEach(lectura => {
+      .forEach((lectura) => {
         wsHumedadAire.addRow({
           fecha: new Date(lectura.fecha).toISOString().split('T')[0],
-          hora: new Date(lectura.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-          valor: Number(lectura.valor).toFixed(2)
+          hora: new Date(lectura.fecha).toLocaleTimeString('es-CO', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          valor: Number(lectura.valor).toFixed(2),
         });
       });
 
@@ -1508,20 +2074,23 @@ export class ReportsService {
     wsHumedadSuelo.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },
       { header: 'Hora', key: 'hora', width: 12 },
-      { header: 'Valor', key: 'valor', width: 10 }
+      { header: 'Valor', key: 'valor', width: 10 },
     ];
-    
+
     lecturasHumSuelo
       .sort((a, b) => a.fecha.getTime() - b.fecha.getTime())
-      .forEach(lectura => {
+      .forEach((lectura) => {
         let valor = Number(lectura.valor);
         if (lectura.unidad_medida === 'humedad_suelo_adc') {
           valor = convertirHumedadSuelo(valor);
         }
         wsHumedadSuelo.addRow({
           fecha: new Date(lectura.fecha).toISOString().split('T')[0],
-          hora: new Date(lectura.fecha).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-          valor: valor.toFixed(2)
+          hora: new Date(lectura.fecha).toLocaleTimeString('es-CO', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          valor: valor.toFixed(2),
         });
       });
 
@@ -1529,48 +2098,71 @@ export class ReportsService {
     wsBomba.columns = [
       { header: 'Fecha', key: 'fecha', width: 15 },
       { header: 'Hora', key: 'hora', width: 12 },
-      { header: 'Estado', key: 'estado', width: 10 }
+      { header: 'Estado', key: 'estado', width: 10 },
     ];
-    
-    const lecturasBomba = lecturas.filter(l => l.unidad_medida === 'bomba_estado')
+
+    const lecturasBomba = lecturas
+      .filter((l) => l.unidad_medida === 'bomba_estado')
       .sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
-    
-    lecturasBomba.forEach(lectura => {
+
+    lecturasBomba.forEach((lectura) => {
       const estado = Number(lectura.valor) === 1 ? 'ON' : 'OFF';
       wsBomba.addRow({
         fecha: new Date(lectura.fecha).toISOString().split('T')[0],
         hora: new Date(lectura.fecha).toTimeString().split(' ')[0],
-        estado: estado
+        estado: estado,
       });
     });
 
     console.log('✅ Excel generado con estructura correcta:');
     console.log('  - Hoja 1: Resumen General');
-    console.log('  - Hoja 2: Temperatura (', lecturasTemperatura.length, 'registros)');
-    console.log('  - Hoja 3: Humedad Ambiente (', lecturasHumAire.length, 'registros)');
-    console.log('  - Hoja 4: Humedad del Suelo (', lecturasHumSuelo.length, 'registros)');
-    console.log('  - Hoja 5: Estado de la Bomba (', lecturasBomba.length, 'registros)');
-    
+    console.log(
+      '  - Hoja 2: Temperatura (',
+      lecturasTemperatura.length,
+      'registros)',
+    );
+    console.log(
+      '  - Hoja 3: Humedad Ambiente (',
+      lecturasHumAire.length,
+      'registros)',
+    );
+    console.log(
+      '  - Hoja 4: Humedad del Suelo (',
+      lecturasHumSuelo.length,
+      'registros)',
+    );
+    console.log(
+      '  - Hoja 5: Estado de la Bomba (',
+      lecturasBomba.length,
+      'registros)',
+    );
+
     return workbook.xlsx.writeBuffer();
   }
 
   async buildExcelGeneralPorTopic(topic: string, desde?: Date, hasta?: Date) {
     // Obtener todas las lecturas sin filtrar por métrica
-    const lecturas = await this.obtenerLecturasPorTopic(topic, { desde, hasta });
+    const lecturas = await this.obtenerLecturasPorTopic(topic, {
+      desde,
+      hasta,
+    });
 
     const workbook = new Workbook();
-    
+
     const wsResumen = workbook.addWorksheet('Resumen General');
     wsResumen.addRow(['Reporte General de Sensores']);
     wsResumen.addRow(['Topic', topic]);
-    wsResumen.addRow(['Período', `${desde?.toISOString() || 'Inicio'} - ${hasta?.toISOString() || 'Ahora'}`]);
+    wsResumen.addRow([
+      'Período',
+      `${desde?.toISOString() || 'Inicio'} - ${hasta?.toISOString() || 'Ahora'}`,
+    ]);
     wsResumen.addRow([]);
 
     const lecturasPorMetrica = this.agruparLecturasPorMetrica(lecturas);
-    
+
     wsResumen.addRow(['Resumen por Métrica']);
     wsResumen.addRow(['Métrica', 'Cantidad', 'Promedio', 'Mínimo', 'Máximo']);
-    
+
     Object.entries(lecturasPorMetrica).forEach(([metrica, datos]) => {
       const resumen = this.calcularResumen(datos);
       wsResumen.addRow([
@@ -1578,7 +2170,7 @@ export class ReportsService {
         resumen.count,
         resumen.avg?.toFixed(2) || 'N/A',
         resumen.min?.toFixed(2) || 'N/A',
-        resumen.max?.toFixed(2) || 'N/A'
+        resumen.max?.toFixed(2) || 'N/A',
       ]);
     });
 
@@ -1588,13 +2180,13 @@ export class ReportsService {
         { header: 'Fecha', key: 'fecha', width: 24 },
         { header: 'Hora', key: 'hora', width: 12 },
         { header: 'Valor', key: 'valor', width: 12 },
-        { header: 'Observaciones', key: 'observaciones', width: 30 }
+        { header: 'Observaciones', key: 'observaciones', width: 30 },
       ];
 
-      datos.forEach(lectura => {
-        let valor = Number(lectura.valor);
+      datos.forEach((lectura) => {
+        const valor = Number(lectura.valor);
         let valorMostrado: string | number = valor;
-        
+
         if (lectura.unidad_medida === 'bomba_estado') {
           valorMostrado = valor === 1 ? 'ENCENDIDA' : 'APAGADA';
         } else if (lectura.unidad_medida?.includes('temperatura')) {
@@ -1607,7 +2199,7 @@ export class ReportsService {
           fecha: new Date(lectura.fecha).toISOString().split('T')[0],
           hora: new Date(lectura.fecha).toTimeString().split(' ')[0],
           valor: valorMostrado,
-          observaciones: lectura.observaciones || ''
+          observaciones: lectura.observaciones || '',
         });
       });
     });
@@ -1617,126 +2209,162 @@ export class ReportsService {
 
   private calcularTendencia(valores: number[]): string {
     if (valores.length < 2) return 'insuficientes';
-    
+
     const n = valores.length;
     const sumX = (n * (n - 1)) / 2; // Suma de 0,1,2,...,n-1
     const sumY = valores.reduce((a, b) => a + b, 0);
     const sumXY = valores.reduce((sum, y, x) => sum + x * y, 0);
     const sumX2 = (n * (n - 1) * (2 * n - 1)) / 6; // Suma de x²
-    
+
     const pendiente = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    
+
     if (Math.abs(pendiente) < 0.01) return 'estable';
     return pendiente > 0 ? 'creciente' : 'decreciente';
   }
 
   private calcularDesviacionEstandar(valores: number[]): number | null {
     if (valores.length < 2) return null;
-    
+
     const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
-    const varianza = valores.reduce((sum, valor) => sum + Math.pow(valor - promedio, 2), 0) / valores.length;
+    const varianza =
+      valores.reduce((sum, valor) => sum + Math.pow(valor - promedio, 2), 0) /
+      valores.length;
     return Math.sqrt(varianza);
   }
 
   private calcularCoeficienteVariacion(valores: number[]): number | null {
     if (valores.length < 2) return null;
-    
+
     const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
     if (promedio === 0) return null;
-    
+
     const desviacion = this.calcularDesviacionEstandar(valores);
     return desviacion ? (desviacion / Math.abs(promedio)) * 100 : null;
   }
 
-  private calcularPromedioMovil(lecturas: any[], dias: number): Array<{fecha: string, valor: number, promedioMovil: number | null}> {
-    const resultado: Array<{fecha: string, valor: number, promedioMovil: number | null}> = [];
-    
+  private calcularPromedioMovil(
+    lecturas: any[],
+    dias: number,
+  ): Array<{ fecha: string; valor: number; promedioMovil: number | null }> {
+    const resultado: Array<{
+      fecha: string;
+      valor: number;
+      promedioMovil: number | null;
+    }> = [];
+
     for (let i = 0; i < lecturas.length; i++) {
       const lecturaActual = lecturas[i];
       const valorActual = Number(lecturaActual.valor);
-      
+
       let promedioMovil: number | null = null;
-      
+
       if (i >= dias - 1) {
-        const valoresVentana = lecturas.slice(i - dias + 1, i + 1).map(l => Number(l.valor));
+        const valoresVentana = lecturas
+          .slice(i - dias + 1, i + 1)
+          .map((l) => Number(l.valor));
         promedioMovil = valoresVentana.reduce((a, b) => a + b, 0) / dias;
       }
-      
+
       resultado.push({
         fecha: new Date(lecturaActual.fecha).toISOString().split('T')[0],
         valor: valorActual,
-        promedioMovil
+        promedioMovil,
       });
     }
-    
+
     return resultado;
   }
 
-  private calcularUmbrales(valores: number[]): {minimoCritico: number | null, maximoCritico: number | null, alertasActivas: string} {
+  private calcularUmbrales(valores: number[]): {
+    minimoCritico: number | null;
+    maximoCritico: number | null;
+    alertasActivas: string;
+  } {
     if (valores.length < 2) {
-      return {minimoCritico: null, maximoCritico: null, alertasActivas: 'Ninguna'};
+      return {
+        minimoCritico: null,
+        maximoCritico: null,
+        alertasActivas: 'Ninguna',
+      };
     }
-    
+
     const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
     const desviacion = this.calcularDesviacionEstandar(valores) || 0;
-    
-    const minimoCritico = promedio - (2 * desviacion);
-    const maximoCritico = promedio + (2 * desviacion);
-    
-    const valoresFueraRango = valores.filter(v => v < minimoCritico || v > maximoCritico);
-    const alertasActivas = valoresFueraRango.length > 0 
-      ? `${valoresFueraRango.length} valores fuera de rango` 
-      : 'Ninguna';
-    
-    return {minimoCritico, maximoCritico, alertasActivas};
+
+    const minimoCritico = promedio - 2 * desviacion;
+    const maximoCritico = promedio + 2 * desviacion;
+
+    const valoresFueraRango = valores.filter(
+      (v) => v < minimoCritico || v > maximoCritico,
+    );
+    const alertasActivas =
+      valoresFueraRango.length > 0
+        ? `${valoresFueraRango.length} valores fuera de rango`
+        : 'Ninguna';
+
+    return { minimoCritico, maximoCritico, alertasActivas };
   }
 
-  private obtenerEventosBomba(lecturas: any[]): Array<{fecha: string, hora: string, evento: string, duracion: number | null}> {
-    const eventos: Array<{fecha: string, hora: string, evento: string, duracion: number | null}> = [];
-    
+  private obtenerEventosBomba(lecturas: any[]): Array<{
+    fecha: string;
+    hora: string;
+    evento: string;
+    duracion: number | null;
+  }> {
+    const eventos: Array<{
+      fecha: string;
+      hora: string;
+      evento: string;
+      duracion: number | null;
+    }> = [];
+
     // Filtrar solo lecturas de bomba y ordenar por fecha
     const bombaLecturas = lecturas
-      .filter(l => l.unidad_medida === 'bomba_estado')
-      .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-    
+      .filter((l) => l.unidad_medida === 'bomba_estado')
+      .sort(
+        (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
+      );
+
     let ultimoEncendido: Date | null = null;
-    
+
     for (let i = 0; i < bombaLecturas.length; i++) {
       const lectura = bombaLecturas[i];
       const fecha = new Date(lectura.fecha);
       const valor = Number(lectura.valor);
       const fechaStr = fecha.toISOString().split('T')[0];
       const horaStr = fecha.toTimeString().split(' ')[0];
-      
+
       if (valor === 1) {
         // Evento de encendido
         eventos.push({
           fecha: fechaStr,
           hora: horaStr,
           evento: 'ENCENDIDO',
-          duracion: null
+          duracion: null,
         });
         ultimoEncendido = fecha;
       } else if (valor === 0 && ultimoEncendido) {
         // Evento de apagado con duración
-        const duracionMinutos = Math.round((fecha.getTime() - ultimoEncendido.getTime()) / 60000);
-        
-        const ultimoEvento = eventos.find(e => e.duracion === null);
+        const duracionMinutos = Math.round(
+          (fecha.getTime() - ultimoEncendido.getTime()) / 60000,
+        );
+
+        const ultimoEvento = eventos.find((e) => e.duracion === null);
         if (ultimoEvento) {
           ultimoEvento.duracion = duracionMinutos;
         }
-        
+
         eventos.push({
           fecha: fechaStr,
           hora: horaStr,
           evento: 'APAGADO',
-          duracion: duracionMinutos
+          duracion: duracionMinutos,
         });
-        
+
         ultimoEncendido = null;
       }
     }
-    
+
     return eventos;
   }
 
@@ -1753,10 +2381,10 @@ export class ReportsService {
 
   private getNombreHoja(metrica: string): string {
     const nombres: Record<string, string> = {
-      'temperatura': 'Temperatura',
-      'humedad_aire': 'Humedad Aire',
-      'humedad_suelo_porcentaje': 'Humedad Suelo',
-      'bomba_estado': 'Estado Bomba'
+      temperatura: 'Temperatura',
+      humedad_aire: 'Humedad Aire',
+      humedad_suelo_porcentaje: 'Humedad Suelo',
+      bomba_estado: 'Estado Bomba',
     };
     return nombres[metrica] || metrica;
   }

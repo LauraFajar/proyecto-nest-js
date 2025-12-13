@@ -10,13 +10,21 @@ import { Inventario } from '../inventario/entities/inventario.entity';
 import { UploadsModule } from '../uploads/uploads.module';
 import { MovimientosModule } from '../movimientos/movimientos.module';
 import { SalidasModule } from '../salidas/salidas.module';
+import { AlertasModule } from '../alertas/alertas.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Actividad, FotoActividad, Utiliza, Insumo, Inventario]), 
+    TypeOrmModule.forFeature([
+      Actividad,
+      FotoActividad,
+      Utiliza,
+      Insumo,
+      Inventario,
+    ]),
     UploadsModule,
     MovimientosModule,
-    forwardRef(() => SalidasModule), 
+    forwardRef(() => SalidasModule),
+    forwardRef(() => AlertasModule),
   ],
   controllers: [ActividadesController],
   providers: [ActividadesService],

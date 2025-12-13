@@ -8,13 +8,9 @@ import { PermisosModule } from '../permisos/permisos.module';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Epa]),
-    UploadsModule,
-    PermisosModule
-  ],
+  imports: [TypeOrmModule.forFeature([Epa]), UploadsModule, PermisosModule],
   controllers: [EpaController],
   providers: [EpaService, RolesGuard],
-  exports: [EpaService]
+  exports: [EpaService],
 })
 export class EpaModule {}

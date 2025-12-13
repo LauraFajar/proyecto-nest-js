@@ -8,7 +8,7 @@ import {
   Min,
   Max,
   IsDate,
-  IsNotEmpty
+  IsNotEmpty,
 } from 'class-validator';
 import { TipoCultivo } from '../entities/cultivo.entity';
 
@@ -20,7 +20,8 @@ export class CreateCultivoDto {
   @IsString()
   @IsNotEmpty({ message: 'El tipo de cultivo es obligatorio' })
   @IsIn(['transitorios', 'perennes', 'semiperennes'], {
-    message: 'El tipo de cultivo debe ser transitorios, perennes o semiperennes'
+    message:
+      'El tipo de cultivo debe ser transitorios, perennes o semiperennes',
   })
   tipo_cultivo: string;
 
@@ -50,7 +51,7 @@ export class CreateCultivoDto {
   @IsOptional()
   @IsString()
   @IsIn(['sembrado', 'en_crecimiento', 'cosechado', 'perdido'], {
-    message: 'El estado del cultivo no es válido'
+    message: 'El estado del cultivo no es válido',
   })
   estado_cultivo?: string;
 

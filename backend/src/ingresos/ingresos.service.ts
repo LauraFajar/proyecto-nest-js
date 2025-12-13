@@ -27,7 +27,7 @@ export class IngresosService {
 
   async update(id_ingreso: number, updateIngresoDto: UpdateIngresoDto) {
     await this.ingresosRepository.update(id_ingreso, updateIngresoDto);
-    return this.findOne(id_ingreso); 
+    return this.findOne(id_ingreso);
   }
 
   async remove(id_ingreso: number) {

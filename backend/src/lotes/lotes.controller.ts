@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Put, ParseIntPipe, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Put,
+  ParseIntPipe,
+  BadRequestException,
+} from '@nestjs/common';
 import { LotesService } from './lotes.service';
 import { CreateLoteDto } from './dto/create-lote.dto';
 import { UpdateLoteDto } from './dto/update-lote.dto';
@@ -40,7 +52,10 @@ export class LotesController {
   @Patch(':id')
   @Roles(Role.Admin, Role.Instructor)
   @Permisos({ recurso: 'lotes', accion: 'editar' })
-  update(@Param('id', new ParseIntPipe()) id: number, @Body() updateLoteDto: UpdateLoteDto) {
+  update(
+    @Param('id', new ParseIntPipe()) id: number,
+    @Body() updateLoteDto: UpdateLoteDto,
+  ) {
     return this.lotesService.update(id, updateLoteDto);
   }
 
@@ -60,8 +75,8 @@ export class LotesController {
     const coords = Array.isArray(body?.coordenadas)
       ? body.coordenadas
       : Array.isArray(body?.coordinates)
-      ? body.coordinates
-      : null;
+        ? body.coordinates
+        : null;
     if (!Array.isArray(coords) || !coords.length) {
       throw new BadRequestException('Payload de coordenadas inválido');
     }
@@ -78,8 +93,8 @@ export class LotesController {
     const coords = Array.isArray(body?.coordenadas)
       ? body.coordenadas
       : Array.isArray(body?.coordinates)
-      ? body.coordinates
-      : null;
+        ? body.coordinates
+        : null;
     if (!Array.isArray(coords) || !coords.length) {
       throw new BadRequestException('Payload de coordenadas inválido');
     }

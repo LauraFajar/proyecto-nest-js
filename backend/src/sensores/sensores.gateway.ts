@@ -1,4 +1,11 @@
-import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, MessageBody } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  MessageBody,
+} from '@nestjs/websockets';
 import { Inject, forwardRef, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { MqttService } from './services/mqtt.service';
@@ -11,13 +18,15 @@ import { MqttService } from './services/mqtt.service';
     credentials: true,
   },
 })
-export class SensoresGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class SensoresGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer() server: Server;
   private logger = new Logger('SensoresGateway');
 
   constructor(
     @Inject(forwardRef(() => MqttService))
-    private readonly mqttService: MqttService
+    private readonly mqttService: MqttService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -28,7 +37,10 @@ export class SensoresGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.logger.log(`Cliente desconectado: ${client.id}`);
   }
 
-  emitLectura(sensorId: number, lectura: { valor: number; timestamp: string; unidad_medida?: string }) {
+  emitLectura(
+    sensorId: number,
+    lectura: { valor: number; timestamp: string; unidad_medida?: string },
+  ) {
     this.server.emit('sensorLectura', { sensorId, ...lectura });
   }
 
@@ -36,11 +48,18 @@ export class SensoresGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.server.emit('sensorEstado', { sensorId, online });
   }
 
-  emitBombaEstado(bomba: { estado: string; timestamp: string; sensorId?: number }) {
+  emitBombaEstado(bomba: {
+    estado: string;
+    timestamp: string;
+    sensorId?: number;
+  }) {
     this.server.emit('bombaEstado', bomba);
   }
 
-  emitLecturaGeneric(topic: string, lectura: { valor: number; timestamp: string; tipo: string; unidad: string }) {
+  emitLecturaGeneric(
+    topic: string,
+    lectura: { valor: number; timestamp: string; tipo: string; unidad: string },
+  ) {
     this.server.emit('mqttLectura', { topic, ...lectura });
   }
 
@@ -55,21 +74,26 @@ export class SensoresGateway implements OnGatewayConnection, OnGatewayDisconnect
   @SubscribeMessage('mqttControl')
   async handleMqttControl(@MessageBody() controlData: any) {
     this.logger.log(`📤 Recibido comando MQTT Control:`, controlData);
-    
+
     try {
       const { topic, payload } = controlData;
-      
+
       if (topic === 'luixxa/control' && payload) {
         const mqttTopic = `${topic}/${payload.device}`;
         const mqttMessage = JSON.stringify({
           sensor: payload.sensor,
           action: payload.action,
-          timestamp: payload.timestamp
+          timestamp: payload.timestamp,
         });
-        
-        this.logger.log(`📤 Publicando en MQTT Topic: ${mqttTopic}, Message: ${mqttMessage}`);
-        
-        const published = this.mqttService.publishMessage(mqttTopic, mqttMessage);
+
+        this.logger.log(
+          `📤 Publicando en MQTT Topic: ${mqttTopic}, Message: ${mqttMessage}`,
+        );
+
+        const published = this.mqttService.publishMessage(
+          mqttTopic,
+          mqttMessage,
+        );
         if (published) {
           this.logger.log(`✅ Comando MQTT enviado exitosamente`);
         } else {

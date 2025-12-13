@@ -1,10 +1,14 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddCultivoRelationsToIngresosSalidas1731410000000 implements MigrationInterface {
+export class AddCultivoRelationsToIngresosSalidas1731410000000
+  implements MigrationInterface
+{
   name = 'AddCultivoRelationsToIngresosSalidas1731410000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "ingresos" ADD COLUMN IF NOT EXISTS "id_cultivo" integer`);
+    await queryRunner.query(
+      `ALTER TABLE "ingresos" ADD COLUMN IF NOT EXISTS "id_cultivo" integer`,
+    );
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -22,7 +26,9 @@ export class AddCultivoRelationsToIngresosSalidas1731410000000 implements Migrat
       $$;
     `);
 
-    await queryRunner.query(`ALTER TABLE "salidas" ADD COLUMN IF NOT EXISTS "id_cultivo" integer`);
+    await queryRunner.query(
+      `ALTER TABLE "salidas" ADD COLUMN IF NOT EXISTS "id_cultivo" integer`,
+    );
     await queryRunner.query(`
       DO $$
       BEGIN
@@ -46,12 +52,16 @@ export class AddCultivoRelationsToIngresosSalidas1731410000000 implements Migrat
       ALTER TABLE "ingresos"
       DROP CONSTRAINT IF EXISTS "FK_ingresos_cultivo";
     `);
-    await queryRunner.query(`ALTER TABLE "ingresos" DROP COLUMN IF EXISTS "id_cultivo"`);
+    await queryRunner.query(
+      `ALTER TABLE "ingresos" DROP COLUMN IF EXISTS "id_cultivo"`,
+    );
 
     await queryRunner.query(`
       ALTER TABLE "salidas"
       DROP CONSTRAINT IF EXISTS "FK_salidas_cultivo";
     `);
-    await queryRunner.query(`ALTER TABLE "salidas" DROP COLUMN IF EXISTS "id_cultivo"`);
+    await queryRunner.query(
+      `ALTER TABLE "salidas" DROP COLUMN IF EXISTS "id_cultivo"`,
+    );
   }
 }

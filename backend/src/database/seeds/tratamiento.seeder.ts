@@ -36,14 +36,21 @@ export class TratamientoSeeder {
       ];
 
       for (const item of data) {
-        const exists = await this.tratamientoRepository.createQueryBuilder("tratamiento")
-          .where("tratamiento.descripcion = :descripcion", { descripcion: item.descripcion })
-          .andWhere("tratamiento.id_epa = :epaId", { epaId: item.id_epa.id_epa })
+        const exists = await this.tratamientoRepository
+          .createQueryBuilder('tratamiento')
+          .where('tratamiento.descripcion = :descripcion', {
+            descripcion: item.descripcion,
+          })
+          .andWhere('tratamiento.id_epa = :epaId', {
+            epaId: item.id_epa.id_epa,
+          })
           .getOne();
 
         if (!exists) {
           const { id_epa, ...rest } = item;
-          await this.tratamientoRepository.save(this.tratamientoRepository.create({ ...rest, id_epa: id_epa }));
+          await this.tratamientoRepository.save(
+            this.tratamientoRepository.create({ ...rest, id_epa: id_epa }),
+          );
         } else {
         }
       }

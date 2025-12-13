@@ -1,4 +1,11 @@
-import { Controller, Get, Query, BadRequestException, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  BadRequestException,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { FinanzasService } from './finanzas.service';
 import { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
@@ -25,23 +32,31 @@ export class FinanzasController {
       throw new BadRequestException('from y to son requeridos (YYYY-MM-DD)');
     }
 
-    const gb = groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
-    return this.finanzasService.getResumen(parseInt(cultivoId, 10), from, to, gb);
+    const gb =
+      groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
+    return this.finanzasService.getResumen(
+      parseInt(cultivoId, 10),
+      from,
+      to,
+      gb,
+    );
   }
 
   @Get('margen')
-  async getMargen(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  async getMargen(@Query('from') from?: string, @Query('to') to?: string) {
     if (!from || !to) {
       throw new BadRequestException('from y to son requeridos (YYYY-MM-DD)');
     }
     const res = await this.finanzasService.getMargenPorCultivo(from, to);
-    const list = Array.isArray((res as any)?.cultivos) ? (res as any).cultivos : Array.isArray(res) ? (res as any) : [];
+    const list = Array.isArray((res as any)?.cultivos)
+      ? (res as any).cultivos
+      : Array.isArray(res)
+        ? (res as any)
+        : [];
     const items = list.map((r: any) => ({
       ...r,
-      nombre_cultivo: r.nombre ?? r.nombre_cultivo ?? r.cultivo ?? 'Sin cultivo',
+      nombre_cultivo:
+        r.nombre ?? r.nombre_cultivo ?? r.cultivo ?? 'Sin cultivo',
     }));
     return { items };
   }
@@ -62,7 +77,13 @@ export class FinanzasController {
     }
 
     const criterioVal: 'margen' | 'bc' | 'porcentaje' | undefined =
-      criterio === 'bc' ? 'bc' : criterio === 'porcentaje' ? 'porcentaje' : criterio === 'margen' ? 'margen' : undefined;
+      criterio === 'bc'
+        ? 'bc'
+        : criterio === 'porcentaje'
+          ? 'porcentaje'
+          : criterio === 'margen'
+            ? 'margen'
+            : undefined;
     const umbralNum = umbral !== undefined ? Number(umbral) : undefined;
 
     return this.finanzasService.getRentabilidad(
@@ -89,9 +110,17 @@ export class FinanzasController {
     if (!from || !to) {
       throw new BadRequestException('from y to son requeridos (YYYY-MM-DD)');
     }
-    const gb = groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
-    const buffer = await this.finanzasService.generateExcelResumen(parseInt(cultivoId, 10), from, to, gb);
-    const nombre = await this.finanzasService.getCultivoNombre(parseInt(cultivoId, 10));
+    const gb =
+      groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
+    const buffer = await this.finanzasService.generateExcelResumen(
+      parseInt(cultivoId, 10),
+      from,
+      to,
+      gb,
+    );
+    const nombre = await this.finanzasService.getCultivoNombre(
+      parseInt(cultivoId, 10),
+    );
     const safeName = (nombre || `cultivo-${cultivoId}`)
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -99,7 +128,10 @@ export class FinanzasController {
       .replace(/\s+/g, '-')
       .toLowerCase();
     const filename = `resumen-finanzas-${safeName}-${cultivoId}-${from}_a_${to}.xlsx`;
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(buffer);
   }
@@ -119,9 +151,17 @@ export class FinanzasController {
     if (!from || !to) {
       throw new BadRequestException('from y to son requeridos (YYYY-MM-DD)');
     }
-    const gb = groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
-    const buffer = await this.finanzasService.generatePdfResumen(parseInt(cultivoId, 10), from, to, gb);
-    const nombre = await this.finanzasService.getCultivoNombre(parseInt(cultivoId, 10));
+    const gb =
+      groupBy === 'dia' ? 'dia' : groupBy === 'semana' ? 'semana' : 'mes';
+    const buffer = await this.finanzasService.generatePdfResumen(
+      parseInt(cultivoId, 10),
+      from,
+      to,
+      gb,
+    );
+    const nombre = await this.finanzasService.getCultivoNombre(
+      parseInt(cultivoId, 10),
+    );
     const safeName = (nombre || `cultivo-${cultivoId}`)
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { AlmacenesService } from './almacenes.service';
 import { CreateAlmaceneDto } from './dto/create-almacene.dto';
 import { UpdateAlmaceneDto } from './dto/update-almacene.dto';
@@ -37,7 +46,10 @@ export class AlmacenesController {
   @Patch(':id')
   @Roles(Role.Admin, Role.Instructor)
   @Permisos({ recurso: 'almacenes', accion: 'editar' })
-  update(@Param('id') id: string, @Body() updateAlmaceneDto: UpdateAlmaceneDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateAlmaceneDto: UpdateAlmaceneDto,
+  ) {
     return this.almacenesService.update(+id, updateAlmaceneDto);
   }
 

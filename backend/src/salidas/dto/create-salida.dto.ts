@@ -1,4 +1,12 @@
-import { IsString, Length, IsInt, IsOptional, IsDateString, IsNumber, Min } from 'class-validator';
+import {
+  IsString,
+  Length,
+  IsInt,
+  IsOptional,
+  IsDateString,
+  IsNumber,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateSalidaDto {

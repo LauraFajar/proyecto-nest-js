@@ -17,16 +17,25 @@ export class UtilizaSeeder {
   ) {}
 
   async seed() {
-    const actividad1 = await this.actividadRepository.findOne({ where: { id_actividad: 1 } });
-    const insumo1 = await this.insumoRepository.findOne({ where: { id_insumo: 1 } });
+    const actividad1 = await this.actividadRepository.findOne({
+      where: { id_actividad: 1 },
+    });
+    const insumo1 = await this.insumoRepository.findOne({
+      where: { id_insumo: 1 },
+    });
 
-    const actividad2 = await this.actividadRepository.findOne({ where: { id_actividad: 2 } });
-    const insumo2 = await this.insumoRepository.findOne({ where: { id_insumo: 2 } });
+    const actividad2 = await this.actividadRepository.findOne({
+      where: { id_actividad: 2 },
+    });
+    const insumo2 = await this.insumoRepository.findOne({
+      where: { id_insumo: 2 },
+    });
 
     if (actividad1 && insumo1) {
-      const utiliza1Exists = await this.utilizaRepository.createQueryBuilder("utiliza")
-        .where("utiliza.id_actividades = :actividadId", { actividadId: 1 })
-        .andWhere("utiliza.id_insumo = :insumoId", { insumoId: 1 })
+      const utiliza1Exists = await this.utilizaRepository
+        .createQueryBuilder('utiliza')
+        .where('utiliza.id_actividades = :actividadId', { actividadId: 1 })
+        .andWhere('utiliza.id_insumo = :insumoId', { insumoId: 1 })
         .getOne();
 
       if (!utiliza1Exists) {
@@ -38,9 +47,10 @@ export class UtilizaSeeder {
     }
 
     if (actividad2 && insumo2) {
-      const utiliza2Exists = await this.utilizaRepository.createQueryBuilder("utiliza")
-        .where("utiliza.id_actividades = :actividadId", { actividadId: 2 })
-        .andWhere("utiliza.id_insumo = :insumoId", { insumoId: 2 })
+      const utiliza2Exists = await this.utilizaRepository
+        .createQueryBuilder('utiliza')
+        .where('utiliza.id_actividades = :actividadId', { actividadId: 2 })
+        .andWhere('utiliza.id_insumo = :insumoId', { insumoId: 2 })
         .getOne();
 
       if (!utiliza2Exists) {

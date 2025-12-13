@@ -5,8 +5,7 @@ import { Server } from 'socket.io';
 export class IotGateway {
   private server: Server;
 
-  constructor() {
-  }
+  constructor() {}
 
   setServer(server: Server) {
     this.server = server;

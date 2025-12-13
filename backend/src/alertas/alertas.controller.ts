@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AlertasService } from './alertas.service';
 import { AlertSchedulerService } from './services/alert-scheduler.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -83,12 +93,15 @@ export class AlertasController {
   }
 
   @Post('notificar/sensor')
-  notificarAlertaSensor(@Body() body: {
-    id_usuario: number;
-    sensor: string;
-    valor: number;
-    limite: number;
-  }) {
+  notificarAlertaSensor(
+    @Body()
+    body: {
+      id_usuario: number;
+      sensor: string;
+      valor: number;
+      limite: number;
+    },
+  ) {
     return this.alertasService.notificarAlertaSensor(
       body.id_usuario,
       body.sensor,
@@ -98,12 +111,15 @@ export class AlertasController {
   }
 
   @Post('notificar/stock-bajo')
-  notificarStockBajo(@Body() body: {
-    id_usuario: number;
-    insumo: string;
-    cantidad_actual: number;
-    cantidad_minima: number;
-  }) {
+  notificarStockBajo(
+    @Body()
+    body: {
+      id_usuario: number;
+      insumo: string;
+      cantidad_actual: number;
+      cantidad_minima: number;
+    },
+  ) {
     return this.alertasService.notificarStockBajo(
       body.id_usuario,
       body.insumo,
@@ -113,11 +129,14 @@ export class AlertasController {
   }
 
   @Post('notificar/actividad-vencida')
-  notificarActividadVencida(@Body() body: {
-    id_usuario: number;
-    actividad: string;
-    fecha_vencimiento: string;
-  }) {
+  notificarActividadVencida(
+    @Body()
+    body: {
+      id_usuario: number;
+      actividad: string;
+      fecha_vencimiento: string;
+    },
+  ) {
     return this.alertasService.notificarActividadVencida(
       body.id_usuario,
       body.actividad,

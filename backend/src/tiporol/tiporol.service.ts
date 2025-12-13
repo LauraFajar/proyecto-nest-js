@@ -27,7 +27,7 @@ export class TiporolService {
 
   async update(id_tipo_rol: number, updateTiporolDto: UpdateTiporolDto) {
     await this.tiporolRepository.update(id_tipo_rol, updateTiporolDto);
-    return this.findOne(id_tipo_rol); 
+    return this.findOne(id_tipo_rol);
   }
 
   async remove(id_tipo_rol: number) {

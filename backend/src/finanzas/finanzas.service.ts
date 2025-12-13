@@ -14,10 +14,13 @@ type GroupBy = 'mes' | 'semana' | 'dia';
 @Injectable()
 export class FinanzasService {
   constructor(
-    @InjectRepository(Ingreso) private readonly ingresosRepo: Repository<Ingreso>,
+    @InjectRepository(Ingreso)
+    private readonly ingresosRepo: Repository<Ingreso>,
     @InjectRepository(Salida) private readonly salidasRepo: Repository<Salida>,
-    @InjectRepository(Actividad) private readonly actividadesRepo: Repository<Actividad>,
-    @InjectRepository(Cultivo) private readonly cultivoRepo: Repository<Cultivo>,
+    @InjectRepository(Actividad)
+    private readonly actividadesRepo: Repository<Actividad>,
+    @InjectRepository(Cultivo)
+    private readonly cultivoRepo: Repository<Cultivo>,
   ) {}
 
   private toNumber(v: unknown): number {
@@ -31,7 +34,12 @@ export class FinanzasService {
     return v.toFixed(2);
   }
 
-  async getResumen(cultivoId: number, from: string, to: string, groupBy: GroupBy) {
+  async getResumen(
+    cultivoId: number,
+    from: string,
+    to: string,
+    groupBy: GroupBy,
+  ) {
     const ingresosRow = await this.ingresosRepo
       .createQueryBuilder('i')
       .select('COALESCE(SUM(i.monto), 0)', 'total')
@@ -41,7 +49,10 @@ export class FinanzasService {
 
     const salidasRow = await this.salidasRepo
       .createQueryBuilder('s')
-      .select('COALESCE(SUM(s.cantidad * COALESCE(s.valor_unidad, 0)), 0)', 'total')
+      .select(
+        'COALESCE(SUM(s.cantidad * COALESCE(s.valor_unidad, 0)), 0)',
+        'total',
+      )
       .where('s.id_cultivo = :cultivoId', { cultivoId })
       .andWhere('s.fecha_salida BETWEEN :from AND :to', { from, to })
       .getRawOne();
@@ -62,26 +73,38 @@ export class FinanzasService {
     const egresos = salidas + actividades;
     const margen = ingresos - egresos;
 
-    const trunc = groupBy === 'dia' ? 'day' : groupBy === 'semana' ? 'week' : 'month';
-    const fmt = groupBy === 'dia' ? 'YYYY-MM-DD' : groupBy === 'semana' ? 'IYYY-IW' : 'YYYY-MM';
+    const trunc =
+      groupBy === 'dia' ? 'day' : groupBy === 'semana' ? 'week' : 'month';
+    const fmt =
+      groupBy === 'dia'
+        ? 'YYYY-MM-DD'
+        : groupBy === 'semana'
+          ? 'IYYY-IW'
+          : 'YYYY-MM';
 
     const ingresosSeries = await this.ingresosRepo
       .createQueryBuilder('i')
-      .select(`to_char(date_trunc('${trunc}', i.fecha_ingreso), '${fmt}')`, 'periodo')
+      .select(
+        `to_char(date_trunc('${trunc}', i.fecha_ingreso), '${fmt}')`,
+        'periodo',
+      )
       .addSelect('SUM(i.monto)', 'ingresos')
       .where('i.id_cultivo = :cultivoId', { cultivoId })
       .andWhere('i.fecha_ingreso BETWEEN :from AND :to', { from, to })
-      .groupBy(`date_trunc('${trunc}', i.fecha_ingreso)`) 
+      .groupBy(`date_trunc('${trunc}', i.fecha_ingreso)`)
       .orderBy(`date_trunc('${trunc}', i.fecha_ingreso)`, 'ASC')
       .getRawMany();
 
     const salidasSeries = await this.salidasRepo
       .createQueryBuilder('s')
-      .select(`to_char(date_trunc('${trunc}', s.fecha_salida), '${fmt}')`, 'periodo')
+      .select(
+        `to_char(date_trunc('${trunc}', s.fecha_salida), '${fmt}')`,
+        'periodo',
+      )
       .addSelect('SUM(s.cantidad * COALESCE(s.valor_unidad, 0))', 'salidas')
       .where('s.id_cultivo = :cultivoId', { cultivoId })
       .andWhere('s.fecha_salida BETWEEN :from AND :to', { from, to })
-      .groupBy(`date_trunc('${trunc}', s.fecha_salida)`) 
+      .groupBy(`date_trunc('${trunc}', s.fecha_salida)`)
       .orderBy(`date_trunc('${trunc}', s.fecha_salida)`, 'ASC')
       .getRawMany();
 
@@ -94,24 +117,24 @@ export class FinanzasService {
       )
       .where('a.id_cultivo = :cultivoId', { cultivoId })
       .andWhere('a.fecha BETWEEN :from AND :to', { from, to })
-      .groupBy(`date_trunc('${trunc}', a.fecha)`) 
+      .groupBy(`date_trunc('${trunc}', a.fecha)`)
       .orderBy(`date_trunc('${trunc}', a.fecha)`, 'ASC')
       .getRawMany();
 
     const map = new Map<string, { ingresos: number; egresos: number }>();
-    ingresosSeries.forEach(r => {
+    ingresosSeries.forEach((r) => {
       const key = r.periodo as string;
       const val = this.toNumber(r.ingresos);
       map.set(key, { ingresos: val, egresos: map.get(key)?.egresos ?? 0 });
     });
-    salidasSeries.forEach(r => {
+    salidasSeries.forEach((r) => {
       const key = r.periodo as string;
       const val = this.toNumber(r.salidas);
       const cur = map.get(key) ?? { ingresos: 0, egresos: 0 };
       cur.egresos += val;
       map.set(key, cur);
     });
-    actividadesSeries.forEach(r => {
+    actividadesSeries.forEach((r) => {
       const key = r.periodo as string;
       const val = this.toNumber(r.actividades);
       const cur = map.get(key) ?? { ingresos: 0, egresos: 0 };
@@ -148,14 +171,21 @@ export class FinanzasService {
     return cultivo?.nombre_cultivo ?? null;
   }
 
-  async generateExcelResumen(cultivoId: number, from: string, to: string, groupBy: GroupBy): Promise<Buffer> {
+  async generateExcelResumen(
+    cultivoId: number,
+    from: string,
+    to: string,
+    groupBy: GroupBy,
+  ): Promise<Buffer> {
     const data = await this.getResumen(cultivoId, from, to, groupBy);
     const cultivoNombre = await this.getCultivoNombre(cultivoId);
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Resumen Finanzas');
 
-    const tituloCultivo = cultivoNombre ? `${cultivoNombre} (${cultivoId})` : `#${cultivoId}`;
+    const tituloCultivo = cultivoNombre
+      ? `${cultivoNombre} (${cultivoId})`
+      : `#${cultivoId}`;
     sheet.addRow([`Resumen Finanzas - Cultivo ${tituloCultivo}`]);
     sheet.addRow([`Rango`, `${from} a ${to}`]);
     sheet.addRow([]);
@@ -176,7 +206,12 @@ export class FinanzasService {
     sheet.addRow(['Series']);
     sheet.addRow(['Periodo', 'Ingresos', 'Egresos', 'Margen']);
     for (const s of data.series) {
-      sheet.addRow([s.periodo, Number(s.ingresos), Number(s.egresos), Number(s.margen)]);
+      sheet.addRow([
+        s.periodo,
+        Number(s.ingresos),
+        Number(s.egresos),
+        Number(s.margen),
+      ]);
     }
 
     sheet.getColumn(1).width = 24;
@@ -188,7 +223,12 @@ export class FinanzasService {
     return Buffer.from(buffer);
   }
 
-  async generatePdfResumen(cultivoId: number, from: string, to: string, groupBy: GroupBy): Promise<Buffer> {
+  async generatePdfResumen(
+    cultivoId: number,
+    from: string,
+    to: string,
+    groupBy: GroupBy,
+  ): Promise<Buffer> {
     const data = await this.getResumen(cultivoId, from, to, groupBy);
     const cultivoNombre = await this.getCultivoNombre(cultivoId);
 
@@ -196,8 +236,12 @@ export class FinanzasService {
     const stream = new PassThrough();
     doc.pipe(stream);
 
-    const tituloCultivo = cultivoNombre ? `${cultivoNombre} (${cultivoId})` : `#${cultivoId}`;
-    doc.fontSize(16).text(`Resumen Finanzas - Cultivo ${tituloCultivo}`, { align: 'left' });
+    const tituloCultivo = cultivoNombre
+      ? `${cultivoNombre} (${cultivoId})`
+      : `#${cultivoId}`;
+    doc
+      .fontSize(16)
+      .text(`Resumen Finanzas - Cultivo ${tituloCultivo}`, { align: 'left' });
     doc.moveDown(0.5);
     doc.fontSize(12).text(`Rango: ${from} a ${to}`);
 
@@ -209,7 +253,7 @@ export class FinanzasService {
 
     doc.moveDown();
     doc.fontSize(13).text('Categorias de Gasto');
-    data.categoriasGasto.forEach(c => {
+    data.categoriasGasto.forEach((c) => {
       doc.fontSize(12).text(`${c.nombre}: ${c.total}`);
     });
 
@@ -218,7 +262,7 @@ export class FinanzasService {
     doc.fontSize(11);
     doc.text('Periodo            Ingresos      Egresos      Margen');
     doc.moveDown(0.2);
-    data.series.forEach(s => {
+    data.series.forEach((s) => {
       const line = `${s.periodo.padEnd(18)} ${s.ingresos.toString().padEnd(12)} ${s.egresos.toString().padEnd(12)} ${s.margen.toString().padEnd(12)}`;
       doc.text(line);
     });
@@ -245,7 +289,10 @@ export class FinanzasService {
     const salidas = await this.salidasRepo
       .createQueryBuilder('s')
       .select('s.id_cultivo', 'id_cultivo')
-      .addSelect('COALESCE(SUM(s.cantidad * COALESCE(s.valor_unidad, 0)), 0)', 'salidas')
+      .addSelect(
+        'COALESCE(SUM(s.cantidad * COALESCE(s.valor_unidad, 0)), 0)',
+        'salidas',
+      )
       .where('s.fecha_salida BETWEEN :from AND :to', { from, to })
       .groupBy('s.id_cultivo')
       .getRawMany();
@@ -262,24 +309,24 @@ export class FinanzasService {
       .getRawMany();
 
     const map = new Map<number, { ingresos: number; egresos: number }>();
-    ingresos.forEach(r => {
+    ingresos.forEach((r) => {
       const id = Number(r.id_cultivo) || 0;
       map.set(id, { ingresos: this.toNumber(r.ingresos), egresos: 0 });
     });
-    salidas.forEach(r => {
+    salidas.forEach((r) => {
       const id = Number(r.id_cultivo) || 0;
       const cur = map.get(id) ?? { ingresos: 0, egresos: 0 };
       cur.egresos += this.toNumber(r.salidas);
       map.set(id, cur);
     });
-    actividades.forEach(r => {
+    actividades.forEach((r) => {
       const id = Number(r.id_cultivo) || 0;
       const cur = map.get(id) ?? { ingresos: 0, egresos: 0 };
       cur.egresos += this.toNumber(r.actividades);
       map.set(id, cur);
     });
 
-    const ids = Array.from(map.keys()).filter(id => id !== 0);
+    const ids = Array.from(map.keys()).filter((id) => id !== 0);
     const cultivos = ids.length
       ? await this.cultivoRepo
           .createQueryBuilder('c')
@@ -287,7 +334,9 @@ export class FinanzasService {
           .where('c.id_cultivo IN (:...ids)', { ids })
           .getMany()
       : [];
-    const nameById = new Map<number, string>(cultivos.map(c => [c.id_cultivo, c.nombre_cultivo]));
+    const nameById = new Map<number, string>(
+      cultivos.map((c) => [c.id_cultivo, c.nombre_cultivo]),
+    );
 
     const result = Array.from(map.entries()).map(([id_cultivo, vals]) => ({
       id_cultivo,
@@ -316,7 +365,10 @@ export class FinanzasService {
 
     const salidasRow = await this.salidasRepo
       .createQueryBuilder('s')
-      .select('COALESCE(SUM(s.cantidad * COALESCE(s.valor_unidad, 0)), 0)', 'total')
+      .select(
+        'COALESCE(SUM(s.cantidad * COALESCE(s.valor_unidad, 0)), 0)',
+        'total',
+      )
       .where('s.id_cultivo = :cultivoId', { cultivoId })
       .andWhere('s.fecha_salida BETWEEN :from AND :to', { from, to })
       .getRawOne();
@@ -343,14 +395,16 @@ export class FinanzasService {
     // Determinar rentabilidad según criterio/umbral opcional
     let rentable: boolean;
     const criterioEval = criterio || 'margen';
-    const umbralEval = umbral !== undefined ? umbral : (criterioEval === 'bc' ? 1 : 0);
+    const umbralEval =
+      umbral !== undefined ? umbral : criterioEval === 'bc' ? 1 : 0;
 
     if (criterioEval === 'bc') {
       rentable = beneficioCosto !== null ? beneficioCosto >= umbralEval : false;
     } else if (criterioEval === 'porcentaje') {
-      rentable = margenPorcentaje !== null ? margenPorcentaje >= umbralEval : false;
+      rentable =
+        margenPorcentaje !== null ? margenPorcentaje >= umbralEval : false;
     } else {
-      rentable = margen >= umbralEval; 
+      rentable = margen >= umbralEval;
     }
 
     return {
@@ -358,7 +412,8 @@ export class FinanzasService {
       egresos: this.fmt(egresos),
       margen: this.fmt(margen),
       beneficioCosto: beneficioCosto === null ? null : this.fmt(beneficioCosto),
-      margenPorcentaje: margenPorcentaje === null ? null : this.fmt(margenPorcentaje),
+      margenPorcentaje:
+        margenPorcentaje === null ? null : this.fmt(margenPorcentaje),
       rentable,
       criterio: criterioEval,
       umbral: umbralEval,

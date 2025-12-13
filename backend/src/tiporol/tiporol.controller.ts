@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { TiporolService } from './tiporol.service';
 import { CreateTiporolDto } from './dto/create-tiporol.dto';
 import { UpdateTiporolDto } from './dto/update-tiporol.dto';

@@ -17,42 +17,46 @@ export class TieneSeeder {
   ) {}
 
   async seed() {
-    const cultivo1 = await this.cultivoRepository.findOne({ where: { id_cultivo: 1 } });
+    const cultivo1 = await this.cultivoRepository.findOne({
+      where: { id_cultivo: 1 },
+    });
     const epa1 = await this.epaRepository.findOne({ where: { id_epa: 1 } });
 
-    const cultivo2 = await this.cultivoRepository.findOne({ where: { id_cultivo: 2 } });
+    const cultivo2 = await this.cultivoRepository.findOne({
+      where: { id_cultivo: 2 },
+    });
     const epa2 = await this.epaRepository.findOne({ where: { id_epa: 2 } });
 
     if (cultivo1 && epa1) {
-        const tiene1Exists = await this.tieneRepository.findOne({
-            where: {
-                cultivo: { id_cultivo: 1 },
-                epa: { id_epa: 1 },
-            },
-        });
+      const tiene1Exists = await this.tieneRepository.findOne({
+        where: {
+          cultivo: { id_cultivo: 1 },
+          epa: { id_epa: 1 },
+        },
+      });
 
-        if (!tiene1Exists) {
-            await this.tieneRepository.save({
-                cultivo: cultivo1,
-                epa: epa1,
-            });
-        }
+      if (!tiene1Exists) {
+        await this.tieneRepository.save({
+          cultivo: cultivo1,
+          epa: epa1,
+        });
+      }
     }
 
     if (cultivo2 && epa2) {
-        const tiene2Exists = await this.tieneRepository.findOne({
-            where: {
-                cultivo: { id_cultivo: 2 },
-                epa: { id_epa: 2 },
-            },
-        });
+      const tiene2Exists = await this.tieneRepository.findOne({
+        where: {
+          cultivo: { id_cultivo: 2 },
+          epa: { id_epa: 2 },
+        },
+      });
 
-        if (!tiene2Exists) {
-            await this.tieneRepository.save({
-                cultivo: cultivo2,
-                epa: epa2,
-            });
-        }
+      if (!tiene2Exists) {
+        await this.tieneRepository.save({
+          cultivo: cultivo2,
+          epa: epa2,
+        });
+      }
     }
   }
 }
