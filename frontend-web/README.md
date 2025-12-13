@@ -43,30 +43,39 @@ src/
 
 ## 🔧 Instalación y Uso
 
-Sigue estos pasos para levantar el entorno de desarrollo local:
+### Prerrequisitos
 
-1.  **Clonar el repositorio:**
+-   Node.js (v18 o superior)
+-   NPM o Yarn
+
+### Pasos
+
+1.  **Clonar el repositorio principal (si aún no lo has hecho):**
     ```bash
-    git clone https://github.com/LauraFajar/frontend-react-atomicdesign.git
-    cd frontend-react-atomicdesign
+    git clone https://github.com/LauraFajar/proyecto-nest-js.git
     ```
 
-2.  **Instalar dependencias:**
-    Asegúrate de tener Node.js instalado (versión 18 o superior).
+2.  **Navegar a la carpeta del frontend web:**
+    *Es crucial ejecutar los siguientes comandos desde esta carpeta específica.*
+    ```bash
+    cd proyecto-nest-js/frontend-web
+    ```
+
+3.  **Instalar dependencias:**
     ```bash
     npm install
     ```
 
-3.  **Iniciar servidor de desarrollo:**
-    El servidor de desarrollo se iniciará por defecto en `http://localhost:3000`.
-    ```bash
-    npm start
+4.  **Configurar variables de entorno:**
+    Crea un archivo `.env` en la raíz de la carpeta `frontend-web` y define la URL del backend.
+    ```env
+    REACT_APP_API_URL=http://localhost:3001
     ```
 
-4.  **Construir para producción:**
-    Genera los archivos estáticos para el despliegue.
+5.  **Iniciar la aplicación en modo de desarrollo:**
+    La aplicación se abrirá en `http://localhost:3000`.
     ```bash
-    npm run build
+    npm start
     ```
 
 ## 🔐 Autenticación
