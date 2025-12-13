@@ -1,0 +1,223 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Paleta de colores AgroTIC*/
+  --primary-green: #4CAF50;
+  --secondary-green: #66BB6A;
+  --light-green: #C8E6C9;
+  --dark-green: #388E3C;
+  --accent-green: #8BC34A;
+  
+  --white: #FFFFFF;
+  --light-gray: #F5F5F5;
+  --medium-gray: #E0E0E0;
+  --dark-gray: #757575;
+  --text-dark: #212121;
+  
+  --gray-50: #f8f9fa;
+  --gray-100: #f5f5f5;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --gray-900: #212529;
+  
+  --success-light: #e8f5e9;
+  --success-main: #4caf50;
+  --success-dark: #2e7d32;
+  
+  --error-light: #ffebee;
+  --error-main: #f44336;
+  --error-dark: #c62828;
+  
+  /* Estados de información */
+  --info-light: #e3f2fd;
+  --info-main: #2196f3;
+  --info-dark: #1976d2;
+  
+  --warning-light: #fff3e0;
+  --warning-main: #ff9800;
+  --warning-dark: #ef6c00;
+  
+  /* Tipografía */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  
+  /* Espaciado */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Bordes */
+  --border-radius: 8px;
+  --border-radius-sm: 4px;
+  --border-radius-lg: 12px;
+  
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: var(--font-family);
+  line-height: 1.6;
+  color: var(--text-dark);
+  background-color: var(--light-gray);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.gap-sm {
+  gap: var(--spacing-sm);
+}
+
+.gap-md {
+  gap: var(--spacing-md);
+}
+
+.gap-lg {
+  gap: var(--spacing-lg);
+}
+
+.text-primary {
+  color: var(--primary-green);
+}
+
+.text-secondary {
+  color: var(--dark-gray);
+}
+
+.text-white {
+  color: var(--white);
+}
+
+.bg-primary {
+  background-color: var(--primary-green);
+}
+
+.bg-light {
+  background-color: var(--light-green);
+}
+
+.bg-white {
+  background-color: var(--white);
+}
+
+.page-wrapper {
+  padding: var(--spacing-lg);
+  background-color: var(--white);
+  min-height: calc(100vh - 64px);
+}
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+}
+@media (min-width: 600px) {
+  .page-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+.page-title {
+  color: var(--primary-green);
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  margin: 0;
+}
+
+.search-container {
+  background-color: var(--white);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-xl);
+}
+
+.table-container {
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.table th {
+  background-color: var(--light-gray);
+  color: var(--primary-green);
+  font-weight: 600;
+  padding: var(--spacing-md);
+  text-align: left;
+  border-bottom: 2px solid var(--medium-gray);
+}
+.table td {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--medium-gray);
+}
+.table tr:hover { background-color: var(--light-gray); }
+
+.btn-primary.MuiButton-root {
+  background-color: var(--primary-green) !important;
+  color: var(--white) !important;
+  border-radius: var(--border-radius) !important;
+  padding: var(--spacing-sm) var(--spacing-xl) !important;
+}
+.btn-primary.MuiButton-root:hover {
+  background-color: var(--dark-green) !important;
+}
+.btn-outline.MuiButton-root {
+  color: var(--primary-green) !important;
+  border: 2px solid var(--primary-green) !important;
+  border-radius: var(--border-radius) !important;
+  padding: var(--spacing-xs) var(--spacing-md) !important;
+}
+.dialog-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+}
