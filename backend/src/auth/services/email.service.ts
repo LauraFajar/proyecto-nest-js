@@ -10,10 +10,12 @@ export class EmailService {
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.log(`[SISTEMA] Se ha generado un enlace de recuperación (simulado)`);
+      console.log(
+        `[SISTEMA] Se ha generado un enlace de recuperación (simulado)`,
+      );
       return;
     }
-    
+
     try {
       await this.mailerService.sendMail({
         to: email,

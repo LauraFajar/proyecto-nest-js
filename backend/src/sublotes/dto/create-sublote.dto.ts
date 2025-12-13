@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsArray, IsNotEmpty, IsNumber, Length } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  Length,
+} from 'class-validator';
 
 export class CreateSubloteDto {
   @IsString()

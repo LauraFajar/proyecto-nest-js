@@ -1,10 +1,14 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddResponsableIdToActividades1764445300000 implements MigrationInterface {
+export class AddResponsableIdToActividades1764445300000
+  implements MigrationInterface
+{
   name = 'AddResponsableIdToActividades1764445300000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "actividades" ADD COLUMN IF NOT EXISTS "responsable_id" integer`);
+    await queryRunner.query(
+      `ALTER TABLE "actividades" ADD COLUMN IF NOT EXISTS "responsable_id" integer`,
+    );
     await queryRunner.query(`DO $$ BEGIN
       IF NOT EXISTS (
         SELECT 1 FROM information_schema.table_constraints 
@@ -17,7 +21,11 @@ export class AddResponsableIdToActividades1764445300000 implements MigrationInte
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`ALTER TABLE "actividades" DROP CONSTRAINT IF EXISTS "FK_actividades_responsable"`);
-    await queryRunner.query(`ALTER TABLE "actividades" DROP COLUMN IF EXISTS "responsable_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "actividades" DROP CONSTRAINT IF EXISTS "FK_actividades_responsable"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "actividades" DROP COLUMN IF EXISTS "responsable_id"`,
+    );
   }
 }

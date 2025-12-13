@@ -1,4 +1,13 @@
-import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException, Get, Param, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  Get,
+  Param,
+  Res,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
 import { Response } from 'express';
@@ -21,11 +30,11 @@ export class UploadsController {
     }
 
     const relativePath = this.uploadsService.getImageUrl(file.filename);
-    
+
     return {
       originalname: file.originalname,
       filename: file.filename,
-      path: relativePath
+      path: relativePath,
     };
   }
 
@@ -41,7 +50,10 @@ export class UploadsController {
 
   @Public()
   @Get('actividades/:filename')
-  async getActividadImage(@Param('filename') filename: string, @Res() res: Response) {
+  async getActividadImage(
+    @Param('filename') filename: string,
+    @Res() res: Response,
+  ) {
     const filePath = join(process.cwd(), 'uploads/actividades', filename);
     if (!existsSync(filePath)) {
       throw new BadRequestException('No se pudo encontrar la imagen');

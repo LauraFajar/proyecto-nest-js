@@ -21,16 +21,24 @@ export class CultivosService {
 
   async create(createCultivoDto: CreateCultivoDto) {
     if (createCultivoDto.id_lote) {
-      const loteExists = await this.loteRepository.exist({ where: { id_lote: createCultivoDto.id_lote } });
+      const loteExists = await this.loteRepository.exist({
+        where: { id_lote: createCultivoDto.id_lote },
+      });
       if (!loteExists) {
-        throw new NotFoundException(`Lote con ID ${createCultivoDto.id_lote} no encontrado`);
+        throw new NotFoundException(
+          `Lote con ID ${createCultivoDto.id_lote} no encontrado`,
+        );
       }
     }
 
     if (createCultivoDto.id_insumo) {
-      const insumoExists = await this.insumoRepository.exist({ where: { id_insumo: createCultivoDto.id_insumo } });
+      const insumoExists = await this.insumoRepository.exist({
+        where: { id_insumo: createCultivoDto.id_insumo },
+      });
       if (!insumoExists) {
-        throw new NotFoundException(`Insumo con ID ${createCultivoDto.id_insumo} no encontrado`);
+        throw new NotFoundException(
+          `Insumo con ID ${createCultivoDto.id_insumo} no encontrado`,
+        );
       }
     }
 
@@ -74,7 +82,7 @@ export class CultivosService {
 
   async update(id: number, updateCultivoDto: UpdateCultivoDto) {
     const cultivo = await this.cultivoRepository.findOneBy({ id_cultivo: id });
-    
+
     if (!cultivo) {
       throw new NotFoundException(`Cultivo con ID ${id} no encontrado`);
     }
@@ -82,15 +90,19 @@ export class CultivosService {
     if (updateCultivoDto.estado_cultivo !== undefined) {
       cultivo.estado_cultivo = updateCultivoDto.estado_cultivo;
     }
-    
+
     if (updateCultivoDto.observaciones !== undefined) {
       cultivo.observaciones = updateCultivoDto.observaciones;
     }
 
     if (updateCultivoDto.id_lote !== undefined) {
-      const lote = await this.loteRepository.findOneBy({ id_lote: updateCultivoDto.id_lote });
+      const lote = await this.loteRepository.findOneBy({
+        id_lote: updateCultivoDto.id_lote,
+      });
       if (!lote) {
-        throw new NotFoundException(`Lote con ID ${updateCultivoDto.id_lote} no encontrado`);
+        throw new NotFoundException(
+          `Lote con ID ${updateCultivoDto.id_lote} no encontrado`,
+        );
       }
       cultivo.lote = lote;
     }
@@ -99,11 +111,13 @@ export class CultivosService {
       if (updateCultivoDto.id_insumo === null) {
         cultivo.insumo = null;
       } else {
-        const insumo = await this.insumoRepository.findOneBy({ 
-          id_insumo: updateCultivoDto.id_insumo 
+        const insumo = await this.insumoRepository.findOneBy({
+          id_insumo: updateCultivoDto.id_insumo,
         });
         if (!insumo) {
-          throw new NotFoundException(`Insumo con ID ${updateCultivoDto.id_insumo} no encontrado`);
+          throw new NotFoundException(
+            `Insumo con ID ${updateCultivoDto.id_insumo} no encontrado`,
+          );
         }
         cultivo.insumo = insumo;
       }
@@ -113,7 +127,7 @@ export class CultivosService {
       cultivo.fecha_siembra = new Date(updateCultivoDto.fecha_siembra);
     }
     if (updateCultivoDto.fecha_cosecha_estimada !== undefined) {
-      cultivo.fecha_cosecha_estimada = updateCultivoDto.fecha_cosecha_estimada 
+      cultivo.fecha_cosecha_estimada = updateCultivoDto.fecha_cosecha_estimada
         ? new Date(updateCultivoDto.fecha_cosecha_estimada)
         : null;
     }
@@ -133,7 +147,7 @@ export class CultivosService {
 
   async remove(id: number) {
     const result = await this.cultivoRepository.delete(id);
-    
+
     if (result.affected === 0) {
       throw new NotFoundException(`Cultivo con ID ${id} no encontrado`);
     }
@@ -143,7 +157,7 @@ export class CultivosService {
 
   async getEstadisticas() {
     const total = await this.cultivoRepository.count();
-    
+
     const porEstado = await this.cultivoRepository
       .createQueryBuilder('cultivo')
       .select('cultivo.estado_cultivo', 'estado')
@@ -166,7 +180,8 @@ export class CultivosService {
   }
 
   async getCalendario(fecha_desde?: string, fecha_hasta?: string) {
-    const query = this.cultivoRepository.createQueryBuilder('cultivo')
+    const query = this.cultivoRepository
+      .createQueryBuilder('cultivo')
       .leftJoinAndSelect('cultivo.lote', 'lote')
       .select([
         'cultivo.id_cultivo',
@@ -180,10 +195,13 @@ export class CultivosService {
       ]);
 
     if (fecha_desde && fecha_hasta) {
-      query.where('cultivo.fecha_siembra BETWEEN :fecha_desde AND :fecha_hasta', {
-        fecha_desde,
-        fecha_hasta,
-      });
+      query.where(
+        'cultivo.fecha_siembra BETWEEN :fecha_desde AND :fecha_hasta',
+        {
+          fecha_desde,
+          fecha_hasta,
+        },
+      );
     } else if (fecha_desde) {
       query.where('cultivo.fecha_siembra >= :fecha_desde', { fecha_desde });
     } else if (fecha_hasta) {

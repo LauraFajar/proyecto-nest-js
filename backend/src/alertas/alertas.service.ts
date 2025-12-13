@@ -7,6 +7,7 @@ import { AlertasGateway } from './alertas.gateway';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject } from '@nestjs/common';
 import { Cache } from 'cache-manager';
+import { UsuariosService } from '../usuarios/usuarios.service';
 
 @Injectable()
 export class AlertasService {
@@ -15,7 +16,8 @@ export class AlertasService {
     private readonly alertasRepository: Repository<Alerta>,
     private readonly mailerService: MailerService,
     private readonly alertasGateway: AlertasGateway,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private readonly usuariosService: UsuariosService,
   ) {}
 
   async create(createAlertaDto: any) {
@@ -40,12 +42,14 @@ export class AlertasService {
 
   async findAll() {
     return await this.alertasRepository.find({
-      relations: ['sensor', 'usuario']
+      relations: ['sensor', 'usuario'],
     });
   }
 
   async findOne(id: number) {
-    const alerta = await this.alertasRepository.findOne({ where: { id_alerta: id } });
+    const alerta = await this.alertasRepository.findOne({
+      where: { id_alerta: id },
+    });
     if (!alerta) {
       throw new NotFoundException(`Alerta con ID ${id} no encontrada.`);
     }
@@ -53,7 +57,9 @@ export class AlertasService {
   }
 
   async update(id: number, updateAlertaDto: any) {
-    const alerta = await this.alertasRepository.findOne({ where: { id_alerta: id } });
+    const alerta = await this.alertasRepository.findOne({
+      where: { id_alerta: id },
+    });
     if (!alerta) {
       throw new NotFoundException(`Alerta con ID ${id} no encontrada.`);
     }
@@ -62,7 +68,9 @@ export class AlertasService {
   }
 
   async remove(id: number) {
-    const alerta = await this.alertasRepository.findOne({ where: { id_alerta: id } });
+    const alerta = await this.alertasRepository.findOne({
+      where: { id_alerta: id },
+    });
     if (!alerta) {
       throw new NotFoundException(`Alerta con ID ${id} no encontrada.`);
     }
@@ -84,7 +92,32 @@ export class AlertasService {
       usuario: { id_usuario } as any,
     });
 
-    return await this.alertasRepository.save(alerta);
+    const saved = await this.alertasRepository.save(alerta);
+    try {
+      const room = `user:${id_usuario}`;
+      this.alertasGateway.sendAlertToRoom(room, saved);
+    } catch {}
+    return saved;
+  }
+
+  async notificarAdministradores(
+    titulo: string,
+    mensaje: string,
+    tipo: string,
+    datos_adicionales?: any,
+  ): Promise<void> {
+    const admins = await this.usuariosService.findAdmins();
+    for (const admin of admins || []) {
+      try {
+        await this.crearNotificacion(
+          Number(admin.id_usuarios),
+          titulo,
+          mensaje,
+          tipo,
+          datos_adicionales,
+        );
+      } catch {}
+    }
   }
 
   async obtenerNotificacionesUsuario(
@@ -94,8 +127,8 @@ export class AlertasService {
     return this.alertasRepository.find({
       where: {
         usuario: {
-          id_usuario: id_usuario
-        } as any
+          id_usuario: id_usuario,
+        } as any,
       },
       order: { created_at: 'DESC' },
       relations: ['usuario', 'sensor'],

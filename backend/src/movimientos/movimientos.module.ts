@@ -9,7 +9,10 @@ import { Salida } from '../salidas/entities/salida.entity';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Movimiento, Insumo, Salida]), PermisosModule],
+  imports: [
+    TypeOrmModule.forFeature([Movimiento, Insumo, Salida]),
+    PermisosModule,
+  ],
   controllers: [MovimientosController],
   providers: [MovimientosService, RolesGuard],
   exports: [MovimientosService],

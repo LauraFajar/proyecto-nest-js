@@ -17,18 +17,20 @@ export class IngresoSeeder {
   ) {}
 
   async seed() {
-    const cultivoPlatano = await this.cultivoRepository.findOne({ where: { id_cultivo: 1 } });
+    const cultivoPlatano = await this.cultivoRepository.findOne({
+      where: { id_cultivo: 1 },
+    });
     const data = [
       {
         fecha_ingreso: '2024-03-10',
-        monto: 1500000.00,
+        monto: 1500000.0,
         descripcion: 'Venta de racimos de plátano',
         id_insumo: 1,
         id_cultivo: cultivoPlatano?.id_cultivo,
       },
       {
         fecha_ingreso: '2024-04-05',
-        monto: 900000.00,
+        monto: 900000.0,
         descripcion: 'Venta local plátano',
         id_insumo: 1,
         id_cultivo: cultivoPlatano?.id_cultivo,
@@ -36,8 +38,14 @@ export class IngresoSeeder {
     ];
 
     for (const item of data) {
-      const insumo = await this.insumoRepository.findOne({ where: { id_insumo: item.id_insumo } });
-      const cultivo = item.id_cultivo ? await this.cultivoRepository.findOne({ where: { id_cultivo: item.id_cultivo } }) : null;
+      const insumo = await this.insumoRepository.findOne({
+        where: { id_insumo: item.id_insumo },
+      });
+      const cultivo = item.id_cultivo
+        ? await this.cultivoRepository.findOne({
+            where: { id_cultivo: item.id_cultivo },
+          })
+        : null;
       if (insumo) {
         const exists = await this.ingresoRepository
           .createQueryBuilder('i')
@@ -53,7 +61,9 @@ export class IngresoSeeder {
             cultivo: cultivo || null,
             id_cultivo: cultivo?.id_cultivo ?? null,
           } as Partial<Ingreso>;
-          await this.ingresoRepository.save(this.ingresoRepository.create(ingresoToCreate));
+          await this.ingresoRepository.save(
+            this.ingresoRepository.create(ingresoToCreate),
+          );
         }
       }
     }

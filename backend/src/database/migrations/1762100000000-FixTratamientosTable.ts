@@ -1,14 +1,14 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class FixTratamientosTable1762100000000 implements MigrationInterface {
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             ALTER TABLE tratamientos
             ALTER COLUMN dosis TYPE TEXT,
             ALTER COLUMN descripcion SET NOT NULL,
             ALTER COLUMN frecuencia SET NOT NULL;
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (
@@ -25,17 +25,17 @@ export class FixTratamientosTable1762100000000 implements MigrationInterface {
             END
             $$;
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             ALTER TABLE tratamientos
             DROP CONSTRAINT IF EXISTS fk_tratamiento_epa;
         `);
-        await queryRunner.query(`
+    await queryRunner.query(`
             ALTER TABLE tratamientos
             ALTER COLUMN descripcion DROP NOT NULL,
             ALTER COLUMN frecuencia DROP NOT NULL;
         `);
-    }
+  }
 }

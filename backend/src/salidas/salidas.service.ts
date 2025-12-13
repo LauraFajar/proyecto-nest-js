@@ -13,16 +13,21 @@ export class SalidasService {
     @InjectRepository(Salida)
     private readonly salidasRepository: Repository<Salida>,
     @InjectRepository(Inventario)
-    private readonly inventarioRepository: Repository<Inventario>, 
+    private readonly inventarioRepository: Repository<Inventario>,
     private readonly inventarioService: InventarioService,
     private readonly alertasService: AlertasService,
   ) {}
 
-  async create(createSalidaDto: CreateSalidaDto, queryRunner?: QueryRunner): Promise<Salida> {
+  async create(
+    createSalidaDto: CreateSalidaDto,
+    queryRunner?: QueryRunner,
+  ): Promise<Salida> {
     console.log('DEBUG: SalidasService.create llamado con:', createSalidaDto);
-    
+
     if (!createSalidaDto.id_insumo) {
-      throw new NotFoundException('id_insumo es requerido para registrar una salida y ajustar inventario');
+      throw new NotFoundException(
+        'id_insumo es requerido para registrar una salida y ajustar inventario',
+      );
     }
 
     const salidaData: DeepPartial<Salida> = {
@@ -30,7 +35,8 @@ export class SalidasService {
       codigo: createSalidaDto.codigo,
       cantidad: createSalidaDto.cantidad,
       observacion: createSalidaDto.observacion,
-      fecha_salida: createSalidaDto.fecha_salida || new Date().toISOString().slice(0, 10),
+      fecha_salida:
+        createSalidaDto.fecha_salida || new Date().toISOString().slice(0, 10),
       unidad_medida: createSalidaDto.unidad_medida ?? undefined,
       id_cultivo: createSalidaDto.id_cultivo ?? undefined,
       valor_unidad: createSalidaDto.valor_unidad ?? undefined,
@@ -46,7 +52,7 @@ export class SalidasService {
       console.log('DEBUG: Salida guardada con ID:', savedSalida.id_salida);
       const salidaWithRelation = await queryRunner.manager.findOne(Salida, {
         where: { id_salida: savedSalida.id_salida },
-        relations: ['insumo']
+        relations: ['insumo'],
       });
       if (!salidaWithRelation) {
         console.log('DEBUG: No se pudo encontrar la salida guardada');
@@ -57,16 +63,24 @@ export class SalidasService {
     } else {
       const newSalida = this.salidasRepository.create(salidaData);
       savedSalida = await this.salidasRepository.save(newSalida);
-      console.log('DEBUG: Salida guardada sin queryRunner con ID:', savedSalida.id_salida);
+      console.log(
+        'DEBUG: Salida guardada sin queryRunner con ID:',
+        savedSalida.id_salida,
+      );
       const salidaWithRelation = await this.salidasRepository.findOne({
         where: { id_salida: savedSalida.id_salida },
-        relations: ['insumo']
+        relations: ['insumo'],
       });
       if (!salidaWithRelation) {
-        console.log('DEBUG: No se pudo encontrar la salida guardada sin queryRunner');
+        console.log(
+          'DEBUG: No se pudo encontrar la salida guardada sin queryRunner',
+        );
         throw new NotFoundException('No se pudo encontrar la salida guardada');
       }
-      console.log('DEBUG: Salida con relación cargada sin queryRunner:', salidaWithRelation);
+      console.log(
+        'DEBUG: Salida con relación cargada sin queryRunner:',
+        salidaWithRelation,
+      );
       savedSalida = salidaWithRelation;
     }
 
@@ -75,14 +89,17 @@ export class SalidasService {
         where: { id_insumo: createSalidaDto.id_insumo },
         relations: ['insumo'],
       });
-  
+
       if (!inventarioItem) {
-        throw new NotFoundException(`No se encontró un item de inventario para el insumo con ID ${createSalidaDto.id_insumo}.`);
+        throw new NotFoundException(
+          `No se encontró un item de inventario para el insumo con ID ${createSalidaDto.id_insumo}.`,
+        );
       }
-  
+
       inventarioItem.cantidad_stock -= createSalidaDto.cantidad;
-      const inventarioActualizado = await queryRunner.manager.save(inventarioItem);
-  
+      const inventarioActualizado =
+        await queryRunner.manager.save(inventarioItem);
+
       const UMBRAL_MINIMO = 50;
       if (inventarioActualizado.cantidad_stock < UMBRAL_MINIMO) {
         const now = new Date();
@@ -95,7 +112,10 @@ export class SalidasService {
         });
       }
     } else {
-      await this.inventarioService.reducirCantidad(createSalidaDto.id_insumo, createSalidaDto.cantidad);
+      await this.inventarioService.reducirCantidad(
+        createSalidaDto.id_insumo,
+        createSalidaDto.cantidad,
+      );
     }
 
     return savedSalida;
@@ -108,15 +128,22 @@ export class SalidasService {
   }
 
   async findOne(id: number): Promise<Salida> {
-    const salida = await this.salidasRepository.findOne({ where: { id_salida: id } });
+    const salida = await this.salidasRepository.findOne({
+      where: { id_salida: id },
+    });
     if (!salida) {
       throw new NotFoundException(`Salida con ID ${id} no encontrada.`);
     }
     return salida;
   }
 
-  async update(id: number, updateSalidaDto: DeepPartial<Salida>): Promise<Salida> {
-    const salida = await this.salidasRepository.findOne({ where: { id_salida: id } });
+  async update(
+    id: number,
+    updateSalidaDto: DeepPartial<Salida>,
+  ): Promise<Salida> {
+    const salida = await this.salidasRepository.findOne({
+      where: { id_salida: id },
+    });
     if (!salida) {
       throw new NotFoundException(`Salida con ID ${id} no encontrada.`);
     }
@@ -125,7 +152,9 @@ export class SalidasService {
   }
 
   async remove(id: number): Promise<void> {
-    const salida = await this.salidasRepository.findOne({ where: { id_salida: id } });
+    const salida = await this.salidasRepository.findOne({
+      where: { id_salida: id },
+    });
     if (!salida) {
       throw new NotFoundException(`Salida con ID ${id} no encontrada.`);
     }

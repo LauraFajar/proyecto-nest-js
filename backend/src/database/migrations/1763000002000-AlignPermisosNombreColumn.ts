@@ -1,7 +1,9 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AlignPermisosNombreColumn1763000002000 implements MigrationInterface {
-  name = 'AlignPermisosNombreColumn1763000002000'
+export class AlignPermisosNombreColumn1763000002000
+  implements MigrationInterface
+{
+  name = 'AlignPermisosNombreColumn1763000002000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

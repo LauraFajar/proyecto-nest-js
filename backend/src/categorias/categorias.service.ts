@@ -27,7 +27,7 @@ export class CategoriasService {
 
   async update(id_categoria: number, updateCategoriaDto: UpdateCategoriaDto) {
     await this.categoriasRepository.update(id_categoria, updateCategoriaDto);
-    return this.findOne(id_categoria); 
+    return this.findOne(id_categoria);
   }
 
   async remove(id_categoria: number) {

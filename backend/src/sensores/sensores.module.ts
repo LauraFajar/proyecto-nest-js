@@ -24,7 +24,17 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Sensor, Lectura, Sublote, Alerta, Cultivo, Actividad, Inventario, Ingreso, Salida]),
+    TypeOrmModule.forFeature([
+      Sensor,
+      Lectura,
+      Sublote,
+      Alerta,
+      Cultivo,
+      Actividad,
+      Inventario,
+      Ingreso,
+      Salida,
+    ]),
     forwardRef(() => AlertasModule),
     IotModule,
   ],
@@ -39,11 +49,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
     ReportsService,
   ],
 
-  exports: [
-    SensoresService,
-    MqttService,
-    SensoresGateway,
-    ReportsService,
-  ],
+  exports: [SensoresService, MqttService, SensoresGateway, ReportsService],
 })
 export class SensoresModule {}

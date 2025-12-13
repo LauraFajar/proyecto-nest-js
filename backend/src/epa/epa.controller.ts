@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -21,29 +33,34 @@ import { Permisos } from '../permisos/decorators/permisos.decorator';
 export class EpaController {
   constructor(
     private readonly epaService: EpaService,
-    private readonly uploadsService: UploadsService
+    private readonly uploadsService: UploadsService,
   ) {}
 
   @Post()
   @Roles(Role.Admin, Role.Instructor)
   @Permisos({ recurso: 'epa', accion: 'crear' })
-  @UseInterceptors(FileInterceptor('imagen', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const dir = './uploads/epa';
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-      },
-      filename: (req, file, cb) => {
-        const unique = uuidv4();
-        const ext = extname(file.originalname);
-        cb(null, `${unique}${ext}`);
-      },
+  @UseInterceptors(
+    FileInterceptor('imagen', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const dir = './uploads/epa';
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+          cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+          const unique = uuidv4();
+          const ext = extname(file.originalname);
+          cb(null, `${unique}${ext}`);
+        },
+      }),
     }),
-  }))
-  async create(@Body() createEpaDto: CreateEpaDto, @UploadedFile() file?: Express.Multer.File) {
+  )
+  async create(
+    @Body() createEpaDto: CreateEpaDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
     if (file) {
       let filename = file.filename;
       const dir = './uploads/epa';
@@ -65,25 +82,27 @@ export class EpaController {
 
   @Post(':id/upload-imagen')
   @Roles(Role.Admin, Role.Instructor)
-  @UseInterceptors(FileInterceptor('imagen', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const dir = './uploads/epa';
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-      },
-      filename: (req, file, cb) => {
-        const unique = uuidv4();
-        const ext = extname(file.originalname);
-        cb(null, `${unique}${ext}`);
-      },
+  @UseInterceptors(
+    FileInterceptor('imagen', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const dir = './uploads/epa';
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+          cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+          const unique = uuidv4();
+          const ext = extname(file.originalname);
+          cb(null, `${unique}${ext}`);
+        },
+      }),
     }),
-  }))
+  )
   async uploadImagen(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File
+    @UploadedFile() file: Express.Multer.File,
   ) {
     console.log('File uploaded EPA:', file);
 
@@ -109,7 +128,7 @@ export class EpaController {
 
     return {
       message: 'Imagen subida correctamente',
-      imageUrl: imagenUrl
+      imageUrl: imagenUrl,
     };
   }
 

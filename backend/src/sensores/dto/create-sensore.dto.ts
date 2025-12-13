@@ -1,4 +1,13 @@
-import { IsString, Length, IsIn, IsOptional, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  Length,
+  IsIn,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 
 export class CreateSensoreDto {
   @IsString()
@@ -59,5 +68,4 @@ export class CreateSensoreDto {
   @IsOptional()
   @IsString()
   https_auth_token?: string;
-
 }

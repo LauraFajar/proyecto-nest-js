@@ -11,7 +11,16 @@ import { PermisosModule } from '../permisos/permisos.module';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tratamiento, TratamientoInsumo, Epa, Insumo, Inventario]), PermisosModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Tratamiento,
+      TratamientoInsumo,
+      Epa,
+      Insumo,
+      Inventario,
+    ]),
+    PermisosModule,
+  ],
   controllers: [TratamientosController],
   providers: [TratamientosService, RolesGuard],
 })

@@ -16,19 +16,21 @@ export class RolService {
   ) {}
 
   async create(createRolDto: CreateRolDto) {
-    const tipoRol = await this.tipoRolRepository.findOne({ 
-      where: { id_tipo_rol: createRolDto.id_tipo_rol } 
+    const tipoRol = await this.tipoRolRepository.findOne({
+      where: { id_tipo_rol: createRolDto.id_tipo_rol },
     });
 
     if (!tipoRol) {
-      throw new NotFoundException(`Tipo de rol con ID ${createRolDto.id_tipo_rol} no encontrado`);
+      throw new NotFoundException(
+        `Tipo de rol con ID ${createRolDto.id_tipo_rol} no encontrado`,
+      );
     }
 
     const nuevoRol = this.rolRepository.create({
       ...createRolDto,
-      id_tipo_rol: tipoRol
+      id_tipo_rol: tipoRol,
     });
-    
+
     return await this.rolRepository.save(nuevoRol);
   }
 
@@ -46,16 +48,18 @@ export class RolService {
 
   async update(id_rol: number, updateRolDto: UpdateRolDto) {
     const updateData: any = { ...updateRolDto };
-    
+
     if (updateRolDto.id_tipo_rol) {
-      const tipoRol = await this.tipoRolRepository.findOne({ 
-        where: { id_tipo_rol: updateRolDto.id_tipo_rol } 
+      const tipoRol = await this.tipoRolRepository.findOne({
+        where: { id_tipo_rol: updateRolDto.id_tipo_rol },
       });
 
       if (!tipoRol) {
-        throw new NotFoundException(`Tipo de rol con ID ${updateRolDto.id_tipo_rol} no encontrado`);
+        throw new NotFoundException(
+          `Tipo de rol con ID ${updateRolDto.id_tipo_rol} no encontrado`,
+        );
       }
-      
+
       updateData.id_tipo_rol = tipoRol;
     }
 

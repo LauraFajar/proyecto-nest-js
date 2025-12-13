@@ -7,7 +7,7 @@ export class Permiso {
   id_permiso: number;
 
   @Column({ length: 64, unique: true })
-  clave: string; 
+  clave: string;
 
   @Column({ length: 128, name: 'recurso' })
   recurso: string;
@@ -16,7 +16,7 @@ export class Permiso {
   accion: string;
 
   @Column({ length: 128 })
-  nombre_permiso: string; 
+  nombre_permiso: string;
 
   @Column({ type: 'text', nullable: true })
   descripcion?: string;

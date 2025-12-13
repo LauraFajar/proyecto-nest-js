@@ -6,7 +6,9 @@ export type PermisosOptions = { mode?: 'all' | 'any' };
 export function Permisos(...args: Array<PermisoRequirement | PermisosOptions>) {
   let mode: 'all' | 'any' = 'all';
   const last = args[args.length - 1];
-  const requirements: PermisoRequirement[] = [...(args as PermisoRequirement[])];
+  const requirements: PermisoRequirement[] = [
+    ...(args as PermisoRequirement[]),
+  ];
   if (typeof last === 'object' && last && 'mode' in (last as any)) {
     mode = (last as PermisosOptions).mode ?? 'all';
     requirements.pop();

@@ -1,10 +1,18 @@
-import { IsString, IsDateString, IsNumber, IsOptional, IsIn, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsIn,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateActividadeDto {
   @IsString()
   @IsIn(['siembra', 'riego', 'fertilizacion', 'poda', 'cosecha', 'otro'], {
-    message: 'El tipo de actividad no es válido'
+    message: 'El tipo de actividad no es válido',
   })
   tipo_actividad: string;
 

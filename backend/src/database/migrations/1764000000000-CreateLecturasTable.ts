@@ -53,7 +53,7 @@ export class CreateLecturasTable1764000000000 implements MigrationInterface {
           },
         ],
       }),
-      true
+      true,
     );
 
     await queryRunner.query(`
@@ -67,11 +67,11 @@ export class CreateLecturasTable1764000000000 implements MigrationInterface {
     await queryRunner.query(`
       CREATE INDEX idx_lectura_topic ON lecturas(mqtt_topic)
     `);
-    
+
     await queryRunner.query(`
       CREATE INDEX idx_lectura_fecha ON lecturas(fecha)
     `);
-    
+
     await queryRunner.query(`
       CREATE INDEX idx_lectura_metric ON lecturas(unidad_medida)
     `);

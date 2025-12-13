@@ -1,4 +1,11 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { CreateUsuarioDto } from '../usuarios/dto/create-usuario.dto';
@@ -14,9 +21,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
-    const user = await this.authService.validateUser(loginDto.numero_documento, loginDto.password);
+    const user = await this.authService.validateUser(
+      loginDto.numero_documento,
+      loginDto.password,
+    );
     if (!user) {
-      throw new UnauthorizedException('Número de documento o contraseña incorrectos');
+      throw new UnauthorizedException(
+        'Número de documento o contraseña incorrectos',
+      );
     }
     return this.authService.login(user);
   }

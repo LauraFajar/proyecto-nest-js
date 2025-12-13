@@ -19,7 +19,7 @@ export class UsuariosService {
     const { id_rol, ...userData } = createUsuarioDto;
     const nuevoUsuario = this.usuariosRepository.create({
       ...userData,
-      id_rol: id_rol ? { id_rol } : undefined
+      id_rol: id_rol ? { id_rol } : undefined,
     });
     return await this.usuariosRepository.save(nuevoUsuario);
   }
@@ -41,14 +41,14 @@ export class UsuariosService {
       take: limit,
       skip: (page - 1) * limit,
     });
-    const items = data.map(u => ({ id: u.id_usuarios, nombres: u.nombres }));
+    const items = data.map((u) => ({ id: u.id_usuarios, nombres: u.nombres }));
     return {
       items,
       meta: {
         totalItems: total,
         currentPage: page,
         totalPages: Math.ceil(total / limit),
-      }
+      },
     };
   }
 
@@ -63,7 +63,7 @@ export class UsuariosService {
     const { id_rol, ...userData } = updateUsuarioDto;
     const updateData: any = {
       ...userData,
-      ...(id_rol && { id_rol: { id_rol } })
+      ...(id_rol && { id_rol: { id_rol } }),
     };
 
     if (Object.keys(updateData).length === 0) {
@@ -86,33 +86,54 @@ export class UsuariosService {
     return await this.rolService.findByName(nombre_rol);
   }
 
-  async findOneByEmail(email: string): Promise<Usuario | null> {
-    return this.usuariosRepository.findOne({ where: {email: email }, relations: ['id_rol'] });
-  }
-
-  async findOneByDocumento(numero_documento: string): Promise<Usuario | null> {
-    return this.usuariosRepository.findOne({ 
-      where: { numero_documento }, 
-      relations: ['id_rol'] 
+  async findAdmins(): Promise<Usuario[]> {
+    const adminRole = await this.rolService.findByName('Administrador');
+    if (!adminRole) return [];
+    return await this.usuariosRepository.find({
+      where: { id_rol: { id_rol: adminRole.id_rol } as any },
+      relations: ['id_rol'],
     });
   }
 
-  async updatePassword(id_usuarios: number, hashedPassword: string): Promise<void> {
-    await this.usuariosRepository.update(id_usuarios, { password: hashedPassword });
+  async findOneByEmail(email: string): Promise<Usuario | null> {
+    return this.usuariosRepository.findOne({
+      where: { email: email },
+      relations: ['id_rol'],
+    });
   }
 
-  async updateResetToken(id_usuarios: number, token: string, expiresAt: Date): Promise<void> {
-    await this.usuariosRepository.update(id_usuarios, { 
-      reset_token: token, 
-      reset_token_expires: expiresAt 
+  async findOneByDocumento(numero_documento: string): Promise<Usuario | null> {
+    return this.usuariosRepository.findOne({
+      where: { numero_documento },
+      relations: ['id_rol'],
+    });
+  }
+
+  async updatePassword(
+    id_usuarios: number,
+    hashedPassword: string,
+  ): Promise<void> {
+    await this.usuariosRepository.update(id_usuarios, {
+      password: hashedPassword,
+    });
+  }
+
+  async updateResetToken(
+    id_usuarios: number,
+    token: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.usuariosRepository.update(id_usuarios, {
+      reset_token: token,
+      reset_token_expires: expiresAt,
     });
   }
 
   async findByResetToken(token: string): Promise<Usuario | null> {
-    return this.usuariosRepository.findOne({ 
-      where: { 
+    return this.usuariosRepository.findOne({
+      where: {
         reset_token: token,
-      } 
+      },
     });
   }
 
@@ -122,17 +143,21 @@ export class UsuariosService {
       .update(Usuario)
       .set({
         reset_token: () => 'NULL',
-        reset_token_expires: () => 'NULL'
+        reset_token_expires: () => 'NULL',
       })
-      .where("id_usuarios = :id", { id: id_usuarios })
+      .where('id_usuarios = :id', { id: id_usuarios })
       .execute();
   }
 
   async updateImagen(id_usuarios: number, imagenUrl: string): Promise<Usuario> {
-    await this.usuariosRepository.update(id_usuarios, { imagen_url: imagenUrl });
+    await this.usuariosRepository.update(id_usuarios, {
+      imagen_url: imagenUrl,
+    });
     const usuario = await this.findOne(id_usuarios);
     if (!usuario) {
-      throw new NotFoundException(`Usuario con ID ${id_usuarios} no encontrado`);
+      throw new NotFoundException(
+        `Usuario con ID ${id_usuarios} no encontrado`,
+      );
     }
     return usuario;
   }

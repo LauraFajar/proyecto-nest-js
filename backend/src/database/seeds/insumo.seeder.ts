@@ -37,13 +37,23 @@ export class InsumoSeeder {
     ];
 
     for (const item of data) {
-      const categoria = await this.categoriaRepository.findOne({ where: { id_categoria: item.id_categoria } });
-      const almacen = await this.almacenRepository.findOne({ where: { id_almacen: item.id_almacen } });
+      const categoria = await this.categoriaRepository.findOne({
+        where: { id_categoria: item.id_categoria },
+      });
+      const almacen = await this.almacenRepository.findOne({
+        where: { id_almacen: item.id_almacen },
+      });
       if (categoria && almacen) {
-        const exists = await this.insumoRepository.findOne({ where: { codigo: item.codigo } });
+        const exists = await this.insumoRepository.findOne({
+          where: { codigo: item.codigo },
+        });
         if (!exists) {
           const { id_categoria, id_almacen, ...rest } = item;
-          const newInsumo = this.insumoRepository.create({ ...rest, id_categoria: categoria, id_almacen: almacen });
+          const newInsumo = this.insumoRepository.create({
+            ...rest,
+            id_categoria: categoria,
+            id_almacen: almacen,
+          });
           await this.insumoRepository.save(newInsumo);
         }
       }

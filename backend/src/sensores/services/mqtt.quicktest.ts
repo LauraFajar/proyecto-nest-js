@@ -9,10 +9,18 @@ class DummyGateway {
   emitLecturaGeneric() {}
 }
 class DummySensoresService {
-  updateSensorReading() { return Promise.resolve(); }
-  update() { return Promise.resolve(); }
-  findOne() { return Promise.resolve(null); }
-  findAll() { return Promise.resolve([]); }
+  updateSensorReading() {
+    return Promise.resolve();
+  }
+  update() {
+    return Promise.resolve();
+  }
+  findOne() {
+    return Promise.resolve(null);
+  }
+  findAll() {
+    return Promise.resolve([]);
+  }
 }
 class DummyIotGateway {
   emitNewReading() {}

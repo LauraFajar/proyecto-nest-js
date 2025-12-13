@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { SublotesService } from './sublotes.service';
 import { CreateSubloteDto } from './dto/create-sublote.dto';
 import { UpdateSubloteDto } from './dto/update-sublote.dto';

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Epa } from './entities/epa.entity';
@@ -16,13 +20,15 @@ export class EpaService {
     try {
       // Verificar si ya existe un EPA con el mismo nombre
       const existingEpa = await this.epaRepository.findOne({
-        where: { nombre_epa: createEpaDto.nombre_epa, estado: 'activo' }
+        where: { nombre_epa: createEpaDto.nombre_epa, estado: 'activo' },
       });
-      
+
       if (existingEpa) {
-        throw new BadRequestException(`Ya existe un EPA con el nombre ${createEpaDto.nombre_epa}`);
+        throw new BadRequestException(
+          `Ya existe un EPA con el nombre ${createEpaDto.nombre_epa}`,
+        );
       }
-      
+
       const epa = this.epaRepository.create(createEpaDto);
       return await this.epaRepository.save(epa);
     } catch (error) {
@@ -36,21 +42,21 @@ export class EpaService {
   async findAll(paginationDto?: PaginationDto) {
     try {
       const { page = 1, limit = 10 } = paginationDto || {};
-      
+
       const [items, total] = await this.epaRepository.findAndCount({
         relations: ['tratamientos'],
         skip: (page - 1) * limit,
         take: limit,
       });
-      
+
       return {
         items,
         meta: {
           totalItems: total,
           itemsPerPage: limit,
           currentPage: page,
-          totalPages: Math.ceil(total / limit)
-        }
+          totalPages: Math.ceil(total / limit),
+        },
       };
     } catch (error) {
       console.error('Error en findAll de EPA:', error);
@@ -60,8 +66,8 @@ export class EpaService {
           totalItems: 0,
           itemsPerPage: 10,
           currentPage: 1,
-          totalPages: 0
-        }
+          totalPages: 0,
+        },
       };
     }
   }
@@ -69,9 +75,9 @@ export class EpaService {
   async findOne(id: number) {
     const epa = await this.epaRepository.findOne({
       where: { id_epa: id },
-      relations: ['tratamientos']
+      relations: ['tratamientos'],
     });
-    
+
     if (!epa) {
       throw new NotFoundException('EPA no encontrado');
     }
@@ -82,16 +88,18 @@ export class EpaService {
     const queryBuilder = this.epaRepository
       .createQueryBuilder('epa')
       .where('epa.estado = :estado', { estado: 'activo' });
-    
+
     if (query && query.trim() !== '') {
-      queryBuilder.andWhere('(LOWER(epa.nombre_epa) LIKE LOWER(:query) OR LOWER(epa.descripcion) LIKE LOWER(:query))', 
-        { query: `%${query}%` });
+      queryBuilder.andWhere(
+        '(LOWER(epa.nombre_epa) LIKE LOWER(:query) OR LOWER(epa.descripcion) LIKE LOWER(:query))',
+        { query: `%${query}%` },
+      );
     }
-    
+
     if (tipo && ['enfermedad', 'plaga', 'arvense'].includes(tipo)) {
       queryBuilder.andWhere('epa.tipo = :tipo', { tipo });
     }
-    
+
     return await queryBuilder
       .leftJoinAndSelect('epa.tratamientos', 'tratamientos')
       .orderBy('epa.nombre_epa', 'ASC')

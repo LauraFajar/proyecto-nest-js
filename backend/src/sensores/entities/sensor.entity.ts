@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Sublote } from '../../sublotes/entities/sublote.entity';
 import { Cultivo } from '../../cultivos/entities/cultivo.entity';
 
@@ -22,10 +30,10 @@ export class Sensor {
   @Column({ type: 'timestamp', nullable: true })
   ultima_lectura: Date;
 
-  @Column({ 
+  @Column({
     type: 'varchar',
     default: 'activo',
-    length: 20
+    length: 20,
   })
   estado: string;
 

@@ -7,18 +7,17 @@ import { InventarioModule } from '../inventario/inventario.module';
 import { PermisosModule } from '../permisos/permisos.module';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Inventario } from '../inventario/entities/inventario.entity';
-import { AlertasModule } from '../alertas/alertas.module'; 
+import { AlertasModule } from '../alertas/alertas.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Salida, Inventario]), 
+    TypeOrmModule.forFeature([Salida, Inventario]),
     forwardRef(() => InventarioModule),
     PermisosModule,
-    forwardRef(() => AlertasModule), 
+    forwardRef(() => AlertasModule),
   ],
   controllers: [SalidasController],
   providers: [SalidasService, RolesGuard],
-  exports: [SalidasService] 
+  exports: [SalidasService],
 })
 export class SalidasModule {}
-

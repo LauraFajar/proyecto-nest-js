@@ -1,8 +1,10 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddMqttFieldsToSensores1762300000000 implements MigrationInterface {
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+export class AddMqttFieldsToSensores1762300000000
+  implements MigrationInterface
+{
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             ALTER TABLE "sensores"
             ADD COLUMN IF NOT EXISTS "mqtt_host" character varying,
             ADD COLUMN IF NOT EXISTS "mqtt_port" integer,
@@ -12,10 +14,10 @@ export class AddMqttFieldsToSensores1762300000000 implements MigrationInterface 
             ADD COLUMN IF NOT EXISTS "mqtt_enabled" boolean DEFAULT false,
             ADD COLUMN IF NOT EXISTS "mqtt_client_id" character varying
         `);
-    }
+  }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
             ALTER TABLE "sensores"
             DROP COLUMN IF EXISTS "mqtt_client_id",
             DROP COLUMN IF EXISTS "mqtt_enabled",
@@ -25,5 +27,5 @@ export class AddMqttFieldsToSensores1762300000000 implements MigrationInterface 
             DROP COLUMN IF EXISTS "mqtt_port",
             DROP COLUMN IF EXISTS "mqtt_host"
         `);
-    }
+  }
 }

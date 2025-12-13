@@ -8,11 +8,7 @@ import { PermisosModule } from '../permisos/permisos.module';
 import { RolesGuard } from '../auth/guards/roles.guard';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Usuario]),
-    RolModule,
-    PermisosModule
-  ],
+  imports: [TypeOrmModule.forFeature([Usuario]), RolModule, PermisosModule],
   controllers: [UsuariosController],
   providers: [UsuariosService, RolesGuard],
   exports: [UsuariosService],

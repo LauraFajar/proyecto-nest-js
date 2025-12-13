@@ -1,4 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, ParseIntPipe, HttpCode, UseInterceptors, UploadedFile, ValidationPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  ParseIntPipe,
+  HttpCode,
+  UseInterceptors,
+  UploadedFile,
+  ValidationPipe,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ActividadesService } from './actividades.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,22 +37,24 @@ export class ActividadesController {
   }
 
   @Post('upload-photo/:actividadId')
-  @UseInterceptors(FileInterceptor('photo', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const dir = './uploads/actividades';
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-      },
-      filename: (req, file, cb) => {
-        const unique = uuidv4();
-        const ext = extname(file.originalname || '.jpg');
-        cb(null, `${unique}${ext}`);
-      },
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const dir = './uploads/actividades';
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+          cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+          const unique = uuidv4();
+          const ext = extname(file.originalname || '.jpg');
+          cb(null, `${unique}${ext}`);
+        },
+      }),
     }),
-  }))
+  )
   uploadPhoto(
     @Param('actividadId', ParseIntPipe) actividadId: number,
     @UploadedFile() photo: Express.Multer.File,
@@ -62,14 +79,25 @@ export class ActividadesController {
 
   @Get()
   findAll(
-    @Query(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true })) paginationDto: PaginationDto,
+    @Query(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: true,
+      }),
+    )
+    paginationDto: PaginationDto,
   ) {
-    return this.actividadesService.findAll(paginationDto.id_cultivo, paginationDto);
+    return this.actividadesService.findAll(
+      paginationDto.id_cultivo,
+      paginationDto,
+    );
   }
 
   @Get('reporte')
   async reporteActividades(
-    @Query('id_cultivo', new ParseIntPipe({ optional: true })) id_cultivo?: number,
+    @Query('id_cultivo', new ParseIntPipe({ optional: true }))
+    id_cultivo?: number,
     @Query('fecha_inicio') fecha_inicio?: string,
     @Query('fecha_fin') fecha_fin?: string,
   ) {
@@ -92,8 +120,8 @@ export class ActividadesController {
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number, 
-    @Body() updateActividadDto: UpdateActividadeDto
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateActividadDto: UpdateActividadeDto,
   ) {
     return this.actividadesService.update(id, updateActividadDto);
   }

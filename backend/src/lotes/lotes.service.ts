@@ -16,10 +16,12 @@ export class LotesService {
 
     const lote = this.loteRepository.create({
       ...loteData,
-      coordenadas: coordenadas ? {
-        type: 'Polygon',
-        coordinates: coordenadas,
-      } : undefined,
+      coordenadas: coordenadas
+        ? {
+            type: 'Polygon',
+            coordinates: coordenadas,
+          }
+        : undefined,
     });
 
     return this.loteRepository.save(lote);

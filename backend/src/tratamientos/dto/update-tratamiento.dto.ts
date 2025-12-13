@@ -1,6 +1,14 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateTratamientoDto } from './create-tratamiento.dto';
-import { IsString, IsOptional, IsNumber, Length, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  Length,
+  IsEnum,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UpdateTratamientoDto {
@@ -20,7 +28,9 @@ export class UpdateTratamientoDto {
   frecuencia?: string;
 
   @IsOptional()
-  @IsEnum(['Biologico', 'Quimico'], { message: 'El tipo debe ser Biologico o Quimico' })
+  @IsEnum(['Biologico', 'Quimico'], {
+    message: 'El tipo debe ser Biologico o Quimico',
+  })
   tipo?: 'Biologico' | 'Quimico';
 
   @IsOptional()

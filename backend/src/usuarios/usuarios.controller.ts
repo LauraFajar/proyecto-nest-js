@@ -1,4 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, UploadedFile, UseInterceptors, Request, ForbiddenException, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+  Request,
+  ForbiddenException,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -48,7 +63,11 @@ export class UsuariosController {
   @Patch(':id')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
   @Permisos({ recurso: 'usuarios', accion: 'editar' })
-  update(@Param('id', new ParseIntPipe()) id: number, @Body() updateUsuarioDto: UpdateUsuarioDto, @Request() req) {
+  update(
+    @Param('id', new ParseIntPipe()) id: number,
+    @Body() updateUsuarioDto: UpdateUsuarioDto,
+    @Request() req,
+  ) {
     const userId = req.user.id;
     if (req.user.roles !== Role.Admin && userId !== id) {
       throw new ForbiddenException('No puedes actualizar otros perfiles');
@@ -72,30 +91,34 @@ export class UsuariosController {
   @Post(':id/upload-imagen')
   @Roles(Role.Admin, Role.Instructor, Role.Learner, Role.Intern, Role.Guest)
   @Permisos({ recurso: 'usuarios', accion: 'editar' })
-  @UseInterceptors(FileInterceptor('imagen', {
-    storage: diskStorage({
-      destination: './uploads/usuarios',
-      filename: (req, file, callback) => {
-        const uniqueSuffix = uuidv4();
-        const ext = extname(file.originalname);
-        callback(null, `${uniqueSuffix}${ext}`);
-      },
+  @UseInterceptors(
+    FileInterceptor('imagen', {
+      storage: diskStorage({
+        destination: './uploads/usuarios',
+        filename: (req, file, callback) => {
+          const uniqueSuffix = uuidv4();
+          const ext = extname(file.originalname);
+          callback(null, `${uniqueSuffix}${ext}`);
+        },
+      }),
     }),
-  }))
+  )
   async uploadImagen(
     @Param('id', new ParseIntPipe()) id: number,
     @UploadedFile() file: Express.Multer.File,
-    @Request() req
+    @Request() req,
   ) {
-    console.log('File uploaded:', file); 
+    console.log('File uploaded:', file);
 
     const userId = req.user.id;
     if (req.user.roles !== Role.Admin && userId !== id) {
-      throw new ForbiddenException('No puedes actualizar la imagen de otros usuarios');
+      throw new ForbiddenException(
+        'No puedes actualizar la imagen de otros usuarios',
+      );
     }
 
     const imagenUrl = `/uploads/usuarios/${file.filename}`;
-    console.log('Image URL:', imagenUrl); 
+    console.log('Image URL:', imagenUrl);
 
     return this.usuariosService.updateImagen(id, imagenUrl);
   }

@@ -15,7 +15,8 @@ export class InventarioService {
   ) {}
 
   async create(createInventarioDto: CreateInventarioDto) {
-    const nuevoInventario = this.inventarioRepository.create(createInventarioDto);
+    const nuevoInventario =
+      this.inventarioRepository.create(createInventarioDto);
     return await this.inventarioRepository.save(nuevoInventario);
   }
 
@@ -26,7 +27,7 @@ export class InventarioService {
   }
 
   async findOne(id: number) {
-    const inventario = await this.inventarioRepository.findOne({ 
+    const inventario = await this.inventarioRepository.findOne({
       where: { id_inventario: id },
       relations: ['insumo'],
     });
@@ -37,7 +38,9 @@ export class InventarioService {
   }
 
   async update(id: number, updateInventarioDto: UpdateInventarioDto) {
-    const inventario = await this.inventarioRepository.findOne({ where: { id_inventario: id } });
+    const inventario = await this.inventarioRepository.findOne({
+      where: { id_inventario: id },
+    });
     if (!inventario) {
       throw new NotFoundException(`Inventario con ID ${id} no encontrado.`);
     }
@@ -46,7 +49,9 @@ export class InventarioService {
   }
 
   async remove(id: number) {
-    const inventario = await this.inventarioRepository.findOne({ where: { id_inventario: id } });
+    const inventario = await this.inventarioRepository.findOne({
+      where: { id_inventario: id },
+    });
     if (!inventario) {
       throw new NotFoundException(`Inventario con ID ${id} no encontrado.`);
     }
@@ -55,25 +60,34 @@ export class InventarioService {
 
   // Métodos de reportes integrados
   async obtenerReporteInventario(stock_minimo?: number) {
-    const query = this.inventarioRepository.createQueryBuilder('inventario')
+    const query = this.inventarioRepository
+      .createQueryBuilder('inventario')
       .leftJoinAndSelect('inventario.insumo', 'insumo');
 
     if (stock_minimo) {
-      query.where('inventario.cantidad_stock <= :stock_minimo', { stock_minimo });
+      query.where('inventario.cantidad_stock <= :stock_minimo', {
+        stock_minimo,
+      });
     }
 
     const inventario = await query.getMany();
 
     return {
       total_items: inventario.length,
-      items_stock_bajo: inventario.filter(i => i.cantidad_stock <= (stock_minimo || 10)).length,
-      cantidad_total_stock: inventario.reduce((sum, i) => sum + i.cantidad_stock, 0),
+      items_stock_bajo: inventario.filter(
+        (i) => i.cantidad_stock <= (stock_minimo || 10),
+      ).length,
+      cantidad_total_stock: inventario.reduce(
+        (sum, i) => sum + i.cantidad_stock,
+        0,
+      ),
       inventario,
     };
   }
 
   async obtenerStockBajo(limite: number = 10) {
-    const inventario = await this.inventarioRepository.createQueryBuilder('inventario')
+    const inventario = await this.inventarioRepository
+      .createQueryBuilder('inventario')
       .leftJoinAndSelect('inventario.insumo', 'insumo')
       .where('inventario.cantidad_stock <= :limite', { limite })
       .getMany();
@@ -93,18 +107,24 @@ export class InventarioService {
     return {
       total_items: inventario.length,
       cantidad_total: inventario.reduce((sum, i) => sum + i.cantidad_stock, 0),
-      stock_promedio: inventario.length > 0 ? 
-        inventario.reduce((sum, i) => sum + i.cantidad_stock, 0) / inventario.length : 0,
+      stock_promedio:
+        inventario.length > 0
+          ? inventario.reduce((sum, i) => sum + i.cantidad_stock, 0) /
+            inventario.length
+          : 0,
       items_por_insumo: this.agruparPorInsumo(inventario),
     };
   }
 
   private agruparPorInsumo(inventario: Inventario[]) {
-    return inventario.reduce((acc, item) => {
-      const insumo = item.insumo?.nombre_insumo || 'Sin insumo';
-      acc[insumo] = (acc[insumo] || 0) + item.cantidad_stock;
-      return acc;
-    }, {} as Record<string, number>);
+    return inventario.reduce(
+      (acc, item) => {
+        const insumo = item.insumo?.nombre_insumo || 'Sin insumo';
+        acc[insumo] = (acc[insumo] || 0) + item.cantidad_stock;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }
 
   async reducirCantidad(id_insumo: number, cantidadReducir: number) {
@@ -114,11 +134,14 @@ export class InventarioService {
     });
 
     if (!inventarioItem) {
-      throw new NotFoundException(`No se encontró un item de inventario para el insumo con ID ${id_insumo}.`);
+      throw new NotFoundException(
+        `No se encontró un item de inventario para el insumo con ID ${id_insumo}.`,
+      );
     }
 
     inventarioItem.cantidad_stock -= cantidadReducir;
-    const inventarioActualizado = await this.inventarioRepository.save(inventarioItem);
+    const inventarioActualizado =
+      await this.inventarioRepository.save(inventarioItem);
 
     const UMBRAL_MINIMO = 50;
     if (inventarioActualizado.cantidad_stock < UMBRAL_MINIMO) {

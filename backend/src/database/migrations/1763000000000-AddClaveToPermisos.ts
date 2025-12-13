@@ -1,7 +1,7 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddClaveToPermisos1763000000000 implements MigrationInterface {
-  name = 'AddClaveToPermisos1763000000000'
+  name = 'AddClaveToPermisos1763000000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Agregar columna 'clave' si no existe

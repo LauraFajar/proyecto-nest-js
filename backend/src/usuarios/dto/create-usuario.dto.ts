@@ -1,4 +1,12 @@
-import { IsString, Length, IsEmail, IsNumber, Min, IsOptional, IsUrl } from 'class-validator';
+import {
+  IsString,
+  Length,
+  IsEmail,
+  IsNumber,
+  Min,
+  IsOptional,
+  IsUrl,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateUsuarioDto {
@@ -32,4 +40,3 @@ export class CreateUsuarioDto {
   @Min(1, { message: 'El ID del rol debe ser un número positivo' })
   id_rol?: number;
 }
-

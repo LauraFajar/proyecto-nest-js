@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+} from 'typeorm';
 import { Sensor } from './sensor.entity';
 
 @Entity('lecturas')
@@ -20,7 +27,12 @@ export class Lectura {
   @Column({ name: 'valor', type: 'decimal', precision: 10, scale: 2 })
   valor: number;
 
-  @Column({ name: 'unidad_medida', type: 'varchar', length: 50, nullable: true })
+  @Column({
+    name: 'unidad_medida',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   unidad_medida?: string;
 
   @Column({ name: 'observaciones', type: 'text', nullable: true })

@@ -14,7 +14,9 @@ export class SensorSeeder {
   ) {}
 
   async seed() {
-    const sublote1 = await this.subloteRepository.findOne({ where: { id_sublote: 1 } });
+    const sublote1 = await this.subloteRepository.findOne({
+      where: { id_sublote: 1 },
+    });
 
     if (sublote1) {
       const data = [
@@ -22,7 +24,7 @@ export class SensorSeeder {
           tipo_sensor: 'Humedad del Suelo',
           valor_minimo: 20,
           valor_maximo: 60,
-          valor_actual: 45,  
+          valor_actual: 45,
           estado: 'Activo',
           id_sublote: sublote1,
         },
@@ -30,16 +32,21 @@ export class SensorSeeder {
           tipo_sensor: 'Temperatura Ambiente',
           valor_minimo: 18,
           valor_maximo: 30,
-          valor_actual: 25, 
+          valor_actual: 25,
           estado: 'Activo',
           id_sublote: sublote1,
         },
       ];
 
       for (const item of data) {
-        const exists = await this.sensorRepository.createQueryBuilder("sensor")
-          .where("sensor.tipo_sensor = :tipo_sensor", { tipo_sensor: item.tipo_sensor })
-          .andWhere("sensor.id_sublote = :subloteId", { subloteId: item.id_sublote.id_sublote })
+        const exists = await this.sensorRepository
+          .createQueryBuilder('sensor')
+          .where('sensor.tipo_sensor = :tipo_sensor', {
+            tipo_sensor: item.tipo_sensor,
+          })
+          .andWhere('sensor.id_sublote = :subloteId', {
+            subloteId: item.id_sublote.id_sublote,
+          })
           .getOne();
 
         if (!exists) {

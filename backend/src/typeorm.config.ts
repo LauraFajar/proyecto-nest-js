@@ -8,5 +8,5 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   password: '123789',
   database: 'api_proyecto',
   autoLoadEntities: true,
-  synchronize: false, 
+  synchronize: false,
 };

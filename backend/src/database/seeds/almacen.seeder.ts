@@ -23,7 +23,9 @@ export class AlmacenSeeder {
     ];
 
     for (const item of data) {
-      const exists = await this.almacenRepository.findOne({ where: { nombre_almacen: item.nombre_almacen } });
+      const exists = await this.almacenRepository.findOne({
+        where: { nombre_almacen: item.nombre_almacen },
+      });
       if (!exists) {
         await this.almacenRepository.save(this.almacenRepository.create(item));
       }

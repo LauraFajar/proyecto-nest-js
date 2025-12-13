@@ -21,7 +21,9 @@ export class MovimientosService {
   async create(createMovimientoDto: CreateMovimientoDto) {
     const { id_insumo, ...rest } = createMovimientoDto;
 
-    const insumo = await this.insumosRepository.findOne({ where: { id_insumo } });
+    const insumo = await this.insumosRepository.findOne({
+      where: { id_insumo },
+    });
     if (!insumo) {
       throw new NotFoundException(`Insumo con ID ${id_insumo} no encontrado`);
     }
@@ -34,7 +36,10 @@ export class MovimientosService {
     const guardado = await this.movimientosRepository.save(nuevoMovimiento);
 
     // Si es una salida y viene id_cultivo, registrar también una salida financiera
-    if (String(rest.tipo_movimiento).toLowerCase() === 'salida' && (rest as any)?.id_cultivo) {
+    if (
+      String(rest.tipo_movimiento).toLowerCase() === 'salida' &&
+      (rest as any)?.id_cultivo
+    ) {
       try {
         const salida = this.salidasRepository.create({
           nombre: insumo.nombre_insumo,
@@ -56,7 +61,11 @@ export class MovimientosService {
 
   async findAll() {
     return await this.movimientosRepository.find({
-      relations: ['id_insumo', 'id_insumo.id_categoria', 'id_insumo.id_almacen'],
+      relations: [
+        'id_insumo',
+        'id_insumo.id_categoria',
+        'id_insumo.id_almacen',
+      ],
     });
   }
 
@@ -67,13 +76,18 @@ export class MovimientosService {
     });
   }
 
-  async update(id_movimiento: number, updateMovimientoDto: UpdateMovimientoDto) {
+  async update(
+    id_movimiento: number,
+    updateMovimientoDto: UpdateMovimientoDto,
+  ) {
     const { id_insumo, ...rest } = updateMovimientoDto as any;
 
     const updateData: Partial<Movimiento> = { ...rest } as Partial<Movimiento>;
 
     if (id_insumo !== undefined) {
-      const insumo = await this.insumosRepository.findOne({ where: { id_insumo } });
+      const insumo = await this.insumosRepository.findOne({
+        where: { id_insumo },
+      });
       if (!insumo) {
         throw new NotFoundException(`Insumo con ID ${id_insumo} no encontrado`);
       }

@@ -30,12 +30,19 @@ export class InventarioSeeder {
     ];
 
     for (const item of data) {
-      const insumo = await this.insumoRepository.findOne({ where: { id_insumo: item.id_insumo } });
+      const insumo = await this.insumoRepository.findOne({
+        where: { id_insumo: item.id_insumo },
+      });
       if (insumo) {
-        const exists = await this.inventarioRepository.findOne({ where: { insumo: { id_insumo: insumo.id_insumo } } });
+        const exists = await this.inventarioRepository.findOne({
+          where: { insumo: { id_insumo: insumo.id_insumo } },
+        });
         if (!exists) {
           const { id_insumo, ...rest } = item;
-          const newInventario = this.inventarioRepository.create({ ...rest, insumo });
+          const newInventario = this.inventarioRepository.create({
+            ...rest,
+            insumo,
+          });
           await this.inventarioRepository.save(newInventario);
         }
       }

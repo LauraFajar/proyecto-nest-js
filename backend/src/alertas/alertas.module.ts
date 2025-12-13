@@ -8,6 +8,7 @@ import { SensoresModule } from '../sensores/sensores.module';
 import { InventarioModule } from '../inventario/inventario.module';
 import { ActividadesModule } from '../actividades/actividades.module';
 import { AlertasGateway } from './alertas.gateway';
+import { UsuariosModule } from '../usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AlertasGateway } from './alertas.gateway';
     forwardRef(() => SensoresModule),
     forwardRef(() => InventarioModule),
     ActividadesModule,
+    UsuariosModule,
   ],
   controllers: [AlertasController],
   providers: [AlertasService, AlertSchedulerService, AlertasGateway],

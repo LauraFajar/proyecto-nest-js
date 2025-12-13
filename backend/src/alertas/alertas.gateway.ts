@@ -1,9 +1,9 @@
-import { 
-  WebSocketGateway, 
-  WebSocketServer, 
-  SubscribeMessage, 
-  OnGatewayConnection, 
-  OnGatewayDisconnect 
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
@@ -13,10 +13,12 @@ import { Logger } from '@nestjs/common';
   path: '/socket-alerts',
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true
-  }
+    credentials: true,
+  },
 })
-export class AlertasGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class AlertasGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer() server: Server;
   private logger = new Logger('AlertasGateway');
 

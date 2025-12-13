@@ -26,13 +26,23 @@ export class SalidaSeeder {
   ) {}
 
   async seed() {
-    const categoria = await this.categoriaRepository.findOne({ where: { id_categoria: 2 } });
-    const almacen = await this.almacenRepository.findOne({ where: { id_almacen: 1 } });
-    const insumo = await this.insumoRepository.findOne({ where: { id_insumo: 1 } });
-    const cultivoPlatano = await this.cultivoRepository.findOne({ where: { id_cultivo: 1 } });
+    const categoria = await this.categoriaRepository.findOne({
+      where: { id_categoria: 2 },
+    });
+    const almacen = await this.almacenRepository.findOne({
+      where: { id_almacen: 1 },
+    });
+    const insumo = await this.insumoRepository.findOne({
+      where: { id_insumo: 1 },
+    });
+    const cultivoPlatano = await this.cultivoRepository.findOne({
+      where: { id_cultivo: 1 },
+    });
 
     if (categoria && almacen && insumo) {
-      const inventarioItem = await this.inventarioRepository.findOne({ where: { id_insumo: insumo.id_insumo } });
+      const inventarioItem = await this.inventarioRepository.findOne({
+        where: { id_insumo: insumo.id_insumo },
+      });
       const unidad = inventarioItem?.unidad_medida || 'unidad';
       const data = [
         {
@@ -85,7 +95,7 @@ export class SalidaSeeder {
               item.id_cultivo ?? null,
               categoria.id_categoria,
               almacen.id_almacen,
-            ]
+            ],
           );
         }
       }

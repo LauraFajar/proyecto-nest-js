@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Insumo } from '../../insumos/entities/insumo.entity';
 
 @Entity('inventario')
@@ -13,10 +19,10 @@ export class Inventario {
   unidad_medida: string;
 
   @Column({ type: 'date', nullable: true })
-  fecha: string
+  fecha: string;
   @Column({ name: 'id_insumo', nullable: true })
   id_insumo: number;
-  
+
   @OneToOne(() => Insumo, { eager: true })
   @JoinColumn({ name: 'id_insumo' })
   insumo: Insumo;

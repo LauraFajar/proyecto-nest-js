@@ -1,4 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards,HttpCode,HttpStatus, Query} from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Query,
+} from '@nestjs/common';
 import { IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { AuthGuard } from '@nestjs/passport';
@@ -42,8 +55,8 @@ export class CultivosController {
 
   @Patch(':id')
   update(
-    @Param('id', ParseIntPipe) id: number, 
-    @Body() updateCultivoDto: UpdateCultivoDto
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateCultivoDto: UpdateCultivoDto,
   ) {
     return this.cultivosService.update(id, updateCultivoDto);
   }

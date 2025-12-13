@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Categoria } from '../../categorias/entities/categoria.entity';
 import { Almacen } from '../../almacenes/entities/almacen.entity';
 import { Insumo } from '../../insumos/entities/insumo.entity';
@@ -35,7 +41,12 @@ export class Salida {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   valor_unidad: number;
 
-  @Column({ name: 'unidad_medida', type: 'varchar', length: 64, nullable: true })
+  @Column({
+    name: 'unidad_medida',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+  })
   unidad_medida?: string;
 
   @Column({ default: 'completado' })

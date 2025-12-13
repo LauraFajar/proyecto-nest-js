@@ -7,11 +7,7 @@ import { LotesModule } from '../lotes/lotes.module';
 import { InsumosModule } from '../insumos/insumos.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Cultivo]),
-    LotesModule,
-    InsumosModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Cultivo]), LotesModule, InsumosModule],
   controllers: [CultivosController],
   providers: [CultivosService],
   exports: [CultivosService],

@@ -22,7 +22,9 @@ export class FotoActividad {
   @CreateDateColumn({ type: 'timestamp', name: 'fecha_carga' })
   fecha_carga: Date;
 
-  @ManyToOne(() => Actividad, (actividad) => actividad.fotos, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Actividad, (actividad) => actividad.fotos, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'id_actividad' })
   actividad: Actividad;
 }

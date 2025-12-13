@@ -26,10 +26,12 @@ export class SublotesService {
     const sublote = this.subloteRepository.create({
       ...subloteData,
       id_lote: lote,
-      coordenadas: coordenadas ? {
-        type: 'Polygon',
-        coordinates: coordenadas,
-      } : undefined,
+      coordenadas: coordenadas
+        ? {
+            type: 'Polygon',
+            coordinates: coordenadas,
+          }
+        : undefined,
     });
 
     return this.subloteRepository.save(sublote);
@@ -37,14 +39,14 @@ export class SublotesService {
 
   async findAll() {
     return this.subloteRepository.find({
-      relations: ['id_lote']
+      relations: ['id_lote'],
     });
   }
 
   async findOne(id_sublote: number) {
     const sublote = await this.subloteRepository.findOne({
       where: { id_sublote },
-      relations: ['id_lote']
+      relations: ['id_lote'],
     });
     if (!sublote) {
       throw new NotFoundException(`Sublote con ID ${id_sublote} no encontrado`);
@@ -52,7 +54,10 @@ export class SublotesService {
     return sublote;
   }
 
-  async update(id_sublote: number, updateSubloteDto: UpdateSubloteDto): Promise<Sublote> {
+  async update(
+    id_sublote: number,
+    updateSubloteDto: UpdateSubloteDto,
+  ): Promise<Sublote> {
     const sublote = await this.findOne(id_sublote);
     if (!sublote) {
       throw new NotFoundException(`Sublote con ID ${id_sublote} no encontrado`);
@@ -63,15 +68,25 @@ export class SublotesService {
     Object.assign(sublote, subloteData);
 
     if ('coordenadas' in updateSubloteDto) {
-      sublote.coordenadas = coordenadas ? {
-        type: 'Polygon', coordinates: coordenadas 
-      } : null;
+      sublote.coordenadas = coordenadas
+        ? {
+            type: 'Polygon',
+            coordinates: coordenadas,
+          }
+        : null;
     }
 
-    if (updateSubloteDto.id_lote && sublote.id_lote.id_lote !== updateSubloteDto.id_lote) {
-      const nuevoLote = await this.loteRepository.findOneBy({ id_lote: updateSubloteDto.id_lote });
+    if (
+      updateSubloteDto.id_lote &&
+      sublote.id_lote.id_lote !== updateSubloteDto.id_lote
+    ) {
+      const nuevoLote = await this.loteRepository.findOneBy({
+        id_lote: updateSubloteDto.id_lote,
+      });
       if (!nuevoLote) {
-        throw new NotFoundException(`El nuevo Lote con ID ${updateSubloteDto.id_lote} no fue encontrado`);
+        throw new NotFoundException(
+          `El nuevo Lote con ID ${updateSubloteDto.id_lote} no fue encontrado`,
+        );
       }
       sublote.id_lote = nuevoLote;
     }
@@ -87,8 +102,12 @@ export class SublotesService {
   async getEstadisticas(id_sublote: number) {
     const sublote = await this.findOne(id_sublote);
     const sensores = sublote.sensores || [];
-    const sensoresActivos = sensores.filter(s => s.estado === 'Activo').length;
-    const sensoresInactivos = sensores.filter(s => s.estado === 'Inactivo').length;
+    const sensoresActivos = sensores.filter(
+      (s) => s.estado === 'Activo',
+    ).length;
+    const sensoresInactivos = sensores.filter(
+      (s) => s.estado === 'Inactivo',
+    ).length;
 
     return {
       id_sublote: sublote.id_sublote,
@@ -98,9 +117,11 @@ export class SublotesService {
       total_sensores: sensores.length,
       sensores_activos: sensoresActivos,
       sensores_inactivos: sensoresInactivos,
-      tipos_sensores: [...new Set(sensores.map(s => s.tipo_sensor))],
-      ultimo_registro: sensores.length > 0 ?
-        Math.max(...sensores.map(s => s.created_at?.getTime() || 0)) : null
+      tipos_sensores: [...new Set(sensores.map((s) => s.tipo_sensor))],
+      ultimo_registro:
+        sensores.length > 0
+          ? Math.max(...sensores.map((s) => s.created_at?.getTime() || 0))
+          : null,
     };
   }
 
@@ -111,7 +132,13 @@ export class SublotesService {
   async findAllWithGeoData(): Promise<Sublote[]> {
     return this.subloteRepository.find({
       relations: ['id_lote'],
-      select: ['id_sublote', 'descripcion', 'ubicacion', 'coordenadas', 'id_lote'],
+      select: [
+        'id_sublote',
+        'descripcion',
+        'ubicacion',
+        'coordenadas',
+        'id_lote',
+      ],
     });
   }
 }

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { TieneService } from './tiene.service';
 import { CreateTieneDto } from './dto/create-tiene.dto';
 import { UpdateTieneDto } from './dto/update-tiene.dto';
