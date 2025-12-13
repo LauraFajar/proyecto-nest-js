@@ -97,18 +97,18 @@ SOCKET_IO_NAMESPACE=/iot
 
 ### Pasos
 
-1.  **Clonar el repositorio (si aún no lo has hecho):**
+1.  **Clonar el repositorio y acceder a la carpeta del backend:**
     ```bash
     git clone https://github.com/LauraFajar/proyecto-nest-js.git
-    cd proyecto-nest-js
+    cd proyecto-nest-js/backend
     ```
 
-2.  **Instalar dependencias:**
+2.  **Instalar dependencias del backend:**
     ```bash
     npm install
     ```
 
-3.  **Ejecutar migraciones de la base de datos (si es necesario):**
+3.  **Ejecutar migraciones de la base de datos:**
     *Nota: Asegúrate de que TypeORM CLI esté configurado en `package.json`.*
     ```bash
     npm run typeorm:run-migrations
