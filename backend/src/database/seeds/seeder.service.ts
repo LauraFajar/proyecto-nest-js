@@ -9,7 +9,6 @@ import { InventarioSeeder } from '../seeds/inventario.seeder';
 import { LoteSeeder } from '../seeds/lote.seeder';
 import { RealizaSeeder } from '../seeds/realiza.seeder';
 import { RolSeeder } from '../seeds/rol.seeder';
-import { SensorSeeder } from '../seeds/sensor.seeder';
 import { SubloteSeeder } from '../seeds/sublote.seeder';
 import { TieneSeeder } from '../seeds/tiene.seeder';
 import { TipoRolSeeder } from '../seeds/tiporol.seeder';
@@ -34,7 +33,6 @@ export class SeederService {
     private readonly loteSeeder: LoteSeeder,
     private readonly realizaSeeder: RealizaSeeder,
     private readonly rolSeeder: RolSeeder,
-    private readonly sensorSeeder: SensorSeeder,
     private readonly subloteSeeder: SubloteSeeder,
     private readonly tieneSeeder: TieneSeeder,
     private readonly tipoRolSeeder: TipoRolSeeder,
@@ -110,15 +108,7 @@ export class SeederService {
     console.log('Sembrando permisos (y asignaciones a usuarios)...');
     await this.permisoSeeder.seed();
 
-    console.log('Sembrando sensores (depende de Sublote)...');
-    try {
-      await this.sensorSeeder.seed();
-    } catch (e) {
-      console.warn(
-        'SensorSeeder falló, continuando sin sensores:',
-        e?.message || e,
-      );
-    }
+    // Los sensores se manejan directamente desde el dispositivo IoT
 
     console.log('Sembrando inventario (depende de Insumo)...');
     await this.inventarioSeeder.seed();

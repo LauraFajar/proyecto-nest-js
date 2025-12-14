@@ -14,7 +14,7 @@ export class PermisoSeeder {
   ) {}
 
   async seed() {
-    const modulos = [
+    const modulosBasicos = [
       'actividades',
       'almacenes',
       'categorias',
@@ -32,37 +32,33 @@ export class PermisoSeeder {
       'usuarios'
     ];
 
-    const acciones = [
+    const modulosConExportacion = [
+      'finanzas',
+      'reportes-inventario',
+      'iot'
+    ];
+
+    const accionesBasicas = [
       { accion: 'create', nombre: 'Crear', descripcion: 'Permite crear nuevos registros' },
       { accion: 'read', nombre: 'Ver', descripcion: 'Permite ver los registros' },
       { accion: 'update', nombre: 'Editar', descripcion: 'Permite editar registros existentes' },
-      { accion: 'delete', nombre: 'Eliminar', descripcion: 'Permite eliminar registros' },
-      { accion: 'export', nombre: 'Exportar', descripcion: 'Permite exportar datos' }
+      { accion: 'delete', nombre: 'Eliminar', descripcion: 'Permite eliminar registros' }
     ];
 
-    for (const modulo of modulos) {
-      for (const accion of acciones) {
-        const clave = `${modulo}:${accion.accion}`;
-        const nombre_permiso = `${accion.nombre} ${modulo}`;
-        
-        let permiso = await this.permisoRepository.findOne({
-          where: { clave },
-        });
+    const accionExportacion = { 
+      accion: 'export', 
+      nombre: 'Exportar', 
+      descripcion: 'Permite exportar datos' 
+    };
 
-        if (!permiso) {
-          permiso = await this.permisoRepository.save(
-            this.permisoRepository.create({
-              clave,
-              recurso: modulo,
-              accion: accion.accion,
-              nombre_permiso,
-              descripcion: accion.descripcion,
-              activo: true,
-            }),
-          );
-          console.log(`Permiso creado: ${clave}`);
-        }
+    for (const modulo of [...modulosBasicos, ...modulosConExportacion]) {
+      for (const accion of accionesBasicas) {
+        await this.crearPermisoSiNoExiste(modulo, accion);
       }
+    }
+
+    for (const modulo of modulosConExportacion) {
+      await this.crearPermisoSiNoExiste(modulo, accionExportacion);
     }
 
     // Asignar todos los permisos al usuario 'Admin Temporal'
@@ -79,6 +75,32 @@ export class PermisoSeeder {
       console.log('Todos los permisos asignados al usuario Admin Temporal');
     } else {
       console.warn('No se encontró el usuario "Admin Temporal". Asegúrese de que exista en la base de datos.');
+    }
+  }
+
+  private async crearPermisoSiNoExiste(
+    modulo: string, 
+    accion: { accion: string; nombre: string; descripcion: string }
+  ) {
+    const clave = `${modulo}:${accion.accion}`;
+    const nombre_permiso = `${accion.nombre} ${modulo}`;
+    
+    const permisoExistente = await this.permisoRepository.findOne({
+      where: { clave },
+    });
+
+    if (!permisoExistente) {
+      const permiso = this.permisoRepository.create({
+        clave,
+        recurso: modulo,
+        accion: accion.accion,
+        nombre_permiso,
+        descripcion: accion.descripcion,
+        activo: true,
+      });
+      
+      await this.permisoRepository.save(permiso);
+      console.log(`Permiso creado: ${clave}`);
     }
   }
 }

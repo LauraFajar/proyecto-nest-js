@@ -17,13 +17,14 @@ export class ActividadSeeder {
   ) {}
 
   async seed() {
-    const usuarios = await this.usuarioRepository.find();
-    if (usuarios.length === 0) {
-      console.log('No se encontraron usuarios, saltando el seeder de actividades.');
-      return;
-    }
+    try {
+      const usuarios = await this.usuarioRepository.find();
+      if (usuarios.length === 0) {
+        console.log('No se encontraron usuarios, saltando el seeder de actividades.');
+        return;
+      }
 
-    const data = [
+      const data = [
       {
         tipo_actividad: 'Riego',
         fecha: new Date('2025-03-11'),
@@ -74,43 +75,58 @@ export class ActividadSeeder {
     let usuarioIndex = 0; 
 
     for (const item of data) {
+      const { id_cultivo, ...rest } = item;
       const cultivo = await this.cultivoRepository.findOne({
-        where: { id_cultivo: item.id_cultivo },
+        where: { id_cultivo },
       });
-      if (cultivo) {
-        const exists = await this.actividadRepository.findOne({
-          where: {
-            tipo_actividad: item.tipo_actividad,
-            fecha: item.fecha,
-            cultivo: { id_cultivo: cultivo.id_cultivo },
-          },
-        });
-        if (!exists) {
-          let usuarioAsignado: Usuario | undefined;
-          if (userAssignments[item.tipo_actividad]) {
-            usuarioAsignado = userAssignments[item.tipo_actividad];
-          } else {
-            usuarioAsignado = usuarios[usuarioIndex % usuarios.length];
-            usuarioIndex++; 
-          }
-
-          if (!usuarioAsignado) {
-              console.warn(`No se pudo asignar un usuario para la actividad: ${item.tipo_actividad}. Saltando.`);
-              continue; 
-          }
-
-          const { id_cultivo, ...rest } = item;
-          const actividadToCreate = {
-            ...rest,
-            cultivo,
-            responsable: usuarioAsignado.nombres,
-            responsableUsuario: usuarioAsignado,
-          };
-          await this.actividadRepository.save(
-            this.actividadRepository.create(actividadToCreate),
-          );
-        }
+      
+      if (!cultivo) {
+        console.warn(`No se encontró el cultivo con ID ${id_cultivo} para la actividad ${item.tipo_actividad}`);
+        continue;
       }
+
+      const exists = await this.actividadRepository.findOne({
+        where: {
+          tipo_actividad: item.tipo_actividad,
+          fecha: item.fecha,
+          cultivo: { id_cultivo: cultivo.id_cultivo },
+          detalles: item.detalles
+        },
+      });
+
+      if (exists) {
+        console.log(`Actividad ya existe: ${item.tipo_actividad} para cultivo ID ${cultivo.id_cultivo} el ${item.fecha.toISOString().split('T')[0]}`);
+        continue;
+      }
+
+      let usuarioAsignado = userAssignments[item.tipo_actividad] || 
+                          usuarios[usuarioIndex % usuarios.length];
+      
+      if (!userAssignments[item.tipo_actividad]) {
+        usuarioIndex++;
+      }
+
+      if (!usuarioAsignado) {
+        console.warn(`No se pudo asignar un usuario para la actividad: ${item.tipo_actividad}`);
+        continue;
+      }
+
+      const actividadToCreate = this.actividadRepository.create({
+        ...rest,
+        cultivo,
+        responsable: usuarioAsignado.nombres,
+        responsableUsuario: usuarioAsignado,
+      });
+
+      try {
+        await this.actividadRepository.save(actividadToCreate);
+        console.log(`Creada actividad: ${item.tipo_actividad} para cultivo ID ${cultivo.id_cultivo} el ${item.fecha.toISOString().split('T')[0]}`);
+      } catch (error) {
+        console.error(`Error al crear actividad ${item.tipo_actividad}:`, error.message);
+      }
+    }
+    } catch (error) {
+      console.error('Error en ActividadSeeder:', error.message);
     }
   }
 }

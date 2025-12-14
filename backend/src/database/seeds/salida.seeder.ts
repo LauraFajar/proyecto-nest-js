@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Salida } from '../../salidas/entities/salida.entity';
 import { Categoria } from '../../categorias/entities/categoria.entity';
@@ -10,6 +10,8 @@ import { Inventario } from '../../inventario/entities/inventario.entity';
 
 @Injectable()
 export class SalidaSeeder {
+  private readonly logger = new Logger(SalidaSeeder.name);
+
   constructor(
     @InjectRepository(Salida)
     private readonly salidaRepository: Repository<Salida>,
@@ -26,79 +28,83 @@ export class SalidaSeeder {
   ) {}
 
   async seed() {
-    const categoria = await this.categoriaRepository.findOne({
-      where: { id_categoria: 2 },
-    });
-    const almacen = await this.almacenRepository.findOne({
-      where: { id_almacen: 1 },
-    });
-    const insumo = await this.insumoRepository.findOne({
-      where: { id_insumo: 1 },
-    });
-    const cultivoPlatano = await this.cultivoRepository.findOne({
-      where: { id_cultivo: 1 },
-    });
+    try {
+      this.logger.log('Starting Salida seeder...');
+      
+      const [categoria, almacen, insumo, cultivoPlatano] = await Promise.all([
+        this.categoriaRepository.findOne({ where: { id_categoria: 2 } }),
+        this.almacenRepository.findOne({ where: { id_almacen: 1 } }),
+        this.insumoRepository.findOne({ where: { id_insumo: 1 } }),
+        this.cultivoRepository.findOne({ where: { id_cultivo: 1 } }),
+      ]);
 
-    if (categoria && almacen && insumo) {
+      if (!categoria || !almacen || !insumo) {
+        this.logger.warn('Required entities not found. Skipping Salida seeder.');
+        if (!categoria) this.logger.warn('Categoria with id 2 not found');
+        if (!almacen) this.logger.warn('Almacen with id 1 not found');
+        if (!insumo) this.logger.warn('Insumo with id 1 not found');
+        return;
+      }
+
       const inventarioItem = await this.inventarioRepository.findOne({
-        where: { id_insumo: insumo.id_insumo },
+        where: { insumo: { id_insumo: insumo.id_insumo } },
       });
+      
       const unidad = inventarioItem?.unidad_medida || 'unidad';
-      const data = [
+      
+      const salidasData = [
         {
+          nombre: insumo.nombre_insumo || 'Salida',
+          codigo: insumo.codigo || 'SAL-001',
           cantidad: 30,
-          id_categoria: categoria.id_categoria,
-          id_almacen: almacen.id_almacen,
           observacion: 'Fertilizante para plátano',
           fecha_salida: '2024-03-12',
           valor_unidad: 28000,
-          estado: 'completado',
-          id_insumo: insumo.id_insumo,
-          id_cultivo: cultivoPlatano?.id_cultivo,
           unidad_medida: unidad,
+          estado: 'completado',
+          insumo: insumo,
+          cultivo: cultivoPlatano || null,
+          categoria: categoria,
+          almacen: almacen,
         },
         {
+          nombre: insumo.nombre_insumo || 'Salida',
+          codigo: insumo.codigo || 'SAL-002',
           cantidad: 15,
-          id_categoria: categoria.id_categoria,
-          id_almacen: almacen.id_almacen,
           observacion: 'Herbicida en plátano',
           fecha_salida: '2024-04-02',
           valor_unidad: 35000,
-          estado: 'completado',
-          id_insumo: insumo.id_insumo,
-          id_cultivo: cultivoPlatano?.id_cultivo,
           unidad_medida: unidad,
+          estado: 'completado',
+          insumo: insumo,
+          cultivo: cultivoPlatano || null,
+          categoria: categoria,
+          almacen: almacen,
         },
       ];
 
-      for (const item of data) {
-        const exists = await this.salidaRepository
-          .createQueryBuilder('s')
-          .select('s.id_salida')
-          .where('s.observacion = :obs', { obs: item.observacion })
-          .andWhere('s.fecha_salida = :fecha', { fecha: item.fecha_salida })
-          .getOne();
+      for (const item of salidasData) {
+        const exists = await this.salidaRepository.findOne({
+          where: {
+            observacion: item.observacion,
+            fecha_salida: item.fecha_salida,
+            insumo: { id_insumo: insumo.id_insumo },
+          },
+        });
+
         if (!exists) {
-          await this.salidaRepository.query(
-            `INSERT INTO salidas (nombre, codigo, cantidad, observacion, fecha_salida, valor_unidad, unidad_medida, estado, id_insumo, id_cultivo, id_categorias, id_almacenes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-            [
-              insumo.nombre_insumo || 'Salida',
-              insumo.codigo || 'SAL-001',
-              item.cantidad,
-              item.observacion,
-              item.fecha_salida,
-              item.valor_unidad ?? null,
-              item.unidad_medida ?? unidad,
-              item.estado ?? 'completado',
-              item.id_insumo ?? insumo.id_insumo,
-              item.id_cultivo ?? null,
-              categoria.id_categoria,
-              almacen.id_almacen,
-            ],
-          );
+          const salidaToCreate = this.salidaRepository.create(item);
+          await this.salidaRepository.save(salidaToCreate);
+          this.logger.log(`Created salida: ${item.observacion} on ${item.fecha_salida}`);
+        } else {
+          this.logger.log(`Salida already exists: ${item.observacion} on ${item.fecha_salida}`);
         }
       }
+      
+      this.logger.log('Salida seeder completed successfully');
+    } catch (error) {
+      this.logger.error(`Error in Salida seeder: ${error.message}`, error.stack);
+      throw error;
     }
   }
 }

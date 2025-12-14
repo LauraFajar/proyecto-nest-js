@@ -32,7 +32,6 @@ import { InventarioSeeder } from '../seeds/inventario.seeder';
 import { LoteSeeder } from '../seeds/lote.seeder';
 import { RealizaSeeder } from '../seeds/realiza.seeder';
 import { RolSeeder } from '../seeds/rol.seeder';
-import { SensorSeeder } from '../seeds/sensor.seeder';
 import { SubloteSeeder } from '../seeds/sublote.seeder';
 import { TieneSeeder } from '../seeds/tiene.seeder';
 import { TipoRolSeeder } from '../seeds/tiporol.seeder';
@@ -82,7 +81,6 @@ import { MovimientoSeeder } from '../seeds/movimiento.seeder';
     LoteSeeder,
     RealizaSeeder,
     RolSeeder,
-    SensorSeeder,
     SubloteSeeder,
     TieneSeeder,
     TipoRolSeeder,
