@@ -81,18 +81,16 @@ export class CultivosService {
   }
 
   async update(id: number, updateCultivoDto: UpdateCultivoDto) {
-    const cultivo = await this.cultivoRepository.findOneBy({ id_cultivo: id });
-
+    const cultivo = await this.cultivoRepository.findOne({ where: { id_cultivo: id } });
     if (!cultivo) {
       throw new NotFoundException(`Cultivo con ID ${id} no encontrado`);
     }
 
-    if (updateCultivoDto.estado_cultivo !== undefined) {
-      cultivo.estado_cultivo = updateCultivoDto.estado_cultivo;
+    if (updateCultivoDto.estado_cultivo === 'cosechado' && !cultivo.fecha_cosecha_real) {
+      updateCultivoDto.fecha_cosecha_real = new Date().toISOString().split('T')[0];
     }
-
-    if (updateCultivoDto.observaciones !== undefined) {
-      cultivo.observaciones = updateCultivoDto.observaciones;
+    else if (updateCultivoDto.estado_cultivo && updateCultivoDto.estado_cultivo !== 'cosechado' && cultivo.fecha_cosecha_real) {
+      updateCultivoDto.fecha_cosecha_real = undefined;
     }
 
     if (updateCultivoDto.id_lote !== undefined) {
@@ -141,6 +139,8 @@ export class CultivosService {
       cultivo.tipo_cultivo = updateCultivoDto.tipo_cultivo;
     }
 
+    Object.assign(cultivo, updateCultivoDto);
+    
     await this.cultivoRepository.save(cultivo);
     return this.findOne(id);
   }
