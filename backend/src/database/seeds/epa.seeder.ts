@@ -17,20 +17,26 @@ export class EpaSeeder {
         descripcion:
           'daña el cultivo y puede transmitirse por las larvas que se alimentan de las raíces',
         tipo: 'plaga',
-        estado: 'Activo',
+        estado: 'activo',
       },
       {
         nombre_epa: 'Moniliasis',
         descripcion:
           'causada por el hongo Moniliophthora roreri al cultivo de cacao',
         tipo: 'enfermedad',
-        estado: 'Activo',
+        estado: 'activo',
       },
       {
         nombre_epa: 'Pulgones',
         descripcion: 'plaga que succiona la savia del cacao',
         tipo: 'plaga',
-        estado: 'Inactivo',
+        estado: 'inactivo',
+      },
+      {
+        nombre_epa: 'Maleza de hoja ancha',
+        descripcion: 'Compiten con el cultivo por nutrientes, agua y luz solar.',
+        tipo: 'arvense',
+        estado: 'activo',
       },
     ];
 

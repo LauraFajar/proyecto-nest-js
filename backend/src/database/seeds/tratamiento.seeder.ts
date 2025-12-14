@@ -33,6 +33,20 @@ export class TratamientoSeeder {
           id_epa: epa2,
           tipo: 'Quimico' as 'Biologico' | 'Quimico',
         },
+        {
+          descripcion: 'Control biológico con nematodos entomopatógenos',
+          dosis: '5 millones/ha',
+          frecuencia: 'Mensual',
+          id_epa: epa1, 
+          tipo: 'Biologico' as 'Biologico' | 'Quimico',
+        },
+        {
+          descripcion: 'Aplicación de insecticida',
+          dosis: '1 L/ha',
+          frecuencia: 'Cada 30 días',
+          id_epa: epa1,
+          tipo: 'Quimico' as 'Biologico' | 'Quimico',
+        },
       ];
 
       for (const item of data) {

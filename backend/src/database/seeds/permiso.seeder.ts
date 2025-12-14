@@ -14,37 +14,71 @@ export class PermisoSeeder {
   ) {}
 
   async seed() {
-    const permisoData = {
-      clave: 'finanzas:export',
-      recurso: 'finanzas',
-      accion: 'export',
-      nombre_permiso: 'Exportar finanzas',
-      descripcion: 'Permite exportar el resumen financiero en Excel y PDF',
-      activo: true,
-    };
+    const modulos = [
+      'actividades',
+      'almacenes',
+      'categorias',
+      'cultivos',
+      'epa',
+      'tratamientos',
+      'ingresos',
+      'insumos',
+      'inventario',
+      'lotes',
+      'movimientos',
+      'salidas',
+      'sensores',
+      'sublotes',
+      'usuarios'
+    ];
 
-    let permiso = await this.permisoRepository.findOne({
-      where: { clave: permisoData.clave },
-    });
-    if (!permiso) {
-      permiso = await this.permisoRepository.save(
-        this.permisoRepository.create(permisoData),
-      );
+    const acciones = [
+      { accion: 'create', nombre: 'Crear', descripcion: 'Permite crear nuevos registros' },
+      { accion: 'read', nombre: 'Ver', descripcion: 'Permite ver los registros' },
+      { accion: 'update', nombre: 'Editar', descripcion: 'Permite editar registros existentes' },
+      { accion: 'delete', nombre: 'Eliminar', descripcion: 'Permite eliminar registros' },
+      { accion: 'export', nombre: 'Exportar', descripcion: 'Permite exportar datos' }
+    ];
+
+    for (const modulo of modulos) {
+      for (const accion of acciones) {
+        const clave = `${modulo}:${accion.accion}`;
+        const nombre_permiso = `${accion.nombre} ${modulo}`;
+        
+        let permiso = await this.permisoRepository.findOne({
+          where: { clave },
+        });
+
+        if (!permiso) {
+          permiso = await this.permisoRepository.save(
+            this.permisoRepository.create({
+              clave,
+              recurso: modulo,
+              accion: accion.accion,
+              nombre_permiso,
+              descripcion: accion.descripcion,
+              activo: true,
+            }),
+          );
+          console.log(`Permiso creado: ${clave}`);
+        }
+      }
     }
 
-    const admin = await this.usuarioRepository.findOne({
-      where: { numero_documento: '999999' },
+    // Asignar todos los permisos al usuario 'Admin Temporal'
+    const adminTemporal = await this.usuarioRepository.findOne({
+      where: { nombres: 'Admin Temporal' },
       relations: ['permisos'],
     });
 
-    if (admin) {
-      const yaAsignado = (admin.permisos || []).some(
-        (p) => p.id_permiso === permiso.id_permiso,
-      );
-      if (!yaAsignado) {
-        admin.permisos = [...(admin.permisos || []), permiso];
-        await this.usuarioRepository.save(admin);
-      }
+    if (adminTemporal) {
+      const todosLosPermisos = await this.permisoRepository.find();
+      
+      adminTemporal.permisos = [...todosLosPermisos];
+      await this.usuarioRepository.save(adminTemporal);
+      console.log('Todos los permisos asignados al usuario Admin Temporal');
+    } else {
+      console.warn('No se encontró el usuario "Admin Temporal". Asegúrese de que exista en la base de datos.');
     }
   }
 }

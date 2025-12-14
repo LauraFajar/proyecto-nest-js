@@ -22,14 +22,14 @@ export class IngresoSeeder {
     });
     const data = [
       {
-        fecha_ingreso: '2024-03-10',
+        fecha_ingreso: '2025-03-10',
         monto: 1500000.0,
         descripcion: 'Venta de racimos de plátano',
         id_insumo: 1,
         id_cultivo: cultivoPlatano?.id_cultivo,
       },
       {
-        fecha_ingreso: '2024-04-05',
+        fecha_ingreso: '2025-04-05',
         monto: 900000.0,
         descripcion: 'Venta local plátano',
         id_insumo: 1,
