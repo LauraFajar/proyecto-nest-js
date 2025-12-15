@@ -602,4 +602,39 @@ export class SensoresController {
       });
     }
   }
+
+  @Post('arduino-data')
+  async procesarDatosArduino(@Body() datosArduino: {
+    temperatura: number;
+    humedad_aire: number;
+    humedad_suelo_adc: number;
+    bomba_estado?: string;
+    sistema?: string;
+  }) {
+    try {
+      // Procesar solo los datos de sensores relevantes
+      await this.sensoresService.procesarDatosArduino({
+        temperatura: datosArduino.temperatura,
+        humedad_aire: datosArduino.humedad_aire,
+        humedad_suelo_adc: datosArduino.humedad_suelo_adc
+      });
+
+      return {
+        success: true,
+        message: 'Datos de Arduino procesados correctamente',
+        datos_procesados: {
+          temperatura: datosArduino.temperatura,
+          humedad_aire: datosArduino.humedad_aire,
+          humedad_suelo_adc: datosArduino.humedad_suelo_adc
+        },
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Error procesando datos de Arduino',
+        error: error.message
+      };
+    }
+  }
 }

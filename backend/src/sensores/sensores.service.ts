@@ -270,4 +270,164 @@ export class SensoresService {
       .getRawMany();
     return rows.map((r: any) => r.mqtt_topic);
   }
+
+  async procesarDatosArduino(datosArduino: {
+    temperatura: number;
+    humedad_aire: number;
+    humedad_suelo_adc: number;
+  }): Promise<void> {
+    try {
+      const timestamp = new Date();
+      
+      // Procesar cada sensor del JSON
+      await Promise.all([
+        this.actualizarSensorPorTipo('temperatura', datosArduino.temperatura, timestamp),
+        this.actualizarSensorPorTipo('humedad_aire', datosArduino.humedad_aire, timestamp),
+        this.actualizarSensorPorTipo('humedad_suelo_adc', datosArduino.humedad_suelo_adc, timestamp)
+      ]);
+
+      this.logger.log(`Datos de Arduino procesados: temperatura=${datosArduino.temperatura}, humedad_aire=${datosArduino.humedad_aire}, humedad_suelo_adc=${datosArduino.humedad_suelo_adc}`);
+    } catch (error) {
+      this.logger.error('Error procesando datos del Arduino:', error);
+      throw error;
+    }
+  }
+
+  private async actualizarSensorPorTipo(tipoSensor: string, valor: number, timestamp: Date): Promise<void> {
+    // Validar rangos según el tipo de sensor
+    if (!this.validarRangoSensor(tipoSensor, valor)) {
+      this.logger.warn(`Valor fuera de rango para ${tipoSensor}: ${valor}`);
+      return;
+    }
+
+    // Buscar sensor existente por tipo
+    let sensor = await this.sensorRepository.findOne({
+      where: { tipo_sensor: tipoSensor }
+    });
+
+    // Si no existe, crearlo
+    if (!sensor) {
+      sensor = this.sensorRepository.create({
+        tipo_sensor: tipoSensor,
+        valor_actual: valor,
+        valor_minimo: valor,
+        valor_maximo: valor,
+        ultima_lectura: timestamp,
+        estado: 'activo',
+        historial_lecturas: [
+          {
+            valor,
+            timestamp,
+            unidad_medida: this.obtenerUnidadMedida(tipoSensor),
+            observaciones: 'Lectura Arduino'
+          }
+        ]
+      });
+      await this.sensorRepository.save(sensor);
+      
+      // Registrar lectura en tabla separada
+      await this.registrarLecturaPorTipo(sensor, valor, timestamp);
+      
+      this.logger.log(`Sensor ${tipoSensor} creado con valor inicial: ${valor}`);
+      return;
+    }
+
+    // Actualizar sensor existente
+    const historial = Array.isArray(sensor.historial_lecturas) ? sensor.historial_lecturas : [];
+    
+    // Agregar nueva lectura al historial
+    historial.push({
+      valor,
+      timestamp,
+      unidad_medida: this.obtenerUnidadMedida(tipoSensor),
+      observaciones: 'Lectura Arduino'
+    });
+
+    // Mantener límite de 100 registros
+    if (historial.length > 100) {
+      historial.shift();
+    }
+
+    // Actualizar valores en la base de datos
+    await this.sensorRepository.update(
+      { id_sensor: sensor.id_sensor },
+      {
+        valor_actual: valor as any,
+        ultima_lectura: timestamp,
+        valor_minimo: Math.min(sensor.valor_minimo || valor, valor),
+        valor_maximo: Math.max(sensor.valor_maximo || valor, valor),
+        historial_lecturas: historial as any,
+      }
+    );
+
+    // Registrar lectura en tabla separada
+    await this.registrarLecturaPorTipo(sensor, valor, timestamp);
+
+    this.logger.log(`Sensor ${tipoSensor} actualizado: ${valor}`);
+  }
+
+  private validarRangoSensor(tipoSensor: string, valor: number): boolean {
+    switch (tipoSensor) {
+      case 'temperatura':
+        return valor >= -50 && valor <= 100; // °C
+      case 'humedad_aire':
+        return valor >= 0 && valor <= 100; // %
+      case 'humedad_suelo_adc':
+        return valor >= 0 && valor <= 4095; // ADC
+      default:
+        return true; // Sin validación para tipos desconocidos
+    }
+  }
+
+  private obtenerUnidadMedida(tipoSensor: string): string {
+    switch (tipoSensor) {
+      case 'temperatura':
+        return '°C';
+      case 'humedad_aire':
+        return '%';
+      case 'humedad_suelo_adc':
+        return 'ADC';
+      default:
+        return 'un';
+    }
+  }
+
+  private async registrarLecturaPorTipo(sensor: Sensor, valor: number, fecha: Date): Promise<Lectura | null> {
+    try {
+      if (!this.lecturaRepository || !this.lecturaRepository.manager?.connection?.isConnected) {
+        this.logger.warn('Database not connected, skipping lecture save');
+        return null;
+      }
+
+      try {
+        this.lecturaRepository.metadata;
+      } catch (metadataError) {
+        this.logger.warn(
+          `Entity metadata not loaded for Lectura: ${metadataError.message}. Skipping save.`
+        );
+        return null;
+      }
+
+      const lectura = this.lecturaRepository.create({
+        sensor: sensor,
+        valor,
+        fecha: fecha,
+        unidad_medida: this.obtenerUnidadMedida(sensor.tipo_sensor),
+      });
+      return await this.lecturaRepository.save(lectura);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('No metadata for "Lectura" was found')
+      ) {
+        this.logger.warn(
+          `Entity "Lectura" not found in TypeORM metadata. This may indicate a configuration issue.`,
+          error,
+        );
+      } else {
+        this.logger.error(`Error saving lecture for sensor ${sensor.tipo_sensor}:`, error);
+      }
+      return null;
+    }
+  }
 }
