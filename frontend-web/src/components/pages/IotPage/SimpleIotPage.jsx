@@ -892,54 +892,68 @@ const SimpleIotPage = () => {
           mt: 2
         }}>
           {/* Estado de la Bomba */}
-          <Box sx={{ maxWidth: '600px' }}>
-            <Card sx={{ 
-              height: "185px",
-              borderRadius: "16px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              display: "flex",
-              flexDirection: "column"
-            }}>
-              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2, textAlign: 'center' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#4caf50', mb: 1 }}>
-                  Estado de la Bomba
+          <Card sx={{ 
+            height: "185px",
+            borderRadius: "16px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            display: "flex",
+            flexDirection: "column"
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2, textAlign: 'center' }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#4caf50', mb: 1 }}>
+                Estado de la Bomba
+              </Typography>
+              
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Box
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    backgroundColor: pumpState ? '#4caf50' : '#f44336',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 12px',
+                    color: 'white',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <PowerSettingsNew sx={{ fontSize: 20 }} />
+                </Box>
+                
+                <Typography variant="h6" sx={{ fontWeight: 'bold', color: pumpState ? '#4caf50' : '#f44336', mb: 0.5 }}>
+                  {pumpState ? 'ENCENDIDA' : 'APAGADA'}
                 </Typography>
                 
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <Box
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      backgroundColor: pumpState ? '#4caf50' : '#f44336',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 12px',
-                      color: 'white',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    <PowerSettingsNew sx={{ fontSize: 20 }} />
-                  </Box>
-                  
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: pumpState ? '#4caf50' : '#f44336', mb: 0.5 }}>
-                    {pumpState ? 'ENCENDIDA' : 'APAGADA'}
-                  </Typography>
-                  
-                  <Typography variant="body2" color="text.secondary">
-                    {pumpState ? 'Irrigando' : 'Listo para operar'}
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
+                <Typography variant="body2" color="text.secondary">
+                  {pumpState ? 'Operando' : 'Lista para operar'}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
 
           {/* Reporte Integral del Proyecto */}
-          <Box sx={{ maxWidth: '600px' }}>
-            <ComprehensiveReportExport />
-          </Box>
+          <Card sx={{ 
+            height: "185px",
+            borderRadius: "16px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+            display: "flex",
+            flexDirection: "column"
+          }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#4caf50', mb: 1 }}>
+                Reporte del Proyecto
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+                Genera un reporte integral que incluye datos de todos los módulos del proyecto
+              </Typography>
+              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <ComprehensiveReportExport />
+              </Box>
+            </CardContent>
+          </Card>
         </Box>
       </Box>
 
