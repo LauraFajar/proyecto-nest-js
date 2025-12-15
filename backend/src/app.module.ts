@@ -41,6 +41,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { FinanzasModule } from './finanzas/finanzas.module';
 import { PermisosModule } from './permisos/permisos.module';
 import { SeederModule } from './database/seeds/seeder.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -110,6 +111,7 @@ import { SeederModule } from './database/seeds/seeder.module';
     FinanzasModule,
     PermisosModule,
     SeederModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
