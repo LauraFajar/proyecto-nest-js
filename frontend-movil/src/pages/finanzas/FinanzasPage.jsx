@@ -68,6 +68,8 @@ export default function FinanzasPage() {
   const [expandTools, setExpandTools] = useState(true);
   const [horasPorTipoMap, setHorasPorTipoMap] = useState({});
   const [rankOnlySelected, setRankOnlySelected] = useState(true);
+  const [rankPage, setRankPage] = useState(1);
+  const [rankLimit, setRankLimit] = useState(5);
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
   const [actividadesItems, setActividadesItems] = useState([]);
@@ -356,6 +358,21 @@ export default function FinanzasPage() {
       : rows;
     return filtered;
   }, [margenList, rankOnlySelected, filters.cultivoId, filters.umbral]);
+
+  const rankTotalPages = useMemo(() => {
+    const len = Array.isArray(rankingRows) ? rankingRows.length : 0;
+    return Math.max(1, Math.ceil(len / Math.max(1, rankLimit)));
+  }, [rankingRows, rankLimit]);
+
+  const rankPageRows = useMemo(() => {
+    const start = (Math.max(1, rankPage) - 1) * Math.max(1, rankLimit);
+    const end = start + Math.max(1, rankLimit);
+    return (Array.isArray(rankingRows) ? rankingRows : []).slice(start, end);
+  }, [rankingRows, rankPage, rankLimit]);
+
+  useEffect(() => {
+    setRankPage(1);
+  }, [rankingRows, rankOnlySelected, filters.cultivoId]);
 
   const maxAbsMargen = useMemo(() => {
     return rankingRows.reduce((acc, r) => Math.max(acc, Math.abs(Number(r.margen || 0))), 0) || 1;
@@ -960,19 +977,30 @@ export default function FinanzasPage() {
                   <Text style={[styles.th, styles.wNum, styles.numTh]}>% Margen</Text>
                   <Text style={[styles.th, styles.wNum, styles.centerTh]}>Rentable</Text>
                 </View>
-                {rankingRows.map((r) => (
+                {rankPageRows.map((r) => (
                   <View key={`tb-${r.id_cultivo}`} style={styles.row}>
-                    <Text style={[styles.cell, styles.wCultivo, styles.cultivoCell]}>{r.nombre}</Text>
-                    <Text style={[styles.cell, styles.wNum, styles.numCell]}>{numberFmt(r.ingresos)}</Text>
-                    <Text style={[styles.cell, styles.wNum, styles.numCell]}>{numberFmt(r.egresos)}</Text>
-                    <Text style={[styles.cell, styles.wNum, styles.numCell]}>{numberFmt(r.margen)}</Text>
-                    <Text style={[styles.cell, styles.wNum, styles.numCell]}>{(r.bc !== null && Number.isFinite(Number(r.bc))) ? Number(r.bc).toFixed(2) : 'N/A'}</Text>
-                    <Text style={[styles.cell, styles.wNum, styles.numCell]}>{typeof r.porcentaje === 'number' ? `${r.porcentaje.toFixed(2)}%` : 'N/A'}</Text>
-                    <Text style={[styles.cell, styles.wNum, styles.centerCell, r.rentable ? styles.okText : styles.warnText]}>{r.rentable ? 'Sí' : 'No'}</Text>
+                    <Text style={[styles.cell, styles.cellBox, styles.wCultivo, styles.cultivoCell]}>{r.nombre}</Text>
+                    <Text style={[styles.cell, styles.cellBox, styles.wNum, styles.numCell]}>{numberFmt(r.ingresos)}</Text>
+                    <Text style={[styles.cell, styles.cellBox, styles.wNum, styles.numCell]}>{numberFmt(r.egresos)}</Text>
+                    <Text style={[styles.cell, styles.cellBox, styles.wNum, styles.numCell]}>{numberFmt(r.margen)}</Text>
+                    <Text style={[styles.cell, styles.cellBox, styles.wNum, styles.numCell]}>{(r.bc !== null && Number.isFinite(Number(r.bc))) ? Number(r.bc).toFixed(2) : 'N/A'}</Text>
+                    <Text style={[styles.cell, styles.cellBox, styles.wNum, styles.numCell]}>{typeof r.porcentaje === 'number' ? `${r.porcentaje.toFixed(2)}%` : 'N/A'}</Text>
+                    <Text style={[styles.cell, styles.cellBox, styles.wNum, styles.centerCell, r.rentable ? styles.okText : styles.warnText]}>{r.rentable ? 'Sí' : 'No'}</Text>
                   </View>
                 ))}
               </View>
             </ScrollView>
+            <View style={styles.pager}>
+              <Pressable style={[styles.pagerBtn, rankPage <= 1 ? styles.pagerBtnDisabled : styles.pagerBtnActive]} disabled={rankPage <= 1} onPress={() => setRankPage((p) => Math.max(1, p - 1))}>
+                <Feather name="chevron-left" size={16} color={rankPage <= 1 ? '#94A3B8' : '#16A34A'} />
+                <Text style={[styles.pagerText, rankPage <= 1 ? styles.pagerTextDisabled : styles.pagerTextActive]}>Anterior</Text>
+              </Pressable>
+              <Text style={styles.pagerInfo}>Página {rankPage} de {rankTotalPages}</Text>
+              <Pressable style={[styles.pagerBtn, rankPage >= rankTotalPages ? styles.pagerBtnDisabled : styles.pagerBtnActive]} disabled={rankPage >= rankTotalPages} onPress={() => setRankPage((p) => Math.min(rankTotalPages, p + 1))}>
+                <Text style={[styles.pagerText, rankPage >= rankTotalPages ? styles.pagerTextDisabled : styles.pagerTextActive]}>Siguiente</Text>
+                <Feather name="chevron-right" size={16} color={rankPage >= rankTotalPages ? '#94A3B8' : '#16A34A'} />
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.card}>
@@ -983,7 +1011,7 @@ export default function FinanzasPage() {
           </View>
         </>
       ) : null}
-      {activeTab === 'Historial' && rentabilidad ? (
+      {activeTab === 'Historial' ? (
         <>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Historial de actividades</Text>
@@ -1009,12 +1037,12 @@ export default function FinanzasPage() {
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Resumen de rentabilidad</Text>
-            <View style={styles.rentRow}><Text style={styles.rentLabel}>Ingresos</Text><Text style={styles.rentVal}>{numberFmt(rentabilidad.ingresos)}</Text></View>
-            <View style={styles.rentRow}><Text style={styles.rentLabel}>Egresos</Text><Text style={styles.rentVal}>{numberFmt(rentabilidad.egresos)}</Text></View>
-            <View style={styles.rentRow}><Text style={styles.rentLabel}>Margen</Text><Text style={styles.rentVal}>{numberFmt(rentabilidad.margen)}</Text></View>
-            <View style={styles.rentRow}><Text style={styles.rentLabel}>Beneficio/Costo</Text><Text style={styles.rentVal}>{rentabilidad.beneficioCosto ?? '—'}</Text></View>
-            <View style={styles.rentRow}><Text style={styles.rentLabel}>Margen %</Text><Text style={styles.rentVal}>{typeof rentabilidad.margenPorcentaje === 'number' ? `${Number(rentabilidad.margenPorcentaje).toFixed(2)}%` : '—'}</Text></View>
-            <View style={styles.rentRow}><Text style={styles.rentLabel}>Rentable</Text><Text style={[styles.rentVal, rentabilidad.rentable ? styles.okText : styles.warnText]}>{rentabilidad.rentable ? 'Sí' : 'No'}</Text></View>
+            <View style={styles.rentRow}><Text style={styles.rentLabel}>Ingresos</Text><Text style={styles.rentVal}>{numberFmt(rentabilidad?.ingresos ?? 0)}</Text></View>
+            <View style={styles.rentRow}><Text style={styles.rentLabel}>Egresos</Text><Text style={styles.rentVal}>{numberFmt(rentabilidad?.egresos ?? 0)}</Text></View>
+            <View style={styles.rentRow}><Text style={styles.rentLabel}>Margen</Text><Text style={styles.rentVal}>{numberFmt(rentabilidad?.margen ?? 0)}</Text></View>
+            <View style={styles.rentRow}><Text style={styles.rentLabel}>Beneficio/Costo</Text><Text style={styles.rentVal}>{rentabilidad?.beneficioCosto ?? '—'}</Text></View>
+            <View style={styles.rentRow}><Text style={styles.rentLabel}>Margen %</Text><Text style={styles.rentVal}>{typeof rentabilidad?.margenPorcentaje === 'number' ? `${Number(rentabilidad?.margenPorcentaje).toFixed(2)}%` : '—'}</Text></View>
+            <View style={styles.rentRow}><Text style={styles.rentLabel}>Rentable</Text><Text style={[styles.rentVal, rentabilidad?.rentable ? styles.okText : styles.warnText]}>{rentabilidad?.rentable ? 'Sí' : 'No'}</Text></View>
           </View>
         </>
       ) : null}
@@ -1144,6 +1172,7 @@ const styles = StyleSheet.create({
   wCultivo: { flex: 1.4, minWidth: 160 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', gap: 8 },
   cell: { flex: 1, fontSize: 13, color: '#0f172a', paddingHorizontal: 8 },
+  cellBox: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, paddingVertical: 6 },
   numCell: { textAlign: 'right' },
   centerCell: { textAlign: 'center' },
   cultivoCell: { textAlign: 'left' },
@@ -1159,4 +1188,12 @@ const styles = StyleSheet.create({
   tabInactive: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#CBD5E1' },
   tabTextActive: { color: '#16A34A', fontWeight: '700' },
   tabTextInactive: { color: '#334155' },
+  pager: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  pagerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1 },
+  pagerBtnActive: { borderColor: '#16A34A', backgroundColor: '#ECFDF5' },
+  pagerBtnDisabled: { borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  pagerText: { fontSize: 12, fontWeight: '700' },
+  pagerTextActive: { color: '#16A34A' },
+  pagerTextDisabled: { color: '#94A3B8' },
+  pagerInfo: { fontSize: 12, color: '#334155' },
 });

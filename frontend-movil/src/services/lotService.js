@@ -1,4 +1,4 @@
-import { baseUrl } from './api';
+import { getBaseUrl } from './api';
 
 const getAuthHeader = (token) => ({
   Authorization: `Bearer ${token}`,
@@ -17,7 +17,7 @@ const mapLot = (l) => ({
 const lotService = {
   getLots: async (token) => {
     try {
-      const res = await fetch(`${baseUrl}/lotes`, {
+      const res = await fetch(`${getBaseUrl()}/lotes`, {
         headers: getAuthHeader(token)
       });
       const data = await res.json();
@@ -36,7 +36,7 @@ const lotService = {
 
   getLotById: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/lotes/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/lotes/${id}`, {
         headers: getAuthHeader(token)
       });
       const data = await res.json();
@@ -66,7 +66,7 @@ const lotService = {
 
       console.log('[lotService] Datos filtrados para envío:', filteredData);
 
-      const res = await fetch(`${baseUrl}/lotes`, {
+      const res = await fetch(`${getBaseUrl()}/lotes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ const lotService = {
 
       console.log('[lotService] Datos finales para PATCH:', updateData);
 
-      const res = await fetch(`${baseUrl}/lotes/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/lotes/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ const lotService = {
     try {
       const body1 = { coordenadas: geometry };
       try {
-        const r1 = await fetch(`${baseUrl}/lotes/${id}`, {
+        const r1 = await fetch(`${getBaseUrl()}/lotes/${id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ const lotService = {
         // ignore
       }
       try {
-        const r2 = await fetch(`${baseUrl}/lotes/${id}/coordenadas`, {
+        const r2 = await fetch(`${getBaseUrl()}/lotes/${id}/coordenadas`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ const lotService = {
       } catch (e2) {
         // ignore
       }
-      const r3 = await fetch(`${baseUrl}/lotes/${id}/coordenadas`, {
+      const r3 = await fetch(`${getBaseUrl()}/lotes/${id}/coordenadas`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ const lotService = {
 
   deleteLot: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/lotes/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/lotes/${id}`, {
         method: 'DELETE',
         headers: getAuthHeader(token)
       });
@@ -208,7 +208,7 @@ const lotService = {
 
   getMapData: async (token) => {
     try {
-      const res = await fetch(`${baseUrl}/lotes/map-data`, {
+      const res = await fetch(`${getBaseUrl()}/lotes/map-data`, {
         headers: getAuthHeader(token)
       });
       const data = await res.json();

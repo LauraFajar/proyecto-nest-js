@@ -1,4 +1,4 @@
-import { baseUrl } from './api';
+import { getBaseUrl } from './api';
 
 const getAuthHeader = (token) => ({
   Authorization: `Bearer ${token}`,
@@ -25,7 +25,7 @@ const mapCrop = (c) => ({
 const cropService = {
   getCrops: async (token, page = 1, limit = 10) => {
     try {
-      const url = new URL(`${baseUrl}/cultivos`);
+      const url = new URL(`${getBaseUrl()}/cultivos`);
       url.searchParams.set('page', page);
       url.searchParams.set('limit', limit);
       const res = await fetch(url.toString(), {
@@ -62,7 +62,7 @@ const cropService = {
 
   getCropById: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/cultivos/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/cultivos/${id}`, {
         headers: getAuthHeader(token)
       });
       const ct = res.headers.get('content-type') || '';
@@ -84,7 +84,7 @@ const cropService = {
   createCrop: async (token, cropData) => {
     try {
       console.log('[cropService] POST /cultivos payload:', cropData);
-      const res = await fetch(`${baseUrl}/cultivos`, {
+      const res = await fetch(`${getBaseUrl()}/cultivos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ const cropService = {
   updateCrop: async (token, id, cropData) => {
     try {
       console.log('[cropService] PATCH /cultivos/' + id + ' payload:', cropData);
-      const res = await fetch(`${baseUrl}/cultivos/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/cultivos/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ const cropService = {
 
   deleteCrop: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/cultivos/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/cultivos/${id}`, {
         method: 'DELETE',
         headers: getAuthHeader(token)
       });
@@ -165,7 +165,7 @@ const cropService = {
 
   getCropStatistics: async (token) => {
     try {
-      const res = await fetch(`${baseUrl}/cultivos/estadisticas`, {
+      const res = await fetch(`${getBaseUrl()}/cultivos/estadisticas`, {
         headers: getAuthHeader(token)
       });
       const ct = res.headers.get('content-type') || '';
@@ -189,7 +189,7 @@ const cropService = {
     if (id) params.append('cultivoId', id);
     if (from) params.append('from', from);
     if (to) params.append('to', to);
-    const url = `${baseUrl}/finanzas/resumen${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `${getBaseUrl()}/finanzas/resumen${params.toString() ? `?${params.toString()}` : ''}`;
     const res = await fetch(url, { headers: getAuthHeader(token) });
     const ct = res.headers.get('content-type') || '';
     const data = ct.includes('application/json') ? await res.json() : await res.text();

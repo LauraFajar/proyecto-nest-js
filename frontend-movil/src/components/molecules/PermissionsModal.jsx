@@ -18,6 +18,7 @@ export default function PermissionsModal({ visible, onClose, user }) {
   const { user: authUser, refreshPermissions } = useAuth();
   const [allPerms, setAllPerms] = useState([]);
   const [userKeys, setUserKeys] = useState([]);
+  const userId = useMemo(() => user?.id || user?.id_usuarios || user?.id_usuario, [user]);
   const [recurso, setRecurso] = useState('');
   const [accion, setAccion] = useState('');
   const [loadingId, setLoadingId] = useState(null);
@@ -42,8 +43,8 @@ export default function PermissionsModal({ visible, onClose, user }) {
         console.warn('Failed to load perms', e);
       }
       try {
-        if (user?.id) {
-          const uk = await permissionService.getUserKeys(user.id);
+        if (userId) {
+          const uk = await permissionService.getUserKeys(userId);
           setUserKeys(uk || []);
         } else {
           setUserKeys([]);
@@ -53,7 +54,7 @@ export default function PermissionsModal({ visible, onClose, user }) {
         setUserKeys([]);
       }
     })();
-  }, [visible, user]);
+  }, [visible, userId]);
 
   const normalizedPerms = useMemo(() => allPerms.map(p => ({ ...p, accion: normalizeAction(p.accion), clave: `${p.recurso}:${normalizeAction(p.accion)}` })), [allPerms]);
 
@@ -153,11 +154,11 @@ export default function PermissionsModal({ visible, onClose, user }) {
     if (!existingPerm) return;
     setLoadingId(existingPerm.id_permiso);
     try {
-      await permissionService.assign({ id_usuario: user.id, id_permiso: existingPerm.id_permiso });
+      await permissionService.assign({ id_usuario: userId, id_permiso: existingPerm.id_permiso });
       Alert.alert('Éxito', 'Permiso asignado');
-      const uk = await permissionService.getUserKeys(user.id);
+      const uk = await permissionService.getUserKeys(userId);
       setUserKeys(uk || []);
-      if (authUser?.id === user?.id) refreshPermissions(authUser.id);
+      if (authUser?.id === userId) refreshPermissions(authUser.id);
     } catch (e) {
       Alert.alert('Error', e?.message || 'No se pudo asignar');
     } finally { setLoadingId(null); }
@@ -167,11 +168,11 @@ export default function PermissionsModal({ visible, onClose, user }) {
     if (!perm?.id_permiso) return;
     setLoadingId(perm.id_permiso);
     try {
-      await permissionService.assign({ id_usuario: user.id, id_permiso: perm.id_permiso });
+      await permissionService.assign({ id_usuario: userId, id_permiso: perm.id_permiso });
       Alert.alert('Éxito', 'Permiso asignado');
-      const uk = await permissionService.getUserKeys(user.id);
+      const uk = await permissionService.getUserKeys(userId);
       setUserKeys(uk || []);
-      if (authUser?.id === user?.id) refreshPermissions(authUser.id);
+      if (authUser?.id === userId) refreshPermissions(authUser.id);
     } catch (e) {
       Alert.alert('Error', e?.message || 'No se pudo asignar');
     } finally { setLoadingId(null); }
@@ -181,11 +182,11 @@ export default function PermissionsModal({ visible, onClose, user }) {
     if (!existingPerm) return;
     setLoadingId(existingPerm.id_permiso);
     try {
-      await permissionService.revoke({ id_usuario: user.id, id_permiso: existingPerm.id_permiso });
+      await permissionService.revoke({ id_usuario: userId, id_permiso: existingPerm.id_permiso });
       Alert.alert('Éxito', 'Permiso revocado');
-      const uk = await permissionService.getUserKeys(user.id);
+      const uk = await permissionService.getUserKeys(userId);
       setUserKeys(uk || []);
-      if (authUser?.id === user?.id) refreshPermissions(authUser.id);
+      if (authUser?.id === userId) refreshPermissions(authUser.id);
     } catch (e) {
       Alert.alert('Error', e?.message || 'No se pudo revocar');
     } finally { setLoadingId(null); }
@@ -195,11 +196,11 @@ export default function PermissionsModal({ visible, onClose, user }) {
     if (!perm?.id_permiso) return;
     setLoadingId(perm.id_permiso);
     try {
-      await permissionService.revoke({ id_usuario: user.id, id_permiso: perm.id_permiso });
+      await permissionService.revoke({ id_usuario: userId, id_permiso: perm.id_permiso });
       Alert.alert('Éxito', 'Permiso revocado');
-      const uk = await permissionService.getUserKeys(user.id);
+      const uk = await permissionService.getUserKeys(userId);
       setUserKeys(uk || []);
-      if (authUser?.id === user?.id) refreshPermissions(authUser.id);
+      if (authUser?.id === userId) refreshPermissions(authUser.id);
     } catch (e) {
       Alert.alert('Error', e?.message || 'No se pudo revocar');
     } finally { setLoadingId(null); }
@@ -226,11 +227,11 @@ export default function PermissionsModal({ visible, onClose, user }) {
         </View>
         <View style={[styles.permCell, styles.wAction]}>
           {assigned ? (
-            <Pressable style={[styles.smallBtn, styles.outlineDanger]} onPress={handleRevoke} disabled={loadingId === item.id_permiso}>
-              <Text style={styles.smallBtnText}>{loadingId === item.id_permiso ? 'Revocando...' : 'Revocar'}</Text>
+            <Pressable style={[styles.smallBtn, styles.outlineDanger]} onPress={() => handleRevokeItem(item)} disabled={loadingId === item.id_permiso}>
+              <Text style={[styles.smallBtnText, styles.outlineDangerText]}>{loadingId === item.id_permiso ? 'Revocando...' : 'Revocar'}</Text>
             </Pressable>
           ) : (
-            <Pressable style={[styles.smallBtn, styles.primary]} onPress={handleAssign} disabled={loadingId === item.id_permiso}>
+            <Pressable style={[styles.smallBtn, styles.primary]} onPress={() => handleAssignItem(item)} disabled={loadingId === item.id_permiso}>
               <Text style={styles.smallBtnText}>{loadingId === item.id_permiso ? 'Asignando...' : 'Asignar'}</Text>
             </Pressable>
           )}
@@ -249,7 +250,7 @@ export default function PermissionsModal({ visible, onClose, user }) {
 
           <View style={styles.chipsRow}>
             <View style={styles.chipGreen}><Text style={styles.chipGreenText}>{`Usuario: ${user?.nombres || user?.email || ''}`}</Text></View>
-            <View style={styles.chip}><Text style={styles.chipText}>{`ID: ${user?.id || ''}`}</Text></View>
+            <View style={styles.chip}><Text style={styles.chipText}>{`ID: ${userId || ''}`}</Text></View>
           </View>
 
           <View style={styles.controlsRow}>
@@ -257,8 +258,48 @@ export default function PermissionsModal({ visible, onClose, user }) {
           </View>
 
           <View style={styles.rowInputs}>
-            <TextInput placeholder="Recurso" style={styles.input} value={recurso} onChangeText={setRecurso} />
-            <TextInput placeholder="Acción" style={[styles.input, { marginLeft: 8 }]} value={accion} onChangeText={setAccion} />
+            <View style={styles.selectWrap}>
+              <Pressable style={styles.select} onPress={() => setOpenResourcePicker(true)}>
+                <Text style={[styles.selectText, recurso ? styles.selectTextValue : styles.selectTextPlaceholder]}>
+                  {recurso || 'Seleccionar recurso'}
+                </Text>
+              </Pressable>
+              {recurso ? (
+                <Pressable
+                  style={styles.clearBtn}
+                  onPress={() => {
+                    setRecurso('');
+                    setRecursoFilter('');
+                    setAccion('');
+                    setAccionFilter('');
+                  }}
+                >
+                  <Text style={styles.clearBtnText}>✕</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            <View style={[styles.selectWrap, { marginLeft: 8 }]}>
+              <Pressable
+                style={[styles.select, (!recurso && !recursoFilter) && { opacity: 0.8 }]}
+                onPress={() => setOpenActionPicker(true)}
+                disabled={!recurso && !recursoFilter}
+              >
+                <Text style={[styles.selectText, accion ? styles.selectTextValue : styles.selectTextPlaceholder]}>
+                  {accion || 'Seleccionar acción'}
+                </Text>
+              </Pressable>
+              {accion ? (
+                <Pressable
+                  style={styles.clearBtn}
+                  onPress={() => {
+                    setAccion('');
+                    setAccionFilter('');
+                  }}
+                >
+                  <Text style={styles.clearBtnText}>✕</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.rowActions}>
@@ -387,6 +428,13 @@ const styles = StyleSheet.create({
   searchInput: { borderWidth: 1, borderColor: '#E4E7EC', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, fontSize: 13, marginBottom: 8 },
   rowInputs: { flexDirection: 'row', marginBottom: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: '#E4E7EC', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 6, fontSize: 13 },
+  selectWrap: { flex: 1, position: 'relative' },
+  select: { borderWidth: 1, borderColor: '#E4E7EC', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 10, backgroundColor: '#fff' },
+  selectText: { fontSize: 13 },
+  selectTextPlaceholder: { color: '#64748b' },
+  selectTextValue: { color: '#0f172a', fontWeight: '600' },
+  clearBtn: { position: 'absolute', right: 8, top: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10, borderWidth: 1, borderColor: '#E4E7EC' },
+  clearBtnText: { fontSize: 12, color: '#334155' },
   rowActions: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   btn: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginRight: 8 },
   primary: { backgroundColor: '#16A34A' },
@@ -404,6 +452,8 @@ const styles = StyleSheet.create({
   permCell: { flex: 1, fontSize: 13, color: '#0f172a', paddingHorizontal: 8 },
   smallBtn: { paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8 },
   smallBtnText: { color: '#fff' }
+  ,
+  outlineDangerText: { color: '#ef4444' }
   ,
   footerActions: { marginTop: 8, alignItems: 'flex-end' },
   primaryFull: { backgroundColor: '#16A34A', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }

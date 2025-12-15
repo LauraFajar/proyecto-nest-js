@@ -1,4 +1,4 @@
-import { baseUrl } from './api';
+import { getBaseUrl } from './api';
 
 const getAuthHeader = (token) => ({
   Authorization: `Bearer ${token}`,
@@ -18,7 +18,7 @@ const mapSublot = (s) => ({
 const sublotService = {
   getSublots: async (token) => {
     try {
-      const res = await fetch(`${baseUrl}/sublotes`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes`, {
         headers: getAuthHeader(token)
       });
       const data = await res.json();
@@ -37,7 +37,7 @@ const sublotService = {
 
   getSublotById: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/sublotes/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes/${id}`, {
         headers: getAuthHeader(token)
       });
       const data = await res.json();
@@ -62,7 +62,7 @@ const sublotService = {
         id_lote: sublotData.id_lote ? parseInt(sublotData.id_lote, 10) : null
       };
 
-      const res = await fetch(`${baseUrl}/sublotes`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ const sublotService = {
         id_lote: sublotData.id_lote ? parseInt(sublotData.id_lote, 10) : null
       };
 
-      const res = await fetch(`${baseUrl}/sublotes/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ const sublotService = {
       if (!body) {
         throw new Error('Geometría inválida para coordenadas de sublote');
       }
-      const res = await fetch(`${baseUrl}/sublotes/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -171,7 +171,7 @@ const sublotService = {
 
   deleteSublot: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/sublotes/${id}`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes/${id}`, {
         method: 'DELETE',
         headers: getAuthHeader(token)
       });
@@ -190,7 +190,7 @@ const sublotService = {
 
   getSublotSensors: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/sublotes/${id}/sensores`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes/${id}/sensores`, {
         headers: getAuthHeader(token)
       });
       const data = await res.json();
@@ -209,7 +209,7 @@ const sublotService = {
 
   getSublotStatistics: async (token, id) => {
     try {
-      const res = await fetch(`${baseUrl}/sublotes/${id}/estadisticas`, {
+      const res = await fetch(`${getBaseUrl()}/sublotes/${id}/estadisticas`, {
         headers: getAuthHeader(token)
       });
       const data = await res.json();
@@ -236,7 +236,7 @@ const sublotService = {
     try {
       const body1 = { coordenadas: geometry };
       try {
-        const r1 = await fetch(`${baseUrl}/sublotes/${id}`, {
+        const r1 = await fetch(`${getBaseUrl()}/sublotes/${id}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -250,7 +250,7 @@ const sublotService = {
         }
       } catch (e1) {}
       try {
-        const r2 = await fetch(`${baseUrl}/sublotes/${id}/coordenadas`, {
+        const r2 = await fetch(`${getBaseUrl()}/sublotes/${id}/coordenadas`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -263,7 +263,7 @@ const sublotService = {
           return data;
         }
       } catch (e2) {}
-      const r3 = await fetch(`${baseUrl}/sublotes/${id}/coordenadas`, {
+      const r3 = await fetch(`${getBaseUrl()}/sublotes/${id}/coordenadas`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

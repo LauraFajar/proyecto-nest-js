@@ -13,15 +13,15 @@ export default function LoginForm({ onSuccess }) {
 
   const onSubmit = useCallback(async () => {
     try {
-      const res = await login({ numero_documento: numeroDocumento.trim(), password });
+      const res = await login({ numero_documento: String(numeroDocumento).trim(), password });
       if (onSuccess) onSuccess(res);
     } catch {}
   }, [numeroDocumento, password, login, onSuccess]);
 
   return (
     <View>
-      <Input label="Número de identificación" value={numeroDocumento} onChangeText={setNumeroDocumento} placeholder="Número de identificación" keyboardType="number-pad" />
-      <Input label="Contraseña" value={password} onChangeText={setPassword} placeholder="Contraseña" secureTextEntry />
+      <Input label="Número de identificación" value={numeroDocumento} onChangeText={(t) => setNumeroDocumento(String(t))} placeholder="Número de identificación" keyboardType="default" />
+      <Input label="Contraseña" value={password} onChangeText={(t) => setPassword(String(t))} placeholder="Contraseña" secureTextEntry />
       <Pressable style={styles.link} onPress={() => nav.navigate('Forgot')}>
         <Text style={styles.linkText}>¿Olvidaste tu contraseña?</Text>
       </Pressable>

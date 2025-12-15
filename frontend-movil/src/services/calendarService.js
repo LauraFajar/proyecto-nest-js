@@ -1,4 +1,4 @@
-import { baseUrl, listCultivos } from './api';
+import { getBaseUrl, listCultivos } from './api';
 import { getToken } from './authToken';
 
 const toISO = (d) => {
@@ -26,7 +26,7 @@ const calendarService = {
     const events = [];
 
     try {
-      const actUrl = new URL(`${baseUrl}/actividades/reporte`);
+      const actUrl = new URL(`${getBaseUrl()}/actividades/reporte`);
       actUrl.searchParams.set('fecha_inicio', start);
       actUrl.searchParams.set('fecha_fin', end);
       if (idCultivo) actUrl.searchParams.set('id_cultivo', String(idCultivo));
@@ -35,7 +35,8 @@ const calendarService = {
       const actData = actCt.includes('application/json') ? await actRes.json() : await actRes.text();
       const actItems = Array.isArray(actData) ? actData : Array.isArray(actData?.data) ? actData.data : Array.isArray(actData?.items) ? actData.items : [];
       actItems.forEach((a) => {
-        const fecha = a.fecha || a.fecha_actividad || a.createdAt || null;
+        const fechaRaw = a.fecha || a.fecha_actividad || a.createdAt || null;
+        const fecha = toISO(fechaRaw) || fechaRaw;
         events.push({
           id: `actividad-${(a.id ?? a.id_actividad)}`,
           titulo: a.tipo_actividad || a.nombre_actividad || a.descripcion || 'Actividad',
@@ -53,7 +54,7 @@ const calendarService = {
     }
 
     try {
-      const cultUrl = new URL(`${baseUrl}/cultivos/calendario`);
+      const cultUrl = new URL(`${getBaseUrl()}/cultivos/calendario`);
       cultUrl.searchParams.set('fecha_desde', start);
       cultUrl.searchParams.set('fecha_hasta', end);
       if (idCultivo) cultUrl.searchParams.set('id_cultivo', String(idCultivo));
@@ -66,7 +67,7 @@ const calendarService = {
         events.push({
           id: `cultivo-${ev.id}`,
           titulo: `${ev.estado} - ${ev.tipo_cultivo}`,
-          fecha: ev.fecha,
+          fecha: toISO(ev.fecha) || ev.fecha,
           tipo,
           id_cultivo: ev.id_cultivo,
           descripcion: `Evento de ${ev.estado} para el cultivo ${ev.tipo_cultivo}`,
@@ -88,20 +89,20 @@ const calendarService = {
       const token = getToken();
       if (String(id).startsWith('cultivo-')) {
         const cultivoId = String(id).replace('cultivo-', '');
-        const res = await fetch(`${baseUrl}/cultivos/${cultivoId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${getBaseUrl()}/cultivos/${cultivoId}`, { headers: { Authorization: `Bearer ${token}` } });
         const ct = res.headers.get('content-type') || '';
         const data = ct.includes('application/json') ? await res.json() : await res.text();
         if (!res.ok) throw new Error(data?.message || String(data));
         return data;
       } else if (String(id).startsWith('actividad-')) {
         const actividadId = String(id).replace('actividad-', '');
-        const res = await fetch(`${baseUrl}/actividades/${actividadId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${getBaseUrl()}/actividades/${actividadId}`, { headers: { Authorization: `Bearer ${token}` } });
         const ct = res.headers.get('content-type') || '';
         const data = ct.includes('application/json') ? await res.json() : await res.text();
         if (!res.ok) throw new Error(data?.message || String(data));
         return data;
       } else {
-        const res = await fetch(`${baseUrl}/actividades/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${getBaseUrl()}/actividades/${id}`, { headers: { Authorization: `Bearer ${token}` } });
         const ct = res.headers.get('content-type') || '';
         const data = ct.includes('application/json') ? await res.json() : await res.text();
         if (!res.ok) throw new Error(data?.message || String(data));

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, Switch } from 'react-native';
+import { View, Text, TextInput, FlatList, Pressable, StyleSheet, Switch, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { listEpas, createEpa, updateEpa, deleteEpa } from '../../services/api';
@@ -91,15 +91,70 @@ export default function EpasPage() {
         <TextInput style={styles.searchInput} placeholder="Buscar por nombre o descripción..." value={query} onChangeText={setQuery} />
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.tableHeader}>
-        <Text style={[styles.th, styles.name]}>Nombre</Text>
-        <Text style={styles.th}>Tipo</Text>
-        <Text style={styles.th}>Estado</Text>
-        <Text style={[styles.th, styles.actions]}>Acciones</Text>
-      </View>
-      <View style={styles.table}>
-        <FlatList data={items} renderItem={renderItem} keyExtractor={(it, idx) => String(it.id || idx)} />
-      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator>
+        <View style={styles.tableWrap}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.th, styles.colName, styles.colGap]}>Nombre</Text>
+            <Text style={[styles.th, styles.colTipo, styles.colGap]}>Tipo</Text>
+            <Text style={[styles.th, styles.colEstado, styles.colGap]}>Estado</Text>
+            <Text style={[styles.th, styles.colAcciones]}>Acciones</Text>
+          </View>
+          <View style={styles.table}>
+            <FlatList
+              data={items}
+              renderItem={({ item }) => {
+                const tipo = String(item.tipo || '').toLowerCase();
+                const estado = String(item.estado || '').toLowerCase();
+                const tipoStyle =
+                  tipo === 'enfermedad'
+                    ? { backgroundColor: '#FEEAEA', color: '#C62828' }
+                    : tipo === 'plaga'
+                    ? { backgroundColor: '#FFF4E5', color: '#FB8C00' }
+                    : { backgroundColor: '#E8F5E9', color: '#2E7D32' };
+                const isActive = estado === 'activo';
+                return (
+                  <View style={styles.row}>
+                    <Text style={[styles.cell, styles.colName, styles.colGap]} numberOfLines={1}>{item.nombre_epa || item.nombre || '—'}</Text>
+                    <View style={[styles.cell, styles.colTipo, styles.colGap]}>
+                      <View style={[styles.pill, { backgroundColor: tipoStyle.backgroundColor }]}>
+                        <Text style={[styles.pillText, { color: tipoStyle.color }]}>{tipo === 'enfermedad' ? 'Enfermedad' : tipo === 'plaga' ? 'Plaga' : 'Arvense'}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.cell, styles.colEstado, styles.estadoCell, styles.colGap]}>
+                      <Switch
+                        value={isActive}
+                        onValueChange={async (val) => {
+                          if (savingId) return;
+                          setSavingId(item.id || item.id_epa);
+                          try {
+                            await updateEpa(item.id || item.id_epa, { estado: val ? 'activo' : 'inactivo' }, token);
+                            setSuccess(val ? 'EPA activada correctamente.' : 'EPA desactivada correctamente.');
+                            fetchData();
+                          } catch (e) {
+                            setError(e?.message || 'Error actualizando estado');
+                          } finally {
+                            setSavingId(null);
+                            setTimeout(() => setSuccess(''), 2000);
+                          }
+                        }}
+                        trackColor={{ false: '#B0BEC5', true: '#A7F3D0' }}
+                        thumbColor={isActive ? '#16A34A' : '#FFFFFF'}
+                      />
+                      <Text style={[styles.estadoText, { color: isActive ? '#2E7D32' : '#37474F' }]}>{isActive ? 'Activado' : 'Desactivada'}</Text>
+                    </View>
+                    <View style={[styles.cell, styles.colAcciones, styles.actions]}>
+                      <Pressable style={styles.iconBtn} onPress={() => { setCurrent(item); setOpenDetail(true); }}><Feather name="info" size={16} color="#64748b" /></Pressable>
+                      <Pressable style={styles.iconBtn} onPress={() => { setCurrent(item); setOpenForm(true); }}><Feather name="edit-2" size={16} color="#16A34A" /></Pressable>
+                      <Pressable style={styles.iconBtn} onPress={async () => { try { await deleteEpa(item.id || item.id_epa || item.id_usuarios); fetchData(); } catch (e) { setError(e?.message || 'Error eliminando'); } }}><Feather name="trash-2" size={16} color="#ef4444" /></Pressable>
+                    </View>
+                  </View>
+                );
+              }}
+              keyExtractor={(it, idx) => String(it.id || idx)}
+            />
+          </View>
+        </View>
+      </ScrollView>
       <EpaFormModal visible={openForm} epa={current} onClose={() => setOpenForm(false)} onSubmit={async (payload) => { if (current) await updateEpa(current.id || current.id_epa || current.id_usuario, payload, token); else await createEpa(payload, token); fetchData(); }} />
       <EpaDetailModal visible={openDetail} epa={current} onClose={() => { setOpenDetail(false); setCurrent(null); }} />
       {success ? (<AlertBubble title='¡Éxito!' text={success} type='success' onClose={() => setSuccess('')} />) : null}
@@ -116,11 +171,16 @@ const styles = StyleSheet.create({
   searchBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E4E7EC', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginVertical: 8 },
   searchInput: { marginLeft: 8, fontSize: 14, flex: 1 },
   tableHeader: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E4E7EC', backgroundColor: '#FAFAFA', borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  th: { flex: 1, fontSize: 12, fontWeight: '700', color: '#1E88E5' },
-  name: { flex: 1.2 },
+  th: { fontSize: 12, fontWeight: '700', color: '#1E88E5' },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#ECEFF1' },
-  cell: { flex: 1, fontSize: 12, color: '#0f172a' },
-  actions: { flex: 0.8, flexDirection: 'row', justifyContent: 'flex-end' },
+  cell: { fontSize: 12, color: '#0f172a', paddingHorizontal: 8 },
+  tableWrap: { width: 860, paddingBottom: 8 },
+  colGap: { marginRight: 12 },
+  colName: { width: 260 },
+  colTipo: { width: 160 },
+  colEstado: { width: 160 },
+  colAcciones: { width: 160 },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end' },
   iconBtn: { marginLeft: 10 },
   error: { marginBottom: 8, color: '#DC2626' },
   table: { backgroundColor: '#fff', borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2 },

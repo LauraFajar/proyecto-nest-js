@@ -3,7 +3,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { View, Image, Platform } from 'react-native';
 import LotsMapPage from '../pages/cultivos/LotsMapPage';
 import DashboardPage from '../pages/dashboard/DashboardPage';
-import ModulePage from '../pages/common/ModulePage';
+import IotPage from '../pages/iot/IotPage';
 import CalendarPage from '../pages/calendar/CalendarPage';
 import FinanzasPage from '../pages/finanzas/FinanzasPage';
 import InventoryPage from '../pages/inventario/InventoryPage';
@@ -37,7 +37,7 @@ export default function AppDrawer() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
     >
       <Drawer.Screen name="Inicio" component={DashboardPage} options={{ drawerIcon: ({ color, size }) => <Feather name="home" color={color} size={size} /> }} />
-      <Drawer.Screen name="IoT" children={() => <ModulePage title="IoT" />} options={{ drawerIcon: ({ color, size }) => <Feather name="zap" color={color} size={size} /> }} />
+      <Drawer.Screen name="IoT" component={IotPage} options={{ drawerIcon: ({ color, size }) => <Feather name="zap" color={color} size={size} /> }} />
       <Drawer.Screen name="Gestión de Cultivos" component={CropsPage} options={{ drawerIcon: ({ color, size }) => <Feather name="droplet" color={color} size={size} /> }} />
       <Drawer.Screen name="Gestión de Lotes" component={LotsPage} options={{ drawerIcon: ({ color, size }) => <Feather name="map" color={color} size={size} /> }} />
       <Drawer.Screen name="Mapa de Lotes" component={LotsMapPage} options={{ drawerIcon: ({ color, size }) => <Feather name="map-pin" color={color} size={size} /> }} />

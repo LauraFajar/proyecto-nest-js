@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [permissionKeys, setPermissionKeys] = useState([]);
+  const [hydrated, setHydrated] = useState(false);
 
   const refreshPermissions = useCallback(async () => {
     try {
@@ -26,14 +27,17 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setError('');
     try {
-      const { token: t, user: u } = await apiLogin({ numero_documento, password });
+      const result = await apiLogin({ numero_documento, password });
+      const { token: t, user: u } = result || {};
       setToken(t);
       setAuthToken(t);
       setUser(u || null);
       try { const keys = await permissionService.getMyKeys(); setPermissionKeys(Array.isArray(keys) ? keys : []); } catch {}
       return { token: t, user: u };
     } catch (e) {
-      setError(e?.message || 'Error de autenticación');
+      const isAbort = String(e?.name || '').toLowerCase() === 'aborterror' || /aborted/i.test(String(e?.message || ''));
+      const msg = isAbort ? 'Tiempo de espera agotado o conexión bloqueada' : (e?.message || 'Error de autenticación');
+      setError(msg);
       throw e;
     } finally {
       setLoading(false);
@@ -55,9 +59,14 @@ export function AuthProvider({ children }) {
       try {
         await initAuthToken();
         const t = getStoredToken();
-        if (mounted && t) setToken(t);
+        if (mounted) {
+          if (t) setToken(t);
+        }
       } catch (e) {
         // ignore
+      }
+      finally {
+        if (mounted) setHydrated(true);
       }
     })();
     return () => { mounted = false; };
@@ -77,7 +86,7 @@ export function AuthProvider({ children }) {
     return () => { mounted = false; };
   }, [token]);
 
-  const value = useMemo(() => ({ token, user, login, logout, loading, error, permissionKeys, refreshPermissions }), [token, user, login, logout, loading, error, permissionKeys, refreshPermissions]);
+  const value = useMemo(() => ({ token, user, login, logout, loading, error, permissionKeys, refreshPermissions, hydrated }), [token, user, login, logout, loading, error, permissionKeys, refreshPermissions, hydrated]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

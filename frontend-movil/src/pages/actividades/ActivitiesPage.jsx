@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { baseUrl, listActividades, createActividad, updateActividad, deleteActividad, listCultivos, uploadActividadFoto, listActividadFotos, deleteActividadFoto, createRealiza, listUsuarios, getActividadById } from '../../services/api';
 import PhotoUploadModal from '../../components/molecules/PhotoUploadModal';
 import ActivityFormModal from '../../components/molecules/ActivityFormModal';
+import { useRoute } from '@react-navigation/native';
 // import { Picker } from '@react-native-picker/picker';
 
 LocaleConfig.locales['es'] = {
@@ -174,6 +175,10 @@ function DetailsModal({ visible, onClose, item, statusConfig, photos = [], onDel
 
 export default function ActivitiesPage() {
   const { token, user } = useAuth();
+  const route = useRoute();
+  const focusActivityId = (route?.params && route.params.focusActivityId) || null;
+  const listRef = React.useRef(null);
+  const [highlightId, setHighlightId] = useState(null);
   const [query, setQuery] = useState('');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -314,7 +319,7 @@ export default function ActivitiesPage() {
   }, [crops, cropSearch]);
 
   const renderItem = ({ item }) => (
-    <View style={styles.row}>
+    <View style={[styles.row, String(item.id_actividad || item.id) === String(highlightId || '') ? { backgroundColor: '#FEF3C7' } : null]}>
       <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.cell, styles.colTipo]}>{item.tipo_actividad || '—'}</Text>
       <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.cell, styles.colCultivo]}>{getCropName(item.id_cultivo) || '—'}</Text>
       <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.cell, styles.colFecha]}>{item.fecha ? new Date(item.fecha).toLocaleDateString() : '—'}</Text>
@@ -345,6 +350,18 @@ export default function ActivitiesPage() {
     const crop = crops.find(c => c.id_cultivo === cropId || c.id === cropId);
     return crop ? (crop.nombre_cultivo || crop.displayName || crop.tipo_cultivo) : 'N/A';
   };
+
+  useEffect(() => {
+    if (!focusActivityId) return;
+    const idStr = String(focusActivityId);
+    const idx = filteredItems.findIndex((it) => String(it.id_actividad || it.id) === idStr);
+    if (idx >= 0) {
+      try { listRef.current?.scrollToIndex({ index: idx, animated: true }); } catch {}
+      setHighlightId(focusActivityId);
+      const t = setTimeout(() => setHighlightId(null), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [focusActivityId, filteredItems]);
 
   
 
@@ -415,6 +432,8 @@ export default function ActivitiesPage() {
                 renderItem={renderItem}
                 keyExtractor={(it) => String(it.id_actividad || it.id)}
                 nestedScrollEnabled
+                ref={listRef}
+                getItemLayout={(_, index) => ({ length: 44, offset: 44 * index, index })}
               />
             )}
           </View>
@@ -470,6 +489,9 @@ export default function ActivitiesPage() {
           try {
             const { id_usuario, id_usuario_asignado, ...actividadPayload } = payload || {};
             const cleanUpdatePayload = Object.fromEntries(Object.entries(actividadPayload).filter(([k, v]) => v !== null && v !== '' && v !== undefined));
+            if (id_usuario) {
+              cleanUpdatePayload.responsable_id = Number(id_usuario);
+            }
             if (cleanUpdatePayload.tipo_actividad) {
               const allowed = ['siembra','riego','fertilizacion','poda','cosecha','otro'];
               const s = String(cleanUpdatePayload.tipo_actividad).toLowerCase();
@@ -481,21 +503,18 @@ export default function ActivitiesPage() {
             }
             if (toEdit) {
               await updateActividad(toEdit.id_actividad || toEdit.id, cleanUpdatePayload, token);
-              if (id_usuario) {
-                const idAct = toEdit.id_actividad || toEdit.id;
-                try { await createRealiza({ usuario: { id_usuarios: id_usuario }, actividad: { id_actividad: idAct } }, token); } catch (e) {}
-              }
               setSuccessText('Actividad actualizada exitosamente.');
               setOpenSuccess(true);
             } else {
               if (!actividadPayload.id_cultivo) {
                 throw new Error('Selecciona un cultivo para crear la actividad');
               }
-              const created = await createActividad(actividadPayload, token);
-              const idAct = created?.id_actividad || created?.id;
-              if (id_usuario && idAct) {
-                try { await createRealiza({ usuario: { id_usuarios: id_usuario }, actividad: { id_actividad: idAct } }, token); } catch (e) {}
+              const createPayload = { ...actividadPayload };
+              if (id_usuario) {
+                createPayload.responsable_id = Number(id_usuario);
               }
+              const created = await createActividad(createPayload, token);
+              const idAct = created?.id_actividad || created?.id;
               setSuccessText('Actividad creada exitosamente.');
               setOpenSuccess(true);
             }

@@ -22,29 +22,71 @@ const statusOptions = [
   { value: 'cancelada', label: 'Cancelada' }
 ];
 
-export default function ActivityFormModal({ visible, onClose, onSubmit, activity, crops = [], loading }) {
+export default function ActivityFormModal({ visible, onClose, onSubmit, activity, crops = [], users = [], loading }) {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
     tipo_actividad: '',
     fecha: null,
     responsable: '',
+    id_usuario: '',
     detalles: '',
     estado: 'pendiente',
-    id_cultivo: ''
+    id_cultivo: '',
+    costo_mano_obra: '',
+    costo_maquinaria: ''
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [photoError, setPhotoError] = useState('');
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     if (activity) {
+      const deriveUserId = (a) => {
+        try {
+          if (!a) return '';
+          if (a.id_usuario) return String(a.id_usuario);
+          if (a.id_responsable) return String(a.id_responsable);
+          if (a.usuario && typeof a.usuario === 'object') {
+            const idu = a.usuario.id_usuarios || a.usuario.id || a.usuario.id_usuario;
+            return idu ? String(idu) : '';
+          }
+          return '';
+        } catch { return ''; }
+      };
+      const formatUserName = (u) => {
+        try {
+          if (!u) return '';
+          if (typeof u === 'object') {
+            const nombres = u.nombres || u.nombre || '';
+            const apellidos = u.apellidos || u.apellido || '';
+            const full = `${String(nombres || '').trim()} ${String(apellidos || '').trim()}`.trim();
+            return full || (u.username || u.user_name || u.name || '');
+          }
+          const s = String(u).trim();
+          if (/^\d+$/.test(s)) {
+            const found = users.find(us => String(us.id_usuarios || us.id || us.id_usuario) === s);
+            if (found) {
+              const nombres = found.nombres || found.nombre || '';
+              const apellidos = found.apellidos || found.apellido || '';
+              const full = `${String(nombres || '').trim()} ${String(apellidos || '').trim()}`.trim();
+              return full || (found.username || found.user_name || found.name || `Usuario #${s}`);
+            }
+            return `Usuario #${s}`;
+          }
+          return s;
+        } catch { return ''; }
+      };
       setFormData({
         tipo_actividad: activity.tipo_actividad || '',
         fecha: activity.fecha ? new Date(activity.fecha) : new Date(),
-        responsable: activity.responsable || '',
+        responsable: formatUserName(activity.responsable ?? activity.usuario ?? activity.user ?? ''),
+        id_usuario: deriveUserId(activity),
         detalles: activity.detalles || '',
         estado: activity.estado || 'pendiente',
-        id_cultivo: activity.id_cultivo || ''
+        id_cultivo: activity.id_cultivo || '',
+        costo_mano_obra: (activity.costo_mano_obra ?? activity.costoManoObra ?? '') === '' ? '' : String(activity.costo_mano_obra ?? activity.costoManoObra),
+        costo_maquinaria: (activity.costo_maquinaria ?? activity.costoMaquinaria ?? '') === '' ? '' : String(activity.costo_maquinaria ?? activity.costoMaquinaria)
       });
       (async () => {
         try {
@@ -65,9 +107,12 @@ export default function ActivityFormModal({ visible, onClose, onSubmit, activity
         tipo_actividad: '',
         fecha: new Date(),
         responsable: '',
+        id_usuario: '',
         detalles: '',
         estado: 'pendiente',
-        id_cultivo: ''
+        id_cultivo: '',
+        costo_mano_obra: '',
+        costo_maquinaria: ''
       });
       setPhotos([]);
     }
@@ -85,10 +130,52 @@ export default function ActivityFormModal({ visible, onClose, onSubmit, activity
   };
 
   const handleSubmit = async () => {
+    setFormError('');
+    const isCreate = !activity;
+    const mano = formData.costo_mano_obra;
+    const maq = formData.costo_maquinaria;
+    const parseNum = (v) => {
+      if (v === '' || v === null || v === undefined) return NaN;
+      const s = String(v).replace(/[, ]/g, '');
+      const n = Number(s);
+      return n;
+    };
+    const manoNum = parseNum(mano);
+    const maqNum = parseNum(maq);
+    const MAX_COST = 9999999999.99;
+    if (isCreate) {
+      if (!formData.id_cultivo) {
+        setFormError('Selecciona un cultivo');
+        return;
+      }
+      if (!formData.id_usuario) {
+        setFormError('Selecciona un responsable');
+        return;
+      }
+      if (!Number.isFinite(manoNum) || manoNum <= 0) {
+        setFormError('Ingresa costo de mano de obra');
+        return;
+      }
+      if (manoNum > MAX_COST) {
+        setFormError('El costo de mano de obra excede el máximo permitido');
+        return;
+      }
+      if (!Number.isFinite(maqNum) || maqNum <= 0) {
+        setFormError('Ingresa costo de maquinaria');
+        return;
+      }
+      if (maqNum > MAX_COST) {
+        setFormError('El costo de maquinaria excede el máximo permitido');
+        return;
+      }
+    }
     const payload = {
       ...formData,
       fecha: formData.fecha ? formData.fecha.toISOString() : null,
       id_cultivo: formData.id_cultivo ? parseInt(formData.id_cultivo, 10) : null,
+      id_usuario: formData.id_usuario ? parseInt(formData.id_usuario, 10) : null,
+      costo_mano_obra: Number.isFinite(manoNum) ? manoNum : undefined,
+      costo_maquinaria: Number.isFinite(maqNum) ? maqNum : undefined,
     };
     await onSubmit(payload);
   };
@@ -131,12 +218,26 @@ export default function ActivityFormModal({ visible, onClose, onSubmit, activity
               </Text>
             </Pressable>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Responsable"
-              value={formData.responsable}
-              onChangeText={(value) => handleChange('responsable', value)}
-            />
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={formData.id_usuario}
+                onValueChange={(value) => {
+                  const val = String(value || '');
+                  handleChange('id_usuario', val);
+                  const found = users.find(us => String(us.id_usuarios || us.id || us.id_usuario) === val);
+                  const nombre = found ? `${String(found.nombres || found.nombre || '').trim()} ${String(found.apellidos || found.apellido || '').trim()}`.trim() : '';
+                  handleChange('responsable', nombre);
+                }}
+                style={styles.picker}
+              >
+                <Picker.Item label="Seleccionar responsable..." value="" />
+                {(Array.isArray(users) ? users : []).map(u => {
+                  const id = u.id_usuarios || u.id || u.id_usuario;
+                  const nombre = `${String(u.nombres || u.nombre || '').trim()} ${String(u.apellidos || u.apellido || '').trim()}`.trim() || (u.username || u.user_name || u.name || '');
+                  return <Picker.Item key={String(id)} label={nombre || `Usuario #${id}`} value={String(id)} />;
+                })}
+              </Picker>
+            </View>
 
             <View style={styles.pickerContainer}>
               <Picker
@@ -150,6 +251,23 @@ export default function ActivityFormModal({ visible, onClose, onSubmit, activity
               </Picker>
             </View>
 
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Costo Mano de Obra"
+                keyboardType="numeric"
+                value={String(formData.costo_mano_obra || '')}
+                onChangeText={(value) => handleChange('costo_mano_obra', value)}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Costo Maquinaria"
+                keyboardType="numeric"
+                value={String(formData.costo_maquinaria || '')}
+                onChangeText={(value) => handleChange('costo_maquinaria', value)}
+              />
+            </View>
+
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Detalles"
@@ -158,6 +276,7 @@ export default function ActivityFormModal({ visible, onClose, onSubmit, activity
               multiline
               numberOfLines={3}
             />
+            {formError ? <Text style={[styles.detailsMuted, { color: '#d32f2f' }]}>{formError}</Text> : null}
             {activity ? (
               <>
                 <Text style={styles.sectionTitle}>Imágenes</Text>

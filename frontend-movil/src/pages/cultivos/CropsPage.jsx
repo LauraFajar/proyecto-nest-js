@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, FlatList, Pressable, StyleSheet, Modal, ActivityIndicator, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { listCultivos, createCultivo, updateCultivo, deleteCultivo } from '../../services/api';
@@ -74,22 +74,22 @@ export default function CropsPage() {
 
   const renderItem = ({ item }) => (
     <View style={styles.row}>
-      <Text style={[styles.cell, styles.name]}>{item.nombre_cultivo || '—'}</Text>
-      <Text style={styles.cell}>{item.tipo_cultivo || '—'}</Text>
-      <View style={[styles.cell]}>
+      <Text style={[styles.cell, styles.colName]}>{item.nombre_cultivo || '—'}</Text>
+      <Text style={[styles.cell, styles.colTipo]}>{item.tipo_cultivo || '—'}</Text>
+      <View style={[styles.cell, styles.colEstado]}>
         <View style={[styles.statusChip, { backgroundColor: statusConfig[item.estado_cultivo]?.bgColor || '#f0f0f0' }]}>
           <Text style={[styles.statusText, { color: statusConfig[item.estado_cultivo]?.color || '#000' }]}>{item.estado_cultivo || '—'}</Text>
         </View>
       </View>
-      <Text style={styles.cell}>{item.fecha_siembra ? new Date(item.fecha_siembra).toLocaleDateString() : '—'}</Text>
-      <Text style={styles.cell}>
+      <Text style={[styles.cell, styles.colSiembra]}>{item.fecha_siembra ? new Date(item.fecha_siembra).toLocaleDateString() : '—'}</Text>
+      <Text style={[styles.cell, styles.colCosecha]}>
         {item.estado_cultivo === 'cosechado' && item.fecha_cosecha_real
           ? new Date(item.fecha_cosecha_real).toLocaleDateString()
           : item.fecha_cosecha
           ? new Date(item.fecha_cosecha).toLocaleDateString()
           : '—'}
       </Text>
-      <View style={[styles.cell, styles.actions]}>
+      <View style={[styles.cell, styles.colAcciones, styles.actions]}>
         <Pressable style={styles.iconBtn} onPress={() => { setToEdit(item); setOpenForm(true); }}><Feather name="edit-2" size={16} color="#16A34A" /></Pressable>
         <Pressable style={styles.iconBtn} onPress={() => { setToDelete(item); setOpenConfirm(true); }}><Feather name="trash-2" size={16} color="#ef4444" /></Pressable>
       </View>
@@ -113,21 +113,47 @@ export default function CropsPage() {
         />
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.tableHeader}>
-        <Text style={[styles.th, styles.name]}>Nombre</Text>
-        <Text style={styles.th}>Tipo</Text>
-        <Text style={styles.th}>Estado</Text>
-        <Text style={styles.th}>Fecha Siembra</Text>
-        <Text style={styles.th}>Fecha Cosecha</Text>
-        <Text style={[styles.th, styles.actions]}>Acciones</Text>
-      </View>
-      {loading ? <ActivityIndicator size="large" color="#16A34A" /> : (
-        <FlatList
-          data={filteredItems}
-          renderItem={renderItem}
-          keyExtractor={(it) => String(it.id_cultivo || it.id)}
-        />
-      )}
+      <ScrollView horizontal showsHorizontalScrollIndicator>
+        <View style={styles.tableWrap}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.th, styles.colName, styles.colGap]}>Nombre</Text>
+            <Text style={[styles.th, styles.colTipo, styles.colGap]}>Tipo</Text>
+            <Text style={[styles.th, styles.colEstado, styles.colGap]}>Estado</Text>
+            <Text style={[styles.th, styles.colSiembra, styles.colGap]}>Fecha Siembra</Text>
+            <Text style={[styles.th, styles.colCosecha, styles.colGap]}>Fecha Cosecha</Text>
+            <Text style={[styles.th, styles.colAcciones]}>Acciones</Text>
+          </View>
+          {loading ? <ActivityIndicator size="large" color="#16A34A" /> : (
+            <FlatList
+              data={filteredItems}
+              renderItem={({ item }) => (
+                <View style={styles.row}>
+                  <Text style={[styles.cell, styles.colName, styles.colGap]}>{item.nombre_cultivo || '—'}</Text>
+                  <Text style={[styles.cell, styles.colTipo, styles.colGap]}>{item.tipo_cultivo || '—'}</Text>
+                  <View style={[styles.cell, styles.colEstado, styles.colGap]}>
+                    <View style={[styles.statusChip, { backgroundColor: statusConfig[item.estado_cultivo]?.bgColor || '#f0f0f0' }]}>
+                      <Text style={[styles.statusText, { color: statusConfig[item.estado_cultivo]?.color || '#000' }]}>{item.estado_cultivo || '—'}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.cell, styles.colSiembra, styles.colGap]}>{item.fecha_siembra ? new Date(item.fecha_siembra).toLocaleDateString() : '—'}</Text>
+                  <Text style={[styles.cell, styles.colCosecha, styles.colGap]}>
+                    {item.estado_cultivo === 'cosechado' && item.fecha_cosecha_real
+                      ? new Date(item.fecha_cosecha_real).toLocaleDateString()
+                      : item.fecha_cosecha
+                      ? new Date(item.fecha_cosecha).toLocaleDateString()
+                      : '—'}
+                  </Text>
+                  <View style={[styles.cell, styles.colAcciones, styles.actions]}>
+                    <Pressable style={styles.iconBtn} onPress={() => { setToEdit(item); setOpenForm(true); }}><Feather name="edit-2" size={16} color="#16A34A" /></Pressable>
+                    <Pressable style={styles.iconBtn} onPress={() => { setToDelete(item); setOpenConfirm(true); }}><Feather name="trash-2" size={16} color="#ef4444" /></Pressable>
+                  </View>
+                </View>
+              )}
+              keyExtractor={(it) => String(it.id_cultivo || it.id)}
+            />
+          )}
+        </View>
+      </ScrollView>
       {totalPages > 1 && (
         <View style={styles.pagination}>
           <Pressable
@@ -195,10 +221,17 @@ const styles = StyleSheet.create({
   searchBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#E4E7EC', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 8 },
   searchInput: { marginLeft: 8, fontSize: 14, flex: 1 },
   tableHeader: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#E4E7EC' },
-  th: { flex: 1, fontSize: 12, fontWeight: '700', color: '#16A34A' },
-  name: { flex: 1.5 },
+  th: { fontSize: 12, fontWeight: '700', color: '#16A34A' },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  cell: { flex: 1, fontSize: 12, color: '#0f172a' },
+  cell: { fontSize: 12, color: '#0f172a', paddingHorizontal: 8 },
+  tableWrap: { width: 1060, paddingBottom: 8 },
+  colGap: { marginRight: 12 },
+  colName: { width: 260 },
+  colTipo: { width: 160 },
+  colEstado: { width: 160 },
+  colSiembra: { width: 160 },
+  colCosecha: { width: 160 },
+  colAcciones: { width: 160 },
   statusChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 12 },
   actions: { flex: 0.8, flexDirection: 'row', justifyContent: 'flex-end' },

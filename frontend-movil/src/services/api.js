@@ -2,7 +2,7 @@ import { Platform, NativeModules } from 'react-native';
 import { getToken } from './authToken';
 const resolveDevHost = () => {
   const url = NativeModules?.SourceCode?.scriptURL || '';
-  const m = url.match(/https?:\/\/([^/:]+)(?::\d+)?/);
+  const m = url.match(/(?:https?|exp):\/\/([^/:]+)(?::\d+)?/);
   if (m && m[1]) {
     return `http://${m[1]}:3001`;
   }
@@ -15,13 +15,64 @@ const defaultBaseUrl = (() => {
   if (Platform.OS === 'ios') return 'http://localhost:3001';
   return 'http://localhost:3001';
 })();
-export const baseUrl = (process.env.EXPO_PUBLIC_API_URL || defaultBaseUrl).replace(/\/+$/, '');
+const resolveEnvBaseUrl = () => {
+  const raw = process.env.EXPO_PUBLIC_API_URL || '';
+  const env = String(raw).trim();
+  if (!env) return '';
+  if (/localhost|127\.0\.0\.1/i.test(env)) {
+    const script = NativeModules?.SourceCode?.scriptURL || '';
+    const m = script.match(/(?:https?|exp):\/\/([^/:]+)(?::\d+)?/);
+    const host = m && m[1] ? m[1] : '';
+    if (host) {
+      const portMatch = env.match(/:(\d+)(?:\/|$)/);
+      const port = portMatch && portMatch[1] ? portMatch[1] : '3001';
+      return `http://${host}:${port}`;
+    }
+    return '';
+  }
+  return env;
+};
+const initialBase = (resolveEnvBaseUrl() || defaultBaseUrl).replace(/\/+$/, '');
+export const baseUrl = initialBase;
+let currentBaseUrl = initialBase;
+export const getBaseUrl = () => currentBaseUrl;
+export const getMqttTopic = () => {
+  const raw = process.env.EXPO_PUBLIC_MQTT_TOPIC || '';
+  const t = String(raw).trim();
+  return t || 'luixxa/dht11';
+};
 
-export const getHealthUrl = () => `${baseUrl}/health`;
+export const getHealthUrl = () => `${getBaseUrl()}/health`;
 
 export async function getHealth() {
   const url = getHealthUrl();
-  const res = await fetch(url);
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), 8000) : null;
+  let res;
+  try {
+    res = await fetch(url, controller ? { signal: controller.signal } : undefined);
+  } catch (e) {
+    const m = String(getBaseUrl()).match(/^https?:\/\/([^/:]+)(?::(\d+))?/i);
+    const host = m && m[1] ? m[1] : '';
+    const port = m && m[2] ? m[2] : '3001';
+    const alt = host ? (port === '8080' ? `http://${host}:3001` : `http://${host}:8080`) : '';
+    if (alt) {
+      const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const t2 = ac ? setTimeout(() => ac.abort(), 8000) : null;
+      const res2 = await fetch(`${alt}/health`, ac ? { signal: ac.signal } : undefined);
+      if (t2) clearTimeout(t2);
+      if (res2.ok) {
+        currentBaseUrl = alt;
+        res = res2;
+      } else {
+        throw e;
+      }
+    } else {
+      throw e;
+    }
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   const contentType = res.headers.get('content-type') || '';
   let preview = '';
   if (contentType.includes('application/json')) {
@@ -34,17 +85,21 @@ export async function getHealth() {
   return { status: res.status, preview, url };
 }
 
-export const getLoginUrl = () => `${baseUrl}/auth/login`;
+export const getLoginUrl = () => `${getBaseUrl()}/auth/login`;
 
 export async function login({ numero_documento, password }) {
   const url = getLoginUrl();
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), 6000) : null;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ numero_documento, password }),
+    signal: controller ? controller.signal : undefined,
   });
+  if (timer) clearTimeout(timer);
 
   const contentType = res.headers.get('content-type') || '';
   let data;
@@ -108,6 +163,30 @@ export async function requestPasswordReset(email) {
   }
   if (!res.ok) {
     const msg = data?.message || 'No se pudo enviar el enlace';
+    throw new Error(msg);
+  }
+  return data;
+}
+
+export const getResetPasswordUrl = () => `${baseUrl}/auth/reset-password`;
+
+export async function resetPassword(token, newPassword) {
+  const url = getResetPasswordUrl();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const contentType = res.headers.get('content-type') || '';
+  let data;
+  if (contentType.includes('application/json')) {
+    data = await res.json();
+  } else {
+    const text = await res.text();
+    throw new Error(`Respuesta no JSON (${res.status}): ${text.slice(0, 120)}`);
+  }
+  if (!res.ok) {
+    const msg = data?.message || 'No se pudo restablecer la contraseña';
     throw new Error(msg);
   }
   return data;
@@ -758,6 +837,14 @@ export async function listActividades(token, params = {}) {
   return { items: [], meta: { totalItems: 0, totalPages: 1, currentPage: 1 } };
 }
 
+export async function listMisActividades(token) {
+  const res = await fetch(`${getActividadesUrl()}/mias`, { headers: { Authorization: `Bearer ${token}` } });
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json') ? await res.json() : await res.text();
+  if (!res.ok) throw new Error((data?.message) || 'Error obteniendo mis actividades');
+  const items = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : Array.isArray(data?.data) ? data.data : [];
+  return items;
+}
 export async function createActividad(payload, token) {
   const res = await fetch(getActividadesUrl(), {
     method: 'POST',
@@ -850,4 +937,64 @@ export async function deleteActividadFoto(id, token) {
   const res = await fetch(`${getActividadesUrl()}/fotos/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok && res.status !== 204) throw new Error('Error eliminando foto');
   return true;
+}
+
+export const getAlertasUrl = () => `${baseUrl}/alertas`;
+
+export async function listAlertasUsuario(token, userId, onlyUnread = false) {
+  const base = `${getAlertasUrl()}/usuario/${userId}`;
+  const url = onlyUnread ? `${base}/no-leidas` : base;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json') ? await res.json() : await res.text();
+  if (!res.ok) throw new Error(data?.message || 'Error obteniendo notificaciones');
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+export async function marcarAlertaLeida(token, alertaId) {
+  const res = await fetch(`${getAlertasUrl()}/${alertaId}/marcar-leida`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok && res.status !== 200 && res.status !== 204) throw new Error('Error marcando alerta como leída');
+  return true;
+}
+
+export async function marcarTodasAlertasLeidas(token, userId) {
+  const res = await fetch(`${getAlertasUrl()}/usuario/${userId}/marcar-todas-leidas`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok && res.status !== 200 && res.status !== 204) throw new Error('Error marcando todas las alertas como leídas');
+  return true;
+}
+
+export async function listAlertas(token) {
+  const res = await fetch(getAlertasUrl(), { headers: { Authorization: `Bearer ${token}` } });
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json') ? await res.json() : await res.text();
+  if (!res.ok) throw new Error(data?.message || 'Error obteniendo alertas');
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+export const getRealizaUrl = () => `${baseUrl}/realiza`;
+
+export async function listRealiza(token) {
+  const res = await fetch(getRealizaUrl(), { headers: { Authorization: `Bearer ${token}` } });
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json') ? await res.json() : await res.text();
+  if (!res.ok) throw new Error(data?.message || 'Error obteniendo asignaciones de actividades');
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+export async function listRealizaMine(token) {
+  const res = await fetch(`${getRealizaUrl()}/mias`, { headers: { Authorization: `Bearer ${token}` } });
+  const ct = res.headers.get('content-type') || '';
+  const data = ct.includes('application/json') ? await res.json() : await res.text();
+  if (!res.ok) throw new Error(data?.message || 'Error obteniendo mis asignaciones');
+  const arr = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : Array.isArray(data?.data) ? data.data : [];
+  return arr;
 }

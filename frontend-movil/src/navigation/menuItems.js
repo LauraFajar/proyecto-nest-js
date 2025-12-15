@@ -33,5 +33,5 @@ export default [
       { id: 'inventario-reportes', label: 'Reportes', icon: 'bar-chart-2' },
     ],
   },
-  { id: 'usuarios', label: 'Usuarios', icon: 'users' },
+  { id: 'usuarios', label: 'Usuarios', icon: 'users', requiredPermission: 'usuarios:ver' },
 ];

@@ -1,7 +1,7 @@
-import { baseUrl } from './api';
+import { getBaseUrl } from './api';
 import { getToken } from './authToken';
 
-const PERMISOS_URL = `${baseUrl}/permisos`;
+const permisosUrl = () => `${getBaseUrl()}/permisos`;
 
 const authHeader = (token) => ({
   Authorization: `Bearer ${token || getToken() || ''}`,
@@ -84,8 +84,8 @@ const permissionService = {
   normalizeKeyWithAction,
 
   list: async (token) => {
-    console.log('[permissionService] GET', PERMISOS_URL);
-    const res = await fetch(PERMISOS_URL, { headers: authHeader(token) });
+    console.log('[permissionService] GET', permisosUrl());
+    const res = await fetch(permisosUrl(), { headers: authHeader(token) });
     const contentType = res.headers.get('content-type') || '';
     let data = [];
     if (contentType.includes('application/json')) data = await res.json();
@@ -110,7 +110,7 @@ const permissionService = {
       descripcion,
       activo,
     };
-    const res = await fetch(PERMISOS_URL, {
+    const res = await fetch(permisosUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader(token) },
       body: JSON.stringify(payload),
@@ -122,7 +122,7 @@ const permissionService = {
   },
 
   getUserKeys: async (idUsuario, token) => {
-    const url = `${PERMISOS_URL}/usuario/${idUsuario}`;
+    const url = `${permisosUrl()}/usuario/${idUsuario}`;
     const res = await fetch(url, { headers: authHeader(token) });
     const contentType = res.headers.get('content-type') || '';
     const data = contentType.includes('application/json') ? await res.json() : [];
@@ -163,7 +163,7 @@ const permissionService = {
   },
 
   getMyKeys: async (token) => {
-    const url = `${PERMISOS_URL}/usuario/me`;
+    const url = `${permisosUrl()}/usuario/me`;
     console.log('[permissionService] GET', url, 'hasToken=', !!(token || getToken()));
     const res = await fetch(url, { headers: { Accept: 'application/json', ...authHeader(token) } });
     if (!res.ok) {
@@ -209,7 +209,7 @@ const permissionService = {
   },
 
   assign: async ({ id_usuario, id_permiso }, token) => {
-    const url = `${PERMISOS_URL}/asignar`;
+    const url = `${permisosUrl()}/asignar`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader(token) },
@@ -222,7 +222,7 @@ const permissionService = {
   },
 
   revoke: async ({ id_usuario, id_permiso }, token) => {
-    const url = `${PERMISOS_URL}/asignar`;
+    const url = `${permisosUrl()}/asignar`;
     const res = await fetch(url, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...authHeader(token) },
