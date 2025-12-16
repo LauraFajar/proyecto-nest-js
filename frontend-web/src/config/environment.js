@@ -1,7 +1,7 @@
 const config = {
   api: {
-    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000',
-    timeout: parseInt(process.env.REACT_APP_API_TIMEOUT) || 10000,
+    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001',
+    timeout: parseInt(process.env.REACT_APP_API_TIMEOUT) || 30000,
   },
 
   app: {

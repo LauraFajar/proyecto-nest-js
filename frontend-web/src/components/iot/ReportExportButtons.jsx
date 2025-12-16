@@ -3,6 +3,9 @@ import { Button, Box, Alert } from '@mui/material';
 import { useAlert } from '../../contexts/AlertContext';
 import sensoresService from '../../services/sensoresService';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import Chart from 'chart.js/auto';
 
 const ReportExportButtons = ({
   topic,
@@ -30,6 +33,173 @@ const ReportExportButtons = ({
     }
     if (selectedSensor) params.metric = selectedSensor.tipo_sensor;
     return params;
+  };
+
+  const generateLocalPDFJs = async () => {
+    const title = selectedSensor ?
+      `Reporte IoT - ${selectedSensor.tipo_sensor} (${selectedSensor.ubicacion || 'Ubicación N/A'})` :
+      'Reporte IoT - Todos los Sensores';
+    const chartData = historialData.map(item => {
+      const fecha = item.fecha || item.timestamp || item.ts || item.date || item.created_at;
+      const valor = item.valor || item.value || item.temperaturaAmbiente || item.humedadAmbiente || item.humedadSuelo || item.temp || item.humidity || 0;
+      const tipo = item.tipo_sensor || item.tipo || item.metric || 'sensor';
+      return {
+        fecha: fecha ? new Date(fecha) : new Date(),
+        valor: Number(valor) || 0,
+        tipo: String(tipo),
+        unidad: item.unidad || item.unit || ''
+      };
+    }).filter(item => !isNaN(item.fecha.getTime()));
+    const sensoresPorTipo = {};
+    chartData.forEach(item => {
+      if (!sensoresPorTipo[item.tipo]) {
+        sensoresPorTipo[item.tipo] = [];
+      }
+      sensoresPorTipo[item.tipo].push(item);
+    });
+    const datosParaGrafica = selectedSensor ?
+      chartData.filter(item => {
+        const selectedTipo = selectedSensor.tipo_sensor.toLowerCase();
+        const itemTipo = item.tipo.toLowerCase();
+        if (selectedTipo.includes('temperatura')) {
+          return itemTipo.includes('temperatura');
+        } else if (selectedTipo.includes('humedad') && selectedTipo.includes('aire')) {
+          return itemTipo.includes('humedad') && itemTipo.includes('aire');
+        } else if (selectedTipo.includes('humedad') && selectedTipo.includes('suelo')) {
+          return itemTipo.includes('humedad') && itemTipo.includes('suelo');
+        }
+        return true;
+      }) : chartData;
+    let chartConfigs;
+    if (selectedSensor) {
+      const datosSensor = datosParaGrafica.slice(-50);
+      chartConfigs = [{
+        tipo: selectedSensor.tipo_sensor,
+        color: '#2196f3',
+        data: datosSensor.map(item => ({
+          x: item.fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          y: item.valor
+        }))
+      }];
+    } else {
+      chartConfigs = Object.entries(sensoresPorTipo).map(([tipo, datos], index) => {
+        const colors = ['#ff6b35', '#2196f3', '#4caf50', '#ff9800', '#9c27b0', '#f44336'];
+        const color = colors[index % colors.length];
+        const cdata = datos.slice(-50).map(item => ({
+          x: item.fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          y: item.valor
+        }));
+        return { tipo, color, data: cdata };
+      });
+    }
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const margin = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(18);
+    doc.text(title, margin, margin);
+    doc.setFontSize(11);
+    doc.text(`Rango: ${fecha_desde || 'N/A'} - ${fecha_hasta || 'N/A'}`, margin, margin + 7);
+    doc.text(`Tópico: ${topic || 'Todos'}`, margin, margin + 14);
+    autoTable(doc, {
+      head: [['Métrica', 'Valor']],
+      body: [
+        [selectedSensor ? 'Lecturas del sensor' : 'Total lecturas', String(chartData.length)],
+        ['Sensores', String(sensors.length)],
+        [selectedSensor ? 'Métricas del sensor' : 'Tipos de sensores', String(Object.keys(sensoresPorTipo).length)],
+        ['Eventos de bomba', String(bombaData.length)]
+      ],
+      startY: margin + 20,
+      margin: { left: margin, right: margin },
+      theme: 'grid',
+      styles: { fontSize: 10 }
+    });
+    doc.addPage('a4', 'landscape');
+    doc.setFontSize(14);
+    doc.text('Gráficas históricas por sensor', margin, margin);
+    const cols = chartConfigs.length <= 4 ? 2 : 3;
+    const rows = Math.ceil(chartConfigs.length / cols);
+    const gap = 12;
+    const innerW = pageWidth - margin * 2;
+    const innerH = pageHeight - margin * 2 - 10;
+    const cellW = (innerW - gap * (cols - 1)) / cols;
+    const cellH = (innerH - gap * (rows - 1)) / rows;
+    let idx = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (idx >= chartConfigs.length) break;
+        const cfg = chartConfigs[idx++];
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: cfg.data.map(d => d.x),
+            datasets: [{
+              label: cfg.tipo,
+              data: cfg.data.map(d => d.y),
+              borderColor: cfg.color,
+              backgroundColor: cfg.color + '20',
+              borderWidth: 2,
+              fill: false,
+              tension: 0.1
+            }]
+          },
+          options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: `Evolución de ${cfg.tipo}` }
+            },
+            scales: {
+              x: { title: { display: true, text: 'Tiempo' } },
+              y: { title: { display: true, text: 'Valor' } }
+            }
+          }
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const x = margin + c * (cellW + gap);
+        const y = margin + 8 + r * (cellH + gap);
+        doc.addImage(imgData, 'PNG', x, y, cellW, cellH);
+      }
+    }
+    doc.addPage('a4', 'portrait');
+    doc.setFontSize(14);
+    doc.text('Datos históricos detallados', margin, margin);
+    const detailedRows = (selectedSensor ? chartData.filter(item => {
+      const selectedTipo = selectedSensor.tipo_sensor.toLowerCase();
+      const itemTipo = item.tipo.toLowerCase();
+      if (selectedTipo.includes('temperatura')) return itemTipo.includes('temperatura');
+      if (selectedTipo.includes('humedad') && selectedTipo.includes('aire')) return itemTipo.includes('humedad') && itemTipo.includes('aire');
+      if (selectedTipo.includes('humedad') && selectedTipo.includes('suelo')) return itemTipo.includes('humedad') && itemTipo.includes('suelo');
+      return true;
+    }) : chartData).map(i => [
+      i.fecha.toLocaleString('es-ES'),
+      i.valor.toFixed(2),
+      i.tipo,
+      i.unidad || ''
+    ]);
+    autoTable(doc, {
+      startY: margin + 6,
+      head: [['Fecha y Hora', 'Valor', 'Tipo de Sensor', 'Unidad']],
+      body: detailedRows,
+      margin: { left: margin, right: margin },
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [25, 118, 210], textColor: 255 }
+    });
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pW = doc.internal.pageSize.getWidth();
+      const pH = doc.internal.pageSize.getHeight();
+      doc.setFontSize(9);
+      doc.text(`Página ${i} de ${pageCount}`, pW / 2, pH - 5, { align: 'center' });
+    }
+    doc.save(`reporte_iot_${selectedSensor ? selectedSensor.tipo_sensor.replace(/\s+/g, '_') + '_' : ''}${fecha_desde || 'desde'}_${fecha_hasta || 'hasta'}.pdf`);
   };
 
   // Calcular información del período para mostrar al usuario
@@ -68,7 +238,6 @@ const ReportExportButtons = ({
     const title = selectedSensor ?
       `Reporte IoT - ${selectedSensor.tipo_sensor} (${selectedSensor.ubicacion || 'Ubicación N/A'})` :
       'Reporte IoT - Todos los Sensores';
-s
     const chartData = historialData.map(item => {
       const fecha = item.fecha || item.timestamp || item.ts || item.date || item.created_at;
       const valor = item.valor || item.value || item.temperaturaAmbiente || item.humedadAmbiente || item.humedadSuelo || item.temp || item.humidity || 0;
@@ -166,7 +335,8 @@ s
           <title>${title}</title>
           <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+            @page { size: A4 landscape; margin: 16mm; }
+            body { font-family: Arial, sans-serif; margin: 0; padding: 16mm; color: #333; }
             h1 { color: #2e7d32; text-align: center; margin-bottom: 30px; }
             h2 { color: #1976d2; margin-top: 40px; margin-bottom: 15px; border-bottom: 2px solid #1976d2; padding-bottom: 5px; }
             h3 { color: #388e3c; margin-top: 25px; }
@@ -174,13 +344,15 @@ s
             th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
             th { background-color: #f2f2f2; font-weight: bold; }
             .summary { background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 20px; border-radius: 10px; margin-bottom: 30px; border-left: 5px solid #1976d2; }
-            .chart-container { margin: 30px 0; padding: 20px; background: #fafafa; border-radius: 8px; }
-            .chart-canvas { max-width: 100%; height: 300px; }
+            .chart-container { margin: 20px 0; padding: 15px; background: #fafafa; border-radius: 8px; }
+            .charts-page { page-break-before: always; break-before: page; }
+            .charts-page .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .chart-canvas { width: 500px; height: 400px; }
             .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
             .stat-card { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
             .stat-value { font-size: 24px; font-weight: bold; color: #2e7d32; }
             .stat-label { color: #666; font-size: 14px; }
-            .page-break { page-break-before: always; }
+            .page-break { page-break-before: always; break-before: page; }
             @media print {
               .chart-container { page-break-inside: avoid; }
             }
@@ -223,14 +395,16 @@ s
             <p><strong>⏰ Generado:</strong> ${new Date().toLocaleString('es-ES')}</p>
           </div>
 
-          <div class="page-break">
+          <div class="charts-page">
             <h2>📈 Gráficas Históricas por Sensor</h2>
-            ${chartConfigs.map(config => `
-              <div class="chart-container">
-                <h3>${config.tipo} (${sensors.find(s => s.tipo_sensor === config.tipo)?.unidad_medida || 'unidades'})</h3>
-                <canvas id="${config.canvasId}" class="chart-canvas"></canvas>
-              </div>
-            `).join('')}
+            <div class="grid">
+              ${chartConfigs.map(config => `
+                <div class="chart-container">
+                  <h3>${config.tipo} (${sensors.find(s => s.tipo_sensor === config.tipo)?.unidad_medida || 'unidades'})</h3>
+                  <canvas id="${config.canvasId}" class="chart-canvas" width="500" height="400"></canvas>
+                </div>
+              `).join('')}
+            </div>
           </div>
 
           <div class="page-break">
@@ -325,8 +499,8 @@ s
                   }]
                 },
                 options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
+                  responsive: false,
+                  maintainAspectRatio: true,
                   plugins: {
                     title: {
                       display: true,
@@ -338,12 +512,14 @@ s
                   },
                   scales: {
                     x: {
+                      stacked: false,
                       title: {
                         display: true,
                         text: 'Tiempo'
                       }
                     },
                     y: {
+                      stacked: false,
                       title: {
                         display: true,
                         text: 'Valor'
@@ -353,13 +529,129 @@ s
                 }
               });
             `).join('')}
+          </script>
+        </body>
+      </html>
+    `);
+    w.document.close();
+    w.focus();
+  };
 
-            // Auto-imprimir después de cargar
-            window.onload = function() {
-              setTimeout(() => {
-                window.print();
-              }, 1000);
-            }
+  const openChartsPage = () => {
+    const w = window.open('', '_blank');
+    const title = selectedSensor ?
+      `Gráficas IoT - ${selectedSensor.tipo_sensor} (${selectedSensor.ubicacion || 'Ubicación N/A'})` :
+      'Gráficas IoT - Todos los Sensores';
+
+    const chartData = historialData.map(item => {
+      const fecha = item.fecha || item.timestamp || item.ts || item.date || item.created_at;
+      const valor = item.valor || item.value || item.temperaturaAmbiente || item.humedadAmbiente || item.humedadSuelo || item.temp || item.humidity || 0;
+      const tipo = item.tipo_sensor || item.tipo || item.metric || 'sensor';
+      return {
+        fecha: fecha ? new Date(fecha) : new Date(),
+        valor: Number(valor) || 0,
+        tipo: String(tipo),
+        unidad: item.unidad || item.unit || ''
+      };
+    }).filter(item => !isNaN(item.fecha.getTime()));
+
+    const sensoresPorTipo = {};
+    chartData.forEach(item => {
+      if (!sensoresPorTipo[item.tipo]) {
+        sensoresPorTipo[item.tipo] = [];
+      }
+      sensoresPorTipo[item.tipo].push(item);
+    });
+
+    let chartConfigs;
+    if (selectedSensor) {
+      const datosSensor = chartData.filter(item => {
+        const selectedTipo = selectedSensor.tipo_sensor.toLowerCase();
+        const itemTipo = item.tipo.toLowerCase();
+        if (selectedTipo.includes('temperatura')) return itemTipo.includes('temperatura');
+        if (selectedTipo.includes('humedad') && selectedTipo.includes('aire')) return itemTipo.includes('humedad') && itemTipo.includes('aire');
+        if (selectedTipo.includes('humedad') && selectedTipo.includes('suelo')) return itemTipo.includes('humedad') && itemTipo.includes('suelo');
+        return true;
+      }).slice(-50);
+      chartConfigs = [{
+        tipo: selectedSensor.tipo_sensor,
+        color: '#2196f3',
+        data: datosSensor.map(item => ({
+          x: item.fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          y: item.valor
+        })),
+        canvasId: `chart_${selectedSensor.tipo_sensor.replace(/\s+/g, '_')}`
+      }];
+    } else {
+      chartConfigs = Object.entries(sensoresPorTipo).map(([tipo, datos], index) => {
+        const colors = ['#ff6b35', '#2196f3', '#4caf50', '#ff9800', '#9c27b0', '#f44336'];
+        const color = colors[index % colors.length];
+        const cdata = datos.slice(-50).map(item => ({
+          x: item.fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+          y: item.valor
+        }));
+        return { tipo, color, data: cdata, canvasId: `chart_${tipo.replace(/\s+/g, '_')}` };
+      });
+    }
+
+    w.document.write(`
+      <html>
+        <head>
+          <title>${title}</title>
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 24px; color: #333; }
+            h1 { color: #1976d2; text-align: center; margin-bottom: 24px; }
+            .info { text-align: center; margin-bottom: 16px; color: #555; }
+            .chart-block { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background: #fafafa; }
+            .chart-title { margin: 0 0 12px 0; color: #2e7d32; }
+            canvas { width: 100%; max-width: 900px; height: 360px; }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          <div class="info">
+            <div><strong>Rango:</strong> ${fecha_desde || 'N/A'} - ${fecha_hasta || 'N/A'}</div>
+            <div><strong>Tópico:</strong> ${topic || 'Todos'}</div>
+            <div><strong>Generado:</strong> ${new Date().toLocaleString('es-ES')}</div>
+          </div>
+          ${chartConfigs.map(cfg => `
+            <div class="chart-block">
+              <h2 class="chart-title">${cfg.tipo} (${sensors.find(s => s.tipo_sensor === cfg.tipo)?.unidad_medida || 'unidades'})</h2>
+              <canvas id="${cfg.canvasId}"></canvas>
+            </div>
+          `).join('')}
+          <script>
+            ${chartConfigs.map(cfg => `
+              const ctx_${cfg.canvasId} = document.getElementById('${cfg.canvasId}').getContext('2d');
+              new Chart(ctx_${cfg.canvasId}, {
+                type: 'line',
+                data: {
+                  labels: ${JSON.stringify(cfg.data.map(d => d.x))},
+                  datasets: [{
+                    label: '${cfg.tipo}',
+                    data: ${JSON.stringify(cfg.data.map(d => d.y))},
+                    borderColor: '${cfg.color}',
+                    backgroundColor: '${cfg.color}20',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    title: { display: false }
+                  },
+                  scales: {
+                    x: { title: { display: true, text: 'Tiempo' } },
+                    y: { title: { display: true, text: 'Valor' } }
+                  }
+                }
+              });
+            `).join('')}
           </script>
         </body>
       </html>
@@ -511,25 +803,18 @@ s
 
   const onExportPdf = async () => {
     try {
-      console.log('Iniciando exportación PDF con parámetros:', buildParams());
       const response = await sensoresService.exportIotPdf(buildParams());
       downloadBlobResponse(response, `reporte_iot_${selectedSensor ? selectedSensor.tipo_sensor.replace(/\s+/g, '_') + '_' : ''}${fecha_desde || 'desde'}_${fecha_hasta || 'hasta'}.pdf`);
       alert.success('Éxito', `Reporte PDF${selectedSensor ? ` de ${selectedSensor.tipo_sensor}` : ''} descargado correctamente`);
     } catch (error) {
       console.error('Error en exportación PDF:', error);
       const status = error?.response?.status;
-
       if (status === 404) {
         alert.warning('Sin datos', 'No se encontraron datos en el rango seleccionado');
       } else if (status === 401) {
         alert.error('Autenticación', 'Sesión expirada. Por favor, inicie sesión nuevamente');
       } else {
-        if (historialData.length > 0 || sensors.length > 0) {
-          generateLocalPDF();
-          alert.info('Reporte local', 'Generando reporte PDF localmente debido a error del servidor');
-        } else {
-          alert.error('Error', 'No se pudo descargar el PDF y no hay datos suficientes para generar un reporte local');
-        }
+        alert.error('Error', 'No se pudo descargar el PDF');
       }
     }
   };
@@ -567,6 +852,14 @@ s
         size="small"
       >
         📊 Descargar Excel
+      </Button>
+      <Button
+        variant="outlined"
+        color="secondary"
+        onClick={openChartsPage}
+        size="small"
+      >
+        📈 Ver gráficas
       </Button>
       <Button
         variant="contained"

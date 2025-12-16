@@ -34,6 +34,9 @@ import {
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import useIotSocket from '../../../hooks/useIotSocket';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import Chart from 'chart.js/auto';
 
 const AgroticIotDashboard = () => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -270,8 +273,6 @@ const AgroticIotDashboard = () => {
     setExporting(true);
     try {
       const baseUrl = process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
-      console.log('Exporting PDF with real data...');
-      
       const response = await fetch(`${baseUrl}/api/iot/export/pdf`, {
         method: 'GET',
         headers: {
@@ -279,11 +280,9 @@ const AgroticIotDashboard = () => {
         },
         body: null 
       });
-      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -293,8 +292,6 @@ const AgroticIotDashboard = () => {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
-      console.log('PDF export successful');
     } catch (error) {
       console.error('Error exporting PDF:', error);
       alert(`Error al exportar PDF: ${error.message}\n\nVerifique que el backend esté ejecutándose en el puerto 3000`);

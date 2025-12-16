@@ -19,7 +19,8 @@ const reportService = {
       console.log('Sending data to API:', cleanData);
 
       const response = await api.post(endpoint, cleanData, {
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 30000
       });
       return response;
     } catch (error) {

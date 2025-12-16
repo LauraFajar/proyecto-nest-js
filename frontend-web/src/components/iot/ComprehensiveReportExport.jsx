@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import reportService from '../../services/reportService';
 import cropService from '../../services/cropService';
+import sensoresService from '../../services/sensoresService';
 
 const ComprehensiveReportExport = () => { 
   const [open, setOpen] = useState(false);
@@ -103,10 +104,8 @@ const ComprehensiveReportExport = () => {
 
     setIsLoading(true);
     try {
-      // Convert dates to ISO format with time
       const fechaInicio = new Date(formData.fechaInicio).toISOString();
       const fechaFin = new Date(formData.fechaFin).toISOString();
-      
       const reportData = {
         cultivoId: Number(formData.cultivoId),
         fechaInicio,
@@ -116,46 +115,28 @@ const ComprehensiveReportExport = () => {
         incluirInventario: formData.incluirInventario,
         incluirAlertas: formData.incluirAlertas,
         incluirTrazabilidad: formData.incluirTrazabilidad,
-        metricas: [formData.metricaSensor] // Pasar la métrica seleccionada
+        metricas: [formData.metricaSensor]
       };
-
-      console.log('Generating report with data:', reportData);
-
       const response = await reportService.generateReport(reportData, formData.formato);
-
-      console.log('Report generated successfully:', response);
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute(
-        'download',
-        `reporte-cultivo-${new Date().toISOString().split('T')[0]}.${formData.formato}`
-      );
+      link.setAttribute('download', `reporte-cultivo-${new Date().toISOString().split('T')[0]}.${formData.formato}`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
-
       showSuccess('Reporte generado exitosamente');
       handleClose();
     } catch (error) {
-      console.error('Error generating report:', error);
-      console.error('Error response:', error.response);
-      console.error('Error data:', error.response?.data);
-      
       let errorMessage = 'Error al generar el reporte';
       if (error.response?.data?.message) {
-        if (Array.isArray(error.response.data.message)) {
-          errorMessage = error.response.data.message.join(', ');
-        } else {
-          errorMessage = error.response.data.message;
-        }
+        if (Array.isArray(error.response.data.message)) errorMessage = error.response.data.message.join(', ');
+        else errorMessage = error.response.data.message;
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
       showError(errorMessage);
     } finally {
       setIsLoading(false);

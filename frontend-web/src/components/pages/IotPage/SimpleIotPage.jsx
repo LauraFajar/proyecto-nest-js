@@ -19,7 +19,7 @@ import {
   Paper,
   IconButton
 } from '@mui/material';
-import { Wifi, WifiOff, PictureAsPdf, TableChart, Download, DeviceThermostat, WaterDrop, Grass, ShowChart, PowerSettingsNew, ChevronLeft, ChevronRight, Settings } from '@mui/icons-material';
+import { Wifi, WifiOff, DeviceThermostat, WaterDrop, Grass, ShowChart, PowerSettingsNew, ChevronLeft, ChevronRight, Settings } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import iotService from '../../../services/iotService';
 import cropService from '../../../services/cropService';
@@ -459,91 +459,8 @@ const SimpleIotPage = () => {
     }
   };
 
-  const handleExportPdf = async () => {
-    try {
-      setExporting(true);
-      setError(null);
-      
-      const params = {
-        sensor: reportSensor !== 'all' ? reportSensor : undefined,
-        fecha_desde: fechaInicio || undefined,
-        fecha_hasta: fechaFin || undefined,
-      };
-      
-      console.log('Exportando PDF con parámetros:', params);
-      
-      const response = await iotService.exportToPdf(params);
-      
-      if (!response.data) {
-        throw new Error('No se recibieron datos del servidor');
-      }
-      
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const timestamp = new Date().toISOString().split('T')[0];
-      const sensorName = reportSensor !== 'all' ? reportSensor : 'todos-sensores';
-      const filename = `agrotic-reporte-iot-${sensorName}-${timestamp}.pdf`;
-      
-      downloadBlob(blob, filename);
-      
-      console.log('PDF exportado exitosamente');
-      
-    } catch (err) {
-      console.error('Error exporting PDF:', err);
-      const errorMessage = err.response?.status === 404 
-        ? 'No se encontraron datos para el rango seleccionado'
-        : err.response?.status === 500
-        ? 'Error interno del servidor al generar el PDF'
-        : err.message || 'Error inesperado al exportar PDF';
-      
-      setError(errorMessage);
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleExportExcel = async () => {
-    try {
-      setExporting(true);
-      setError(null);
-      
-      const params = {
-        sensor: reportSensor !== 'all' ? reportSensor : undefined,
-        fecha_desde: fechaInicio || undefined,
-        fecha_hasta: fechaFin || undefined,
-      };
-      
-      console.log('Exportando Excel con parámetros:', params);
-      
-      const response = await iotService.exportToExcel(params);
-      
-      if (!response.data) {
-        throw new Error('No se recibieron datos del servidor');
-      }
-      
-      const blob = new Blob([response.data], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-      });
-      const timestamp = new Date().toISOString().split('T')[0];
-      const sensorName = reportSensor !== 'all' ? reportSensor : 'todos-sensores';
-      const filename = `agrotic-reporte-iot-${sensorName}-${timestamp}.xlsx`;
-      
-      downloadBlob(blob, filename);
-      
-      console.log('Excel exportado exitosamente');
-      
-    } catch (err) {
-      console.error('Error exporting Excel:', err);
-      const errorMessage = err.response?.status === 404 
-        ? 'No se encontraron datos para el rango seleccionado'
-        : err.response?.status === 500
-        ? 'Error interno del servidor al generar el Excel'
-        : err.message || 'Error inesperado al exportar Excel';
-      
-      setError(errorMessage);
-    } finally {
-      setExporting(false);
-    }
-  };
+  const handleExportPdf = async () => {};
+  const handleExportExcel = async () => {};
 
   return (
     <Box sx={{ 

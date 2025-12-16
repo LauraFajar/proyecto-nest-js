@@ -22,6 +22,7 @@ import SidePanel from '../../molecules/SidePanel/SidePanel';
 import AddBrokerModal from '../../molecules/AddBrokerModal/AddBrokerModal';
 import iotService from '../../../services/iotService';
 import useIotSocket from '../../../hooks/useIotSocket';
+import IotSensorReport from '../../iot/IotSensorReport';
 
 class IoTErrorBoundary extends React.Component {
   constructor(props) {
@@ -425,6 +426,8 @@ const ModernIotPage = () => {
           </Grid>
         )}
       </Grid>
+
+      <IotSensorReport data={safeChartData} sensors={displaySensors} />
 
       {/* Add Broker Modal */}
       <AddBrokerModal
