@@ -374,6 +374,14 @@ const SimpleIotPage = () => {
     setCurrentCardIndex(prev => (prev - 1 + sensorKeys.length) % sensorKeys.length);
   };
 
+  // Rotación automática del carrusel cada 5 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentCardIndex(prev => (prev + 1) % sensorKeys.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleToggleSensor = (sensorKey) => {
     const newState = !sensorStates[sensorKey];
     
