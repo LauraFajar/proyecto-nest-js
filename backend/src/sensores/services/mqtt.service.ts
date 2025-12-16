@@ -11,6 +11,7 @@ export class MqttService implements OnModuleInit {
   private sensorConnections: Map<number, boolean> = new Map();
   private genericTopics: Set<string> = new Set();
   private genericMessageHandlerInstalled = false;
+  private currentBrokerUrl: string = 'mqtt://broker.hivemq.com:1883';
 
   constructor(
     @Inject(forwardRef(() => SensoresGateway))
@@ -23,14 +24,30 @@ export class MqttService implements OnModuleInit {
     this.connect();
   }
 
-  connect() {
+  async reconnect(newUrl: string) {
+    this.logger.log(`Reconfigurando broker MQTT a: ${newUrl}`);
+    if (this.client) {
+      this.logger.log('Desconectando cliente anterior...');
+      this.client.end(true, {}, () => {
+        this.client = null;
+        this.currentBrokerUrl = newUrl;
+        this.connect(true);
+      });
+    } else {
+      this.currentBrokerUrl = newUrl;
+      this.connect(true);
+    }
+  }
+
+  connect(force = false) {
     const enabled = String(process.env.MQTT_ENABLED || '').toLowerCase() === 'true';
-    if (!enabled) {
+    if (!enabled && !force) {
       this.logger.log('MQTT deshabilitado (MQTT_ENABLED != "true"), no se intentará conectar.');
       return;
     }
 
-    const url = 'mqtt://broker.hivemq.com:1883';
+    const url = this.currentBrokerUrl;
+    this.logger.log(`Intentando conectar a ${url}`);
 
     const reconnectMs = parseInt(process.env.MQTT_RECONNECT_MS || '5000', 10);
 

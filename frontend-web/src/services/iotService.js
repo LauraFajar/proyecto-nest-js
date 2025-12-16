@@ -75,6 +75,9 @@ export const getLatestReadings = () =>
 export const getBrokersStatus = () => 
   api.get('/api/iot/dashboard/brokers-status').then(res => res.data.brokerStatus);
 
+export const updateBrokerConfig = (config) => 
+  api.post('/sensores/config-mqtt', config).then(res => res.data);
+
 export const exportToPdf = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams();
@@ -130,6 +133,7 @@ const iotService = {
   getDashboardData,
   getLatestReadings,
   getBrokersStatus,
+  updateBrokerConfig,
   exportToPdf,
   exportToExcel,
 };

@@ -104,6 +104,7 @@ const ChangeBrokerModal = ({
     if (!loading) {
       setFormData({
         brokerUrl: currentBroker,
+        port: currentPort,
         topic: currentTopic
       });
       setErrors({});

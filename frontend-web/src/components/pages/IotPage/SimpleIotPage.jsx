@@ -437,13 +437,17 @@ const SimpleIotPage = () => {
   const handleBrokerChange = async (newConfig) => {
     try {
       console.log('Updating broker configuration:', newConfig);
+      
+      // Actualizar configuración en el backend para reconexión real
+      await iotService.updateBrokerConfig(newConfig);
+      
       setCurrentBrokerConfig(newConfig);
       
-      alert(`Configuración actualizada exitosamente:\n\nBroker: ${newConfig.brokerUrl}\nPuerto: ${newConfig.port}\nTopic: ${newConfig.topic}\n\n⚠️ Nota: La reconexión al nuevo broker requiere implementación del backend.`);
-      
+      alert(`Configuración actualizada exitosamente:\n\nBroker: ${newConfig.brokerUrl}\nPuerto: ${newConfig.port}\nTopic: ${newConfig.topic}\n\nEl sistema intentará reconectar al nuevo broker.`);
       
     } catch (error) {
       console.error('Error updating broker configuration:', error);
+      alert('Error al actualizar la configuración del broker en el servidor.');
       throw error; 
     }
   };

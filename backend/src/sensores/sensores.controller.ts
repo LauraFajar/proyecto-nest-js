@@ -42,6 +42,37 @@ export class SensoresController {
     return this.sensoresService.update(id, data);
   }
 
+  @Post('config-mqtt')
+  async configMqtt(@Body() config: { brokerUrl: string; port: string | number; topic?: string }) {
+    if (!config.brokerUrl || !config.port) {
+      throw new BadRequestException('Broker URL and port are required');
+    }
+
+    let url = config.brokerUrl;
+    let protocol = 'mqtt';
+    
+    if (url.includes('://')) {
+        const parts = url.split('://');
+        protocol = parts[0];
+        url = parts[1];
+    } else {
+        // Default to mqtt if no protocol provided, though frontend validation enforces it usually.
+    }
+    
+    // Remove port from host if exists in the url part
+    let host = url;
+    if (host.includes(':')) {
+        host = host.split(':')[0];
+    }
+    
+    const fullUrl = `${protocol}://${host}:${config.port}`;
+    
+    console.log(`Reconfiguring MQTT to: ${fullUrl}`);
+    await this.mqttService.reconnect(fullUrl);
+    
+    return { message: 'MQTT Reconfigured', url: fullUrl };
+  }
+
   @Get(':id/lecturas')
   async obtenerLecturas(@Param('id', ParseIntPipe) id: number) {
     const fn = (this.sensoresService as any).obtenerLecturasDeSensor;
