@@ -87,7 +87,29 @@ export class ReportExporterService {
   }
 
   private generarPaginaGraficas(doc: PDFKit.PDFDocument, metricas: any) {
-    const entries = Object.entries(metricas);
+    const grupos: Record<string, any[]> = {};
+    const normalizarUnidad = (u?: string, fallback?: string) => {
+      const t = (u || fallback || '').toLowerCase().replace(/\s+/g, '_');
+      if (t.includes('temp')) return 'temperatura';
+      if (t.includes('humedad') && (t.includes('aire') || t.includes('ambiente'))) return 'humedad_aire';
+      if (t.includes('humedad') && t.includes('suelo') && t.includes('porcentaje')) return 'humedad_suelo_porcentaje';
+      return t || 'desconocida';
+    };
+    Object.entries(metricas).forEach(([nombre, datos]: [string, any]) => {
+      const lecturas = (datos?.datos || []) as any[];
+      lecturas.forEach((d) => {
+        const unidad = normalizarUnidad(d.unidad, nombre);
+        if (!grupos[unidad]) grupos[unidad] = [];
+        grupos[unidad].push({
+          fecha: d.fecha,
+          valor: d.valor,
+        });
+      });
+    });
+    const preferidas = ['temperatura', 'humedad_aire', 'humedad_suelo_porcentaje'];
+    const otras = Object.keys(grupos).filter((u) => !preferidas.includes(u));
+    const orden = [...preferidas.filter((u) => grupos[u] && grupos[u].length > 0), ...otras];
+    const entries = orden.map((u) => [u, { datos: grupos[u] }] as [string, any]);
     const cols = 2;
     const rows = 3;
     const cellW = 250;
