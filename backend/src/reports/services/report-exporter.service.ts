@@ -185,6 +185,7 @@ export class ReportExporterService {
           doc.stroke();
           puntos.forEach(p => {
             doc.fillColor('#1976D2').circle(p.x, p.y, 2).fill();
+            doc.fontSize(7).fillColor('#333333').text(p.valor.toFixed(1), p.x - 6, p.y - 10);
           });
         }
       });
