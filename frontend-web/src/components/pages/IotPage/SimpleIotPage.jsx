@@ -751,7 +751,7 @@ const SimpleIotPage = () => {
 
               {/* Gráfica dinámica */}
               <Box sx={{ flex: 1, minHeight: 0 }}>
-                {selectedSensors.filter(key => key !== 'bomba_estado').length > 0 ? (
+                {selectedSensors.filter(key => key !== 'bomba_estado' && sensorStates[key] !== false).length > 0 ? (
                   <Box sx={{ height: '100%' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={getUnifiedChartData()}>
@@ -776,7 +776,7 @@ const SimpleIotPage = () => {
                           }}
                         />
                         <Legend wrapperStyle={{ fontSize: '0.7rem' }} />
-                        {selectedSensors.filter(key => key !== 'estado_bomba').map(sensorKey => {
+                        {selectedSensors.filter(key => key !== 'bomba_estado' && sensorStates[key] !== false).map(sensorKey => {
                           const config = sensorConfigs[sensorKey];
                           const dataKey = config?.name;
                           return dataKey ? (
