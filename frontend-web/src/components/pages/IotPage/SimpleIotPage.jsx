@@ -59,7 +59,8 @@ const SimpleIotPage = () => {
   
   const [openChangeBrokerModal, setOpenChangeBrokerModal] = useState(false);
   const [currentBrokerConfig, setCurrentBrokerConfig] = useState({
-    brokerUrl: 'wss://broker.hivemq.com:8884/mqtt',
+    brokerUrl: 'wss://broker.hivemq.com/mqtt',
+    port: '8884',
     topic: 'luixxa/dht11'
   });
   
@@ -438,7 +439,7 @@ const SimpleIotPage = () => {
       console.log('Updating broker configuration:', newConfig);
       setCurrentBrokerConfig(newConfig);
       
-      alert(`Configuración actualizada exitosamente:\n\nBroker: ${newConfig.brokerUrl}\nTopic: ${newConfig.topic}\n\n⚠️ Nota: La reconexión al nuevo broker requiere implementación del backend.`);
+      alert(`Configuración actualizada exitosamente:\n\nBroker: ${newConfig.brokerUrl}\nPuerto: ${newConfig.port}\nTopic: ${newConfig.topic}\n\n⚠️ Nota: La reconexión al nuevo broker requiere implementación del backend.`);
       
       
     } catch (error) {
@@ -887,6 +888,7 @@ const SimpleIotPage = () => {
         onClose={() => setOpenChangeBrokerModal(false)}
         onSave={handleBrokerChange}
         currentBroker={currentBrokerConfig.brokerUrl}
+        currentPort={currentBrokerConfig.port}
         currentTopic={currentBrokerConfig.topic}
       />
     </Box>

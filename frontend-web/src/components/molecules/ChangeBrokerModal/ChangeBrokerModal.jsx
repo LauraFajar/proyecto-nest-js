@@ -16,11 +16,13 @@ const ChangeBrokerModal = ({
   open, 
   onClose, 
   onSave, 
-  currentBroker = 'wss://broker.hivemq.com:8884/mqtt',
+  currentBroker = 'wss://broker.hivemq.com/mqtt',
+  currentPort = '8884',
   currentTopic = 'luixxa/dht11'
 }) => {
   const [formData, setFormData] = useState({
     brokerUrl: '',
+    port: '',
     topic: ''
   });
 
@@ -31,11 +33,12 @@ const ChangeBrokerModal = ({
     if (open) {
       setFormData({
         brokerUrl: currentBroker,
+        port: currentPort,
         topic: currentTopic
       });
       setErrors({});
     }
-  }, [open, currentBroker, currentTopic]);
+  }, [open, currentBroker, currentPort, currentTopic]);
 
   const handleInputChange = (field) => (event) => {
     const value = event.target.value;
@@ -57,8 +60,14 @@ const ChangeBrokerModal = ({
 
     if (!formData.brokerUrl.trim()) {
       newErrors.brokerUrl = 'La URL del broker es requerida';
-    } else if (!formData.brokerUrl.startsWith('mqtt://') && !formData.brokerUrl.startsWith('ws://')) {
-      newErrors.brokerUrl = 'La URL debe comenzar con mqtt:// o ws://';
+    } else if (!formData.brokerUrl.startsWith('mqtt://') && !formData.brokerUrl.startsWith('ws://') && !formData.brokerUrl.startsWith('wss://')) {
+      newErrors.brokerUrl = 'La URL debe comenzar con mqtt://, ws:// o wss://';
+    }
+
+    if (!formData.port) {
+      newErrors.port = 'El puerto es requerido';
+    } else if (isNaN(formData.port)) {
+      newErrors.port = 'El puerto debe ser un número';
     }
 
     if (!formData.topic.trim()) {
@@ -78,6 +87,7 @@ const ChangeBrokerModal = ({
     try {
       await onSave({
         brokerUrl: formData.brokerUrl.trim(),
+        port: formData.port.toString().trim(),
         topic: formData.topic.trim()
       });
       
@@ -141,11 +151,26 @@ const ChangeBrokerModal = ({
             value={formData.brokerUrl}
             onChange={handleInputChange('brokerUrl')}
             error={!!errors.brokerUrl}
-            helperText={errors.brokerUrl || 'Ej: mqtt://broker.hivemq.com:1883 o ws://broker.hivemq.com:8884/mqtt'}
+            helperText={errors.brokerUrl || 'Ej: mqtt://broker.hivemq.com o ws://broker.hivemq.com/mqtt'}
             fullWidth
             required
             disabled={loading}
-            placeholder="wss://broker.hivemq.com:8884/mqtt"
+            placeholder="wss://broker.hivemq.com/mqtt"
+          />
+        </Box>
+
+        <Box className="modal-form-field">
+          <TextField
+            label="Puerto"
+            value={formData.port}
+            onChange={handleInputChange('port')}
+            error={!!errors.port}
+            helperText={errors.port || 'Ej: 1883, 8884'}
+            fullWidth
+            required
+            disabled={loading}
+            placeholder="8884"
+            type="number"
           />
         </Box>
 
@@ -170,6 +195,9 @@ const ChangeBrokerModal = ({
           <Stack spacing={0.5} sx={{ mt: 1 }}>
             <Typography variant="caption" className="config-item">
               <span className="config-label">Broker:</span> {currentBroker}
+            </Typography>
+            <Typography variant="caption" className="config-item">
+              <span className="config-label">Puerto:</span> {currentPort}
             </Typography>
             <Typography variant="caption" className="config-item">
               <span className="config-label">Topic:</span> {currentTopic}
