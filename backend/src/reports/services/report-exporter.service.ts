@@ -46,6 +46,10 @@ export class ReportExporterService {
         this.generarResumen(doc, reporte);
         
         if (Object.keys(reporte.metricas).length > 0) {
+          this.generarPaginaGraficas(doc, reporte.metricas);
+        }
+        
+        if (Object.keys(reporte.metricas).length > 0) {
           this.generarMetricas(doc, reporte);
         }
         
@@ -80,6 +84,90 @@ export class ReportExporterService {
         reject(error);
       }
     });
+  }
+
+  private generarPaginaGraficas(doc: PDFKit.PDFDocument, metricas: any) {
+    doc.addPage();
+    doc
+      .fontSize(16)
+      .fillColor('#2E7D32')
+      .text('Gráficas de Sensores (vista resumida)', { underline: true })
+      .moveDown(0.5);
+    
+    const entries = Object.entries(metricas);
+    const marginLeft = 50;
+    const marginTop = doc.y;
+    const cols = 2;
+    const rows = 3;
+    const cellW = 250;
+    const cellH = 160;
+    const gapX = 20;
+    const gapY = 18;
+    const maxCharts = cols * rows;
+    const mostrar = entries.slice(0, maxCharts);
+    
+    mostrar.forEach(([nombre, datos]: [string, any], idx: number) => {
+      const r = Math.floor(idx / cols);
+      const c = idx % cols;
+      const x0 = marginLeft + c * (cellW + gapX);
+      const y0 = marginTop + r * (cellH + gapY);
+      
+      // contenedor
+      doc.strokeColor('#E0E0E0').lineWidth(1).rect(x0, y0, cellW, cellH).stroke();
+      doc.fontSize(12).fillColor('#333333').text(nombre.toUpperCase(), x0 + 8, y0 + 6);
+      
+      const datosGrafico = (datos?.datos || []).slice(0, 12);
+      if (datosGrafico.length === 0) {
+        doc.fontSize(9).fillColor('#666666').text('Sin datos', x0 + 8, y0 + 24);
+        return;
+      }
+      
+      const valores = datosGrafico.map((d: any) => parseFloat(d.valor || 0));
+      const maxValor = Math.max(...valores);
+      const minValor = Math.min(...valores);
+      
+      const plotX = x0 + 10;
+      const plotY = y0 + 30;
+      const plotW = cellW - 20;
+      const plotH = cellH - 50;
+      
+      // ejes y grid
+      doc.strokeColor('#495057').lineWidth(1.5);
+      doc.moveTo(plotX, plotY).lineTo(plotX, plotY + plotH).stroke();
+      doc.moveTo(plotX, plotY + plotH).lineTo(plotX + plotW, plotY + plotH).stroke();
+      doc.strokeColor('#e9ecef').lineWidth(1);
+      for (let i = 1; i <= 3; i++) {
+        const yGrid = plotY + (i * plotH) / 4;
+        doc.moveTo(plotX, yGrid).lineTo(plotX + plotW, yGrid).stroke();
+      }
+      
+      const rango = maxValor - minValor;
+      const getY = (v: number) => {
+        if (rango <= 0) return plotY + plotH / 2;
+        const norm = (v - minValor) / rango;
+        return plotY + plotH - norm * plotH;
+      };
+      const puntos = datosGrafico.map((d: any, i: number) => {
+        const x = plotX + i * (plotW / Math.max(1, datosGrafico.length - 1));
+        const y = getY(parseFloat(d.valor || 0));
+        return { x, y, fecha: new Date(d.fecha), valor: parseFloat(d.valor || 0) };
+      });
+      
+      if (puntos.length > 0) {
+        doc.strokeColor('#1976D2').lineWidth(2);
+        doc.moveTo(puntos[0].x, puntos[0].y);
+        for (let i = 1; i < puntos.length; i++) {
+          doc.lineTo(puntos[i].x, puntos[i].y);
+        }
+        doc.stroke();
+        puntos.forEach(p => {
+          doc.fillColor('#1976D2').circle(p.x, p.y, 2).fill();
+        });
+      }
+    });
+    
+    doc.moveDown();
+    this.dibujarLineaDecorativaMejorada(doc);
   }
 
   async generarExcel(reporte: ReporteCultivo): Promise<Buffer> {
@@ -330,78 +418,51 @@ export class ReportExporterService {
       }
       
       const datosGrafico = datos.datos.slice(0, 8);
-      const maxValor = Math.max(...datosGrafico.map(d => parseFloat(d.valor || 0)));
-      const svgWidth = 500;
-      const svgHeight = 250;
-      const padding = 40;
-      const graphWidth = svgWidth - 2 * padding;
-      const graphHeight = svgHeight - 2 * padding;
-      
-      let svgContent = `<svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg">`;
-      svgContent += `<rect width="${svgWidth}" height="${svgHeight}" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>`;
-      
-      for (let i = 0; i < 5; i++) {
-        const y = padding + i * graphHeight / 4;
-        svgContent += `<line x1="${padding}" y1="${y}" x2="${svgWidth - padding}" y2="${y}" stroke="#e9ecef" stroke-width="1"/>`;
-      }
-      
-      // Ejes
-      svgContent += `<line x1="${padding}" y1="${padding}" x2="${padding}" y2="${svgHeight - padding}" stroke="#495057" stroke-width="2"/>`;
-      svgContent += `<line x1="${padding}" y1="${svgHeight - padding}" x2="${svgWidth - padding}" y2="${svgHeight - padding}" stroke="#495057" stroke-width="2"/>`;
-      
-      // Barras
-      datosGrafico.forEach((dato, index) => {
-        const valor = parseFloat(dato.valor || 0);
-        const barHeight = maxValor > 0 ? (valor / maxValor) * graphHeight : 0;
-        const barWidth = graphWidth / datosGrafico.length * 0.6;
-        const x = padding + (index * graphWidth / datosGrafico.length) + (graphWidth / datosGrafico.length - barWidth) / 2;
-        const y = svgHeight - padding - barHeight;
-        
-        svgContent += `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="#4CAF50" stroke="#388E3C" stroke-width="1" rx="2"/>`;
-        svgContent += `<text x="${x + barWidth/2}" y="${y - 5}" text-anchor="middle" font-family="Arial" font-size="10" fill="#333">${valor.toFixed(1)}</text>`;
-        svgContent += `<text x="${x + barWidth/2}" y="${svgHeight - padding + 15}" text-anchor="middle" font-family="Arial" font-size="8" fill="#666">${new Date(dato.fecha).getDate()}/${new Date(dato.fecha).getMonth() + 1}</text>`;
-      });
-      
-      // Título
-      svgContent += `<text x="${svgWidth/2}" y="20" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="#2E7D32">Evolución de ${nombre}</text>`;
-      svgContent += `</svg>`;
-      
-      const barWidth = 40;
-      const barSpacing = 15;
+      const valores = datosGrafico.map(d => parseFloat(d.valor || 0));
+      const maxValor = Math.max(...valores);
+      const minValor = Math.min(...valores);
       const startX = 80;
       const startY = doc.y;
-      const maxBarHeight = 120;
-      
-      doc.fillColor('#f8f9fa').rect(startX - 20, startY - 20, 500, maxBarHeight + 60).fill();
-      doc.strokeColor('#dee2e6').lineWidth(1).rect(startX - 20, startY - 20, 500, maxBarHeight + 60).stroke();
-      
-      doc.strokeColor('#495057').lineWidth(2);
-      doc.moveTo(startX, startY).lineTo(startX, startY + maxBarHeight + 20).stroke();
-      doc.moveTo(startX, startY + maxBarHeight + 20).lineTo(startX + 400, startY + maxBarHeight + 20).stroke();
-      
-      // Dibujar barras
-      datosGrafico.forEach((dato, index) => {
-        const valor = parseFloat(dato.valor || 0);
-        const barHeight = maxValor > 0 ? (valor / maxValor) * maxBarHeight : 0;
-        const x = startX + 10 + index * (barWidth + barSpacing);
-        const y = startY + maxBarHeight - barHeight;
-        
-        // Barra con borde redondeado simulado
-        doc.fillColor('#4CAF50').rect(x, y, barWidth, barHeight).fill();
-        doc.strokeColor('#388E3C').lineWidth(1).rect(x, y, barWidth, barHeight).stroke();
-        
-        // Valor sobre la barra
-        doc.fontSize(10).fillColor('#333').text(valor.toFixed(1), x + barWidth/2 - 15, y - 15);
-        
-        // Fecha debajo
-        const fecha = new Date(dato.fecha);
-        const fechaStr = `${fecha.getDate()}/${fecha.getMonth() + 1}`;
-        doc.fontSize(8).fillColor('#666').text(fechaStr, x + barWidth/2 - 15, startY + maxBarHeight + 25);
+      const plotWidth = 400;
+      const plotHeight = 120;
+      const rango = maxValor - minValor;
+      const getY = (v: number) => {
+        if (rango <= 0) return startY + plotHeight / 2;
+        const norm = (v - minValor) / rango;
+        return startY + plotHeight - norm * plotHeight;
+      };
+      const puntos = datosGrafico.map((dato, index) => {
+        const x = startX + 10 + index * (plotWidth / Math.max(1, datosGrafico.length - 1));
+        const y = getY(parseFloat(dato.valor || 0));
+        return { x, y, fecha: new Date(dato.fecha), valor: parseFloat(dato.valor || 0) };
       });
-      
-      // Título
+      doc.fillColor('#f8f9fa').rect(startX - 20, startY - 20, 500, plotHeight + 60).fill();
+      doc.strokeColor('#dee2e6').lineWidth(1).rect(startX - 20, startY - 20, 500, plotHeight + 60).stroke();
+      doc.strokeColor('#495057').lineWidth(2);
+      doc.moveTo(startX, startY).lineTo(startX, startY + plotHeight + 20).stroke();
+      doc.moveTo(startX, startY + plotHeight + 20).lineTo(startX + plotWidth, startY + plotHeight + 20).stroke();
+      doc.strokeColor('#e9ecef').lineWidth(1);
+      for (let i = 1; i <= 4; i++) {
+        const yGrid = startY + (i * plotHeight) / 4;
+        doc.moveTo(startX, yGrid).lineTo(startX + plotWidth, yGrid).stroke();
+      }
+      if (puntos.length > 0) {
+        doc.strokeColor('#2196F3').lineWidth(2);
+        doc.moveTo(puntos[0].x, puntos[0].y);
+        for (let i = 1; i < puntos.length; i++) {
+          doc.lineTo(puntos[i].x, puntos[i].y);
+        }
+        doc.stroke();
+        puntos.forEach(p => {
+          doc.fillColor('#2196F3').circle(p.x, p.y, 2).fill();
+        });
+        puntos.forEach((p, index) => {
+          const fechaStr = `${p.fecha.getDate()}/${p.fecha.getMonth() + 1}`;
+          doc.fontSize(8).fillColor('#666').text(fechaStr, p.x - 15, startY + plotHeight + 25);
+          doc.fontSize(9).fillColor('#333').text(p.valor.toFixed(1), p.x - 10, p.y - 15);
+        });
+      }
       doc.fontSize(14).fillColor('#2E7D32').text(`Evolución de ${nombre}`, startX + 150, startY - 10);
-      
       doc.moveDown(8);
       
       // Tabla de datos
