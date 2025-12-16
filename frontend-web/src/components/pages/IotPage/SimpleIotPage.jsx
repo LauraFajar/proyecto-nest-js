@@ -580,8 +580,9 @@ const SimpleIotPage = () => {
                   >
                     {sensorKeys.map((sensorKey) => {
                       const config = sensorConfigs[sensorKey];
-                      const value = getSensorValue(sensorKey);
                       const isActive = sensorStates[sensorKey] !== false;
+                      const realValue = getSensorValue(sensorKey);
+                      const displayValue = isActive ? realValue : '--';
                       
                       return (
                         <Box
@@ -601,7 +602,7 @@ const SimpleIotPage = () => {
                               width: 60,
                               height: 60,
                               borderRadius: '50%',
-                              backgroundColor: config.color,
+                              backgroundColor: isActive ? config.color : '#bdbdbd',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -617,30 +618,30 @@ const SimpleIotPage = () => {
                             {config.name}
                           </Typography>
                           
-                          <Typography variant="h3" sx={{ fontWeight: 'bold', color: config.color, mb: 1 }}>
+                          <Typography variant="h3" sx={{ fontWeight: 'bold', color: isActive ? config.color : '#bdbdbd', mb: 1 }}>
                             {sensorKey === 'bomba_estado' 
-                              ? (value === 'ENCENDIDA' ? 'ON' : value === 'APAGADA' ? 'OFF' : '--')
-                              : `${value}${config.unit}`
+                              ? (displayValue === 'ENCENDIDA' ? 'ON' : displayValue === 'APAGADA' ? 'OFF' : '--')
+                              : `${displayValue}${isActive ? config.unit : ''}`
                             }
                           </Typography>
                           
                           <Chip
-                            label={value !== '--' ? 'ACTIVO' : 'INACTIVO'}
-                            color={value !== '--' ? 'success' : 'error'}
+                            label={isActive ? 'ACTIVO' : 'INACTIVO'}
+                            color={isActive ? 'success' : 'error'}
                             size="small"
                             sx={{ mb: 2 }}
                           />
                           
                           {/* Botón Activar/Desactivar */}
                           <Button
-                            variant={isActive ? "contained" : "outlined"}
-                            color={isActive ? "success" : "error"}
+                            variant={isActive ? "outlined" : "contained"}
+                            color={isActive ? "error" : "success"}
                             size="small"
                             onClick={() => handleToggleSensor(sensorKey)}
                             startIcon={<PowerSettingsNew />}
                             sx={{ fontWeight: 'bold' }}
                           >
-                            {isActive ? 'Activado' : 'Desactivado'}
+                            {isActive ? 'Desactivar' : 'Activar'}
                           </Button>
                         </Box>
                       );
