@@ -87,16 +87,7 @@ export class ReportExporterService {
   }
 
   private generarPaginaGraficas(doc: PDFKit.PDFDocument, metricas: any) {
-    doc.addPage();
-    doc
-      .fontSize(16)
-      .fillColor('#2E7D32')
-      .text('Gráficas de Sensores (vista resumida)', { underline: true })
-      .moveDown(0.5);
-    
     const entries = Object.entries(metricas);
-    const marginLeft = 50;
-    const marginTop = doc.y;
     const cols = 2;
     const rows = 3;
     const cellW = 250;
@@ -104,70 +95,80 @@ export class ReportExporterService {
     const gapX = 20;
     const gapY = 18;
     const maxCharts = cols * rows;
-    const mostrar = entries.slice(0, maxCharts);
     
-    mostrar.forEach(([nombre, datos]: [string, any], idx: number) => {
-      const r = Math.floor(idx / cols);
-      const c = idx % cols;
-      const x0 = marginLeft + c * (cellW + gapX);
-      const y0 = marginTop + r * (cellH + gapY);
+    let idxGlobal = 0;
+    while (idxGlobal < entries.length) {
+      doc.addPage();
+      doc
+        .fontSize(16)
+        .fillColor('#2E7D32')
+        .text('Gráficas de Sensores (vista resumida)', { underline: true })
+        .moveDown(0.5);
       
-      // contenedor
-      doc.strokeColor('#E0E0E0').lineWidth(1).rect(x0, y0, cellW, cellH).stroke();
-      doc.fontSize(12).fillColor('#333333').text(nombre.toUpperCase(), x0 + 8, y0 + 6);
+      const marginLeft = 50;
+      const marginTop = doc.y;
+      const slice = entries.slice(idxGlobal, idxGlobal + maxCharts);
       
-      const datosGrafico = (datos?.datos || []).slice(0, 12);
-      if (datosGrafico.length === 0) {
-        doc.fontSize(9).fillColor('#666666').text('Sin datos', x0 + 8, y0 + 24);
-        return;
-      }
-      
-      const valores = datosGrafico.map((d: any) => parseFloat(d.valor || 0));
-      const maxValor = Math.max(...valores);
-      const minValor = Math.min(...valores);
-      
-      const plotX = x0 + 10;
-      const plotY = y0 + 30;
-      const plotW = cellW - 20;
-      const plotH = cellH - 50;
-      
-      // ejes y grid
-      doc.strokeColor('#495057').lineWidth(1.5);
-      doc.moveTo(plotX, plotY).lineTo(plotX, plotY + plotH).stroke();
-      doc.moveTo(plotX, plotY + plotH).lineTo(plotX + plotW, plotY + plotH).stroke();
-      doc.strokeColor('#e9ecef').lineWidth(1);
-      for (let i = 1; i <= 3; i++) {
-        const yGrid = plotY + (i * plotH) / 4;
-        doc.moveTo(plotX, yGrid).lineTo(plotX + plotW, yGrid).stroke();
-      }
-      
-      const rango = maxValor - minValor;
-      const getY = (v: number) => {
-        if (rango <= 0) return plotY + plotH / 2;
-        const norm = (v - minValor) / rango;
-        return plotY + plotH - norm * plotH;
-      };
-      const puntos = datosGrafico.map((d: any, i: number) => {
-        const x = plotX + i * (plotW / Math.max(1, datosGrafico.length - 1));
-        const y = getY(parseFloat(d.valor || 0));
-        return { x, y, fecha: new Date(d.fecha), valor: parseFloat(d.valor || 0) };
+      slice.forEach(([nombre, datos]: [string, any], idx: number) => {
+        const r = Math.floor(idx / cols);
+        const c = idx % cols;
+        const x0 = marginLeft + c * (cellW + gapX);
+        const y0 = marginTop + r * (cellH + gapY);
+        
+        doc.strokeColor('#E0E0E0').lineWidth(1).rect(x0, y0, cellW, cellH).stroke();
+        doc.fontSize(12).fillColor('#333333').text(nombre.toUpperCase(), x0 + 8, y0 + 6);
+        
+        const datosGrafico = (datos?.datos || []).slice(0, 12);
+        if (datosGrafico.length === 0) {
+          doc.fontSize(9).fillColor('#666666').text('Sin datos', x0 + 8, y0 + 24);
+          return;
+        }
+        
+        const valores = datosGrafico.map((d: any) => parseFloat(d.valor || 0));
+        const maxValor = Math.max(...valores);
+        const minValor = Math.min(...valores);
+        
+        const plotX = x0 + 10;
+        const plotY = y0 + 30;
+        const plotW = cellW - 20;
+        const plotH = cellH - 50;
+        
+        doc.strokeColor('#495057').lineWidth(1.5);
+        doc.moveTo(plotX, plotY).lineTo(plotX, plotY + plotH).stroke();
+        doc.moveTo(plotX, plotY + plotH).lineTo(plotX + plotW, plotY + plotH).stroke();
+        doc.strokeColor('#e9ecef').lineWidth(1);
+        for (let i = 1; i <= 3; i++) {
+          const yGrid = plotY + (i * plotH) / 4;
+          doc.moveTo(plotX, yGrid).lineTo(plotX + plotW, yGrid).stroke();
+        }
+        
+        const rango = maxValor - minValor;
+        const getY = (v: number) => {
+          if (rango <= 0) return plotY + plotH / 2;
+          const norm = (v - minValor) / rango;
+          return plotY + plotH - norm * plotH;
+        };
+        const puntos = datosGrafico.map((d: any, i: number) => {
+          const x = plotX + i * (plotW / Math.max(1, datosGrafico.length - 1));
+          const y = getY(parseFloat(d.valor || 0));
+          return { x, y, fecha: new Date(d.fecha), valor: parseFloat(d.valor || 0) };
+        });
+        
+        if (puntos.length > 0) {
+          doc.strokeColor('#1976D2').lineWidth(2);
+          doc.moveTo(puntos[0].x, puntos[0].y);
+          for (let i = 1; i < puntos.length; i++) {
+            doc.lineTo(puntos[i].x, puntos[i].y);
+          }
+          doc.stroke();
+          puntos.forEach(p => {
+            doc.fillColor('#1976D2').circle(p.x, p.y, 2).fill();
+          });
+        }
       });
       
-      if (puntos.length > 0) {
-        doc.strokeColor('#1976D2').lineWidth(2);
-        doc.moveTo(puntos[0].x, puntos[0].y);
-        for (let i = 1; i < puntos.length; i++) {
-          doc.lineTo(puntos[i].x, puntos[i].y);
-        }
-        doc.stroke();
-        puntos.forEach(p => {
-          doc.fillColor('#1976D2').circle(p.x, p.y, 2).fill();
-        });
-      }
-    });
-    
-    doc.moveDown();
-    this.dibujarLineaDecorativaMejorada(doc);
+      idxGlobal += maxCharts;
+    }
   }
 
   async generarExcel(reporte: ReporteCultivo): Promise<Buffer> {
@@ -249,7 +250,7 @@ export class ReportExporterService {
     
     // Información del reporte en caja
     const infoY = doc.y;
-    const infoHeight = 50;
+    const infoHeight = 40;
     
     // Caja de información con fondo sutil
     doc
@@ -269,7 +270,7 @@ export class ReportExporterService {
       .font('Helvetica')
       .text(`Fecha Generación: ${moment().format('DD/MM/YYYY HH:mm')}`, { align: 'center' });
     
-    doc.y = infoY + infoHeight + 15;
+    doc.y = infoY + infoHeight + 10;
     
     // Línea decorativa inferior del encabezado
     this.dibujarLineaDecorativaMejorada(doc);
@@ -393,10 +394,7 @@ export class ReportExporterService {
         .fillColor('#333333')
         .text(metrica.charAt(0).toUpperCase() + metrica.slice(1), { underline: true })
         .moveDown(0.3);
-      
-      // Generar gráfico para la métrica
-      this.generarGraficoMetrica(doc, metrica, datos);
-      
+
       // Tabla de datos
       this.agregarTablaMetrica(doc, metrica, datos);
       
@@ -463,7 +461,7 @@ export class ReportExporterService {
         });
       }
       doc.fontSize(14).fillColor('#2E7D32').text(`Evolución de ${nombre}`, startX + 150, startY - 10);
-      doc.moveDown(8);
+      doc.moveDown(3);
       
       // Tabla de datos
       doc.fontSize(12).fillColor('#2E7D32').text('Datos Detallados:', { align: 'left' });
@@ -922,8 +920,8 @@ export class ReportExporterService {
   private dibujarTablaIzquierda(doc: PDFKit.PDFDocument, table: { headers: string[], rows: string[][] }) {
     const startY = doc.y;
     const startX = 50;
-    const cellPadding = 8;
-    const rowHeight = 25;
+    const cellPadding = 4;
+    const rowHeight = 20;
     const colWidths = this.calcularAnchoColumnas(table.headers.length);
     
     doc.fillColor('#2E7D32');
@@ -933,8 +931,8 @@ export class ReportExporterService {
     doc.fontSize(10);
     let x = startX;
     table.headers.forEach((header, i) => {
-      doc.text(header, x + 5, startY + 5, { 
-        width: colWidths[i] - 10, 
+      doc.text(header, x + 4, startY + 4, { 
+        width: colWidths[i] - 8, 
         align: 'left'
       });
       x += colWidths[i];
@@ -954,8 +952,8 @@ export class ReportExporterService {
       
       doc.fillColor('#333333');
       row.forEach((cell, cellIndex) => {
-        doc.text(cell, x + 5, y + 5, { 
-          width: colWidths[cellIndex] - 10, 
+        doc.text(cell, x + 4, y + 4, { 
+          width: colWidths[cellIndex] - 8, 
           align: 'left'
         });
         x += colWidths[cellIndex];
@@ -966,8 +964,8 @@ export class ReportExporterService {
   private dibujarTablaMejorada(doc: PDFKit.PDFDocument, table: { headers: string[], rows: string[][] }) {
     const startY = doc.y;
     const startX = 50;
-    const cellPadding = 8;
-    const rowHeight = 25;
+    const cellPadding = 4;
+    const rowHeight = 20;
     const colWidths = this.calcularAnchoColumnas(table.headers.length);
     
     doc.fillColor('#2E7D32');
@@ -977,8 +975,8 @@ export class ReportExporterService {
     doc.fontSize(10);
     let x = startX;
     table.headers.forEach((header, i) => {
-      doc.text(header, x + 5, startY + 5, { 
-        width: colWidths[i] - 10, 
+      doc.text(header, x + 4, startY + 4, { 
+        width: colWidths[i] - 8, 
         align: 'left'
       });
       x += colWidths[i];
@@ -998,15 +996,15 @@ export class ReportExporterService {
       
       row.forEach((cell, colIndex) => {
         doc.rect(x, yPos, colWidths[colIndex], rowHeight).stroke();
-        doc.text(cell, x + 5, yPos + 5, { 
-          width: colWidths[colIndex] - 10, 
+        doc.text(cell, x + 4, yPos + 4, { 
+          width: colWidths[colIndex] - 8, 
           align: 'left'
         });
         x += colWidths[colIndex];
       });
     });
     
-    doc.moveDown(2);
+    doc.moveDown(1);
   }
 
   private calcularAnchoColumnas(numCols: number): number[] {
