@@ -4,8 +4,9 @@
 }
 
 .change-broker-modal {
-  background: white;
-  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: var(--border-radius);
   padding: 24px;
   max-width: 500px;
   width: 90%;
@@ -37,12 +38,12 @@
 .modal-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1976d2;
+  color: #111827;
   margin: 0;
 }
 
 .modal-subtitle {
-  color: #666;
+  color: #6b7280;
   margin-bottom: 24px;
   line-height: 1.5;
 }
@@ -65,8 +66,8 @@
 }
 
 .btn-cancel {
-  color: #666;
-  border: 1px solid #ddd;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
   padding: 8px 20px;
   border-radius: 8px;
   font-weight: 600;
@@ -80,7 +81,7 @@
 }
 
 .btn-save {
-  background: linear-gradient(135deg, #1976d2, #1565c0);
+  background: #1976d2;
   color: white;
   border: none;
   padding: 8px 24px;
@@ -92,21 +93,22 @@
 }
 
 .btn-save:hover {
-  background: linear-gradient(135deg, #1565c0, #0d47a1);
+  background: #1565c0;
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
 }
 
 .btn-save:disabled {
-  background: #ccc;
+  background: #e5e7eb;
+  color: #9ca3af;
   box-shadow: none;
   transform: none;
   cursor: not-allowed;
 }
 
 .current-config-alert {
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-  border: 1px solid #2196f3;
+  background: #f5f5f5;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 12px 16px;
 }
@@ -122,7 +124,6 @@
   color: #1976d2;
 }
 
-/* Responsive design */
 @media (max-width: 600px) {
   .change-broker-modal {
     padding: 20px;
