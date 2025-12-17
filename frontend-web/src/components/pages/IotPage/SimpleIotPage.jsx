@@ -28,6 +28,7 @@ import inventoryService from '../../../services/inventoryService';
 import useIotSocket from '../../../hooks/useIotSocket';
 import ChangeBrokerModal from '../../../components/molecules/ChangeBrokerModal/ChangeBrokerModal';
 import ComprehensiveReportExport from '../../../components/iot/ComprehensiveReportExport';
+import ThresholdConfigModal from '../../../components/molecules/ThresholdConfigModal/ThresholdConfigModal';
 
 const SimpleIotPage = () => {
   const [selectedSensor, setSelectedSensor] = useState(null);
@@ -58,6 +59,7 @@ const SimpleIotPage = () => {
   const [reportError, setReportError] = useState(null); 
   
   const [openChangeBrokerModal, setOpenChangeBrokerModal] = useState(false);
+  const [thresholdModalOpen, setThresholdModalOpen] = useState(false);
   const [currentBrokerConfig, setCurrentBrokerConfig] = useState({
     brokerUrl: 'wss://broker.hivemq.com/mqtt',
     port: '8884',
@@ -472,6 +474,11 @@ const SimpleIotPage = () => {
     }
   };
 
+  const handleSaveThresholds = async (thresholds) => {
+    console.log('Saving thresholds:', thresholds);
+    alert('Umbrales guardados correctamente');
+  };
+
   const handleExportPdf = async () => {};
   const handleExportExcel = async () => {};
 
@@ -503,14 +510,32 @@ const SimpleIotPage = () => {
                 variant="outlined"
                 size="small"
                 startIcon={<Settings />}
+                onClick={() => setThresholdModalOpen(true)}
+                sx={{ 
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  color: '#4caf50',
+                  borderColor: '#4caf50',
+                  '&:hover': {
+                    backgroundColor: '#4caf50',
+                    color: 'white'
+                  }
+                }}
+              >
+                Umbrales
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<Settings />}
                 onClick={() => setOpenChangeBrokerModal(true)}
                 sx={{ 
                   fontSize: '0.7rem',
                   fontWeight: 'bold',
-                  color: '#1976d2',
-                  borderColor: '#1976d2',
+                  color: '#4caf50',
+                  borderColor: '#4caf50',
                   '&:hover': {
-                    backgroundColor: '#1976d2',
+                    backgroundColor: '#4caf50',
                     color: 'white'
                   }
                 }}
@@ -895,6 +920,12 @@ const SimpleIotPage = () => {
         currentBroker={currentBrokerConfig.brokerUrl}
         currentPort={currentBrokerConfig.port}
         currentTopic={currentBrokerConfig.topic}
+      />
+      
+      <ThresholdConfigModal
+        open={thresholdModalOpen}
+        onClose={() => setThresholdModalOpen(false)}
+        onSave={handleSaveThresholds}
       />
     </Box>
   );
