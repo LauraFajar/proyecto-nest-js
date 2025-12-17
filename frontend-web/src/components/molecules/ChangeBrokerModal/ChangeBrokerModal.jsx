@@ -7,7 +7,10 @@ import {
   Button,
   DialogActions,
   Alert,
-  Stack
+  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent
 } from '@mui/material';
 import { Settings, Save, Cancel } from '@mui/icons-material';
 import './ChangeBrokerModal.css';
@@ -113,40 +116,14 @@ const ChangeBrokerModal = ({
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={handleClose}
-      aria-labelledby="change-broker-modal"
-      aria-describedby="change-broker-modal-description"
-      className="change-broker-modal-backdrop"
-    >
-      <Box
-        className="change-broker-modal"
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '90%',
-          maxWidth: 500,
-          bgcolor: 'background.paper',
-          borderRadius: 2,
-          boxShadow: 24,
-          p: 4,
-        }}
-      >
-        <Box className="modal-header">
-          <Settings sx={{ mr: 2, color: '#1976d2', fontSize: '1.5rem' }} />
-          <Typography id="change-broker-modal" variant="h5" component="h2" className="modal-title">
-            Cambiar Configuración MQTT
+    <Dialog open={open} onClose={handleClose}>
+      <DialogTitle>Cambiar Configuración MQTT</DialogTitle>
+      <DialogContent>
+        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary" className="modal-subtitle">
+            Modifica la configuración del broker MQTT y el topic para cambiar la fuente de datos de los sensores.
           </Typography>
-        </Box>
 
-        <Typography variant="body2" color="text.secondary" className="modal-subtitle">
-          Modifica la configuración del broker MQTT y el topic para cambiar la fuente de datos de los sensores.
-        </Typography>
-
-        <Box className="modal-form-field">
           <TextField
             label="URL del Broker"
             value={formData.brokerUrl}
@@ -158,9 +135,7 @@ const ChangeBrokerModal = ({
             disabled={loading}
             placeholder="wss://broker.hivemq.com/mqtt"
           />
-        </Box>
 
-        <Box className="modal-form-field">
           <TextField
             label="Puerto"
             value={formData.port}
@@ -173,9 +148,7 @@ const ChangeBrokerModal = ({
             placeholder="8884"
             type="number"
           />
-        </Box>
 
-        <Box className="modal-form-field">
           <TextField
             label="Topic MQTT"
             value={formData.topic}
@@ -187,52 +160,50 @@ const ChangeBrokerModal = ({
             disabled={loading}
             placeholder="luixxa/dht11"
           />
+
+          <Alert severity="info" className="current-config-alert">
+            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+              Configuración actual:
+            </Typography>
+            <Stack spacing={0.5} sx={{ mt: 1 }}>
+              <Typography variant="caption" className="config-item">
+                <span className="config-label">Broker:</span> {currentBroker}
+              </Typography>
+              <Typography variant="caption" className="config-item">
+                <span className="config-label">Puerto:</span> {currentPort}
+              </Typography>
+              <Typography variant="caption" className="config-item">
+                <span className="config-label">Topic:</span> {currentTopic}
+              </Typography>
+            </Stack>
+          </Alert>
+
+          {errors.submit && (
+            <Typography variant="caption" color="error" sx={{ mt: 2, display: 'block' }}>
+              {errors.submit}
+            </Typography>
+          )}
         </Box>
-
-        <Alert severity="info" className="current-config-alert">
-          <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
-            Configuración actual:
-          </Typography>
-          <Stack spacing={0.5} sx={{ mt: 1 }}>
-            <Typography variant="caption" className="config-item">
-              <span className="config-label">Broker:</span> {currentBroker}
-            </Typography>
-            <Typography variant="caption" className="config-item">
-              <span className="config-label">Puerto:</span> {currentPort}
-            </Typography>
-            <Typography variant="caption" className="config-item">
-              <span className="config-label">Topic:</span> {currentTopic}
-            </Typography>
-          </Stack>
-        </Alert>
-
-        {errors.submit && (
-          <Typography variant="caption" color="error" sx={{ mt: 2, display: 'block' }}>
-            {errors.submit}
-          </Typography>
-        )}
-
-        <DialogActions className="modal-actions">
-          <Button 
-            onClick={handleClose} 
-            disabled={loading}
-            startIcon={<Cancel />}
-            className="btn-cancel"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-            variant="contained"
-            className="btn-save"
-            startIcon={loading ? undefined : <Save />}
-          >
-            {loading ? 'Guardando...' : 'Guardar'}
-          </Button>
-        </DialogActions>
-      </Box>
-    </Modal>
+      </DialogContent>
+      <DialogActions>
+        <Button 
+          onClick={handleClose} 
+          disabled={loading}
+          startIcon={<Cancel />}
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          color="primary"
+          variant="contained"
+          disabled={loading}
+          startIcon={loading ? undefined : <Save />}
+        >
+          {loading ? 'Guardando...' : 'Guardar'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
