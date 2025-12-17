@@ -13,10 +13,10 @@ export class TratamientoInsumo {
   @PrimaryGeneratedColumn({ name: 'id_tratamiento_insumo' })
   id_tratamiento_insumo: number;
 
-  @Column({ name: 'id_tratamiento', type: 'int' })
+  @Column({ name: 'id_tratamiento', type: 'int', insert: false, update: false })
   id_tratamiento: number;
 
-  @Column({ name: 'id_insumo', type: 'int' })
+  @Column({ name: 'id_insumo', type: 'int', insert: false, update: false })
   id_insumo: number;
 
   @Column({

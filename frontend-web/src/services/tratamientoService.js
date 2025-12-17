@@ -166,7 +166,8 @@ const tratamientoService = {
       ...(data.id_epa !== undefined && data.id_epa !== '' ? { id_epa: Number(data.id_epa) } : {}),
       ...(data.tipo !== undefined ? { 
         tipo: data.tipo.charAt(0).toUpperCase() + data.tipo.slice(1).toLowerCase() 
-      } : {})
+      } : {}),
+      ...(data.insumos !== undefined ? { insumos: data.insumos } : {})
     };
     
     console.log('DEBUG: Payload a enviar:', payload);

@@ -125,8 +125,8 @@ export class TratamientosService {
 
     if (esNuevo) {
       const tratamientoInsumo = queryRunner.manager.create(TratamientoInsumo, {
-        id_tratamiento,
-        id_insumo: insumo.id_insumo,
+        id_tratamientos: { id_tratamiento } as Tratamiento,
+        id_insumos: { id_insumo: insumo.id_insumo } as Insumo,
         cantidad_usada: cantidadRequerida,
         unidad_medida: insumoDto.unidad_medida || 'unidades',
       });
@@ -349,8 +349,8 @@ export class TratamientosService {
           } else {
             // Crear nuevo
             const nuevoInsumo = queryRunner.manager.create(TratamientoInsumo, {
-              id_tratamiento: tratamiento.id_tratamiento,
-              id_insumo: insumoDto.id_insumo,
+              id_tratamientos: { id_tratamiento: tratamiento.id_tratamiento } as Tratamiento,
+              id_insumos: { id_insumo: insumoDto.id_insumo } as Insumo,
               cantidad_usada: cantidadNueva,
               unidad_medida: insumoDto.unidad_medida,
             });
